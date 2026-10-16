@@ -1,0 +1,129 @@
+.tourtois-settings-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.tourtois-settings-mobile-select {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .tourtois-system-settings .tourtois-settings-layout {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* These scoped rules outrank shell.css's desktop defaults even when the
+     bundler places this imported sheet before those defaults. */
+  .tourtois-settings-layout .tourtois-settings-nav {
+    display: none;
+  }
+
+  .tourtois-settings-mobile-select {
+    display: block;
+    min-width: 0;
+    padding: var(--spacing-sm);
+    border-bottom: var(--border) solid var(--stipe-hairline);
+  }
+
+  .tourtois-settings-mobile-select .select {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .tourtois-settings-layout .tourtois-settings-content {
+    flex: 1;
+    min-height: 0;
+    padding: var(--spacing-sm);
+  }
+}
+
+.tourtois-connectors {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+@media (max-width: 640px) {
+  .tourtois-github-connection-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .tourtois-github-connection-controls {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+
+.tourtois-connector-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+.tourtois-connector-row {
+  grid-column: 1 / -1;
+  min-width: 0;
+  width: 100%;
+}
+.tourtois-connector-row-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+  width: 10rem;
+  max-width: 100%;
+  min-width: 0;
+}
+.tourtois-connector-row[data-computer="true"] .tourtois-connector-row-controls {
+  width: 20rem;
+}
+.tourtois-connector-select-slot {
+  flex: 1;
+  min-width: 0;
+}
+.tourtois-connector-row-details {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.tourtois-connector-row[data-stacked="true"] .tourtois-connector-row-controls {
+  width: 100%;
+}
+
+/* Websites: each saved site is a summary line that opens into a short,
+   readable install guide. The guide is Caps Prose; the code is a Caps
+   CopyField block, so this file only lays the pieces out. */
+.tourtois-website-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.tourtois-website-hosts {
+  color: var(--stipe-fg-muted);
+  overflow-wrap: anywhere;
+}
+.tourtois-website-guide {
+  display: grid;
+  gap: var(--spacing-md);
+  min-width: 0;
+  border-top: var(--border) solid var(--stipe-hairline);
+  padding-top: var(--spacing-md);
+}
+.tourtois-website-doc {
+  max-width: 44rem;
+  min-width: 0;
+}
+.tourtois-website-doc > :first-child {
+  margin-top: 0;
+}
+.tourtois-website-note {
+  color: var(--stipe-fg-muted);
+}
+
+/* The Settings panel owns scrolling; its GitHub contents retain their natural
+   height rather than shrinking the form and feedback inside the flex column. */
+.tourtois-github-settings > * {
+  flex-shrink: 0;
+}

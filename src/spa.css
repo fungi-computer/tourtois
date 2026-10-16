@@ -1,0 +1,11 @@
+html,
+body,
+#tourtois-root {
+  height: 100%;
+  margin: 0;
+}
+
+#tourtois-root {
+  background: var(--color-base-100);
+  overflow: hidden;
+}

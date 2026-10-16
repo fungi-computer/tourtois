@@ -1,0 +1,16 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // Workbench fixtures import Shed and Workflows source, which read the
+    // Lantern and workflows-wire builds.
+    "typecheck": {
+      "dependsOn": [
+        "build",
+        "@fungi.computer/lantern#build",
+        "@fungi.computer/workflows-wire#build",
+      ],
+      "outputs": [],
+    },
+  },
+}

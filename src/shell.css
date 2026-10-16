@@ -1,0 +1,858 @@
+@import "./chrome.css";
+@import "./spa.css";
+@import "./settings-navigation.css";
+
+/* SH-1: a 32px desktop menu bar on desktop widths, matching the window
+   title bar and footer so the three chrome bars read as one system.
+   chrome.css keeps its documented 48px/40px-mascot base (Caps' own
+   `.caps-app-bar-launcher-button` default) for every other caller; this
+   override lives only here, scoped to the Tourtois desktop shell, and never
+   touches packages/caps. Phone keeps the existing 48px bar and its
+   touch-target launcher sizing below, untouched. */
+@media (min-width: 541px) {
+  .tourtois-desktop-menu {
+    flex: 0 0 var(--spacing-2xl);
+    height: var(--spacing-2xl);
+    min-height: var(--spacing-2xl);
+  }
+  .tourtois-desktop-menu .caps-app-bar-launcher-button {
+    width: var(--spacing-xl);
+    height: var(--spacing-xl);
+    padding: var(--spacing-2xs);
+  }
+}
+
+.tourtois-shell {
+  position: relative;
+  isolation: isolate;
+  background: var(--color-base-100);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tourtois-team-desktop {
+  min-height: 100%;
+}
+
+.tourtois-workbench {
+  box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
+  overflow: clip;
+  padding: 0;
+  position: relative;
+}
+
+.tourtois-workbench-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+}
+
+.tourtois-system-menu-trigger {
+  width: auto;
+  min-width: var(--spacing-2xl);
+  gap: var(--spacing-xs);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tourtois-system-menu-trigger svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.tourtois-team-name {
+  min-width: 0;
+  max-width: min(10rem, 28vw);
+  /* Keep the final glyph clear of the truncation edge when the name fits. */
+  padding-inline-end: var(--spacing-2xs);
+}
+
+.tourtois-system-settings {
+  width: min(58rem, calc(100vw - var(--spacing-lg)));
+  height: 85dvh;
+  max-height: calc(100dvh - var(--spacing-lg));
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+  padding: 0;
+  overflow: hidden;
+}
+
+.tourtois-app-consent {
+  width: min(28rem, calc(100vw - var(--spacing-lg)));
+  max-width: none;
+  padding: 0;
+  overflow: hidden;
+}
+
+.tourtois-app-consent-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+}
+
+.tourtois-settings-layout {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.tourtois-settings-nav {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  border-right: var(--border) solid var(--stipe-hairline);
+}
+
+.tourtois-settings-nav .btn {
+  justify-content: flex-start;
+}
+
+.tourtois-settings-nav-item-label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tourtois-settings-nav :is(svg, .caps-monogram) {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+
+.tourtois-settings-nav-label {
+  margin: var(--spacing-md) var(--spacing-sm) var(--spacing-xs);
+}
+
+.tourtois-settings-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: auto;
+  padding: var(--spacing-md);
+}
+.tourtois-settings-app-header {
+  flex-shrink: 0;
+}
+.tourtois-settings-content[hidden] {
+  display: none;
+}
+
+.tourtois-settings-nav-sprite {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+
+/* Every settings page opens the same way: one heading, one muted lede. */
+.tourtois-settings-lede {
+  max-width: 60ch;
+  margin: 0 0 var(--spacing-md);
+  font-size: var(--text-sm);
+  color: var(--stipe-fg-muted);
+}
+
+.tourtois-sprite-styles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.tourtois-sprite-styles .caps-choice-card,
+.tourtois-avatar-characters .caps-choice-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+}
+.tourtois-sprite-styles .caps-choice-card-copy,
+.tourtois-avatar-characters .caps-choice-card-copy {
+  display: contents;
+}
+.tourtois-sprite-styles .caps-choice-card-description,
+.tourtois-avatar-characters .caps-choice-card-description {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+.tourtois-sprite-styles .caps-radio,
+.tourtois-avatar-characters .caps-radio {
+  grid-column: 1;
+  grid-row: 2;
+}
+.tourtois-sprite-styles .caps-choice-card-title,
+.tourtois-avatar-characters .caps-choice-card-title {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.tourtois-sprite-style-preview {
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.tourtois-settings-app-content:not([hidden]),
+.tourtois-settings-permissions:not([hidden]),
+.tourtois-permissions-form,
+.tourtois-app-permissions-list,
+.tourtois-permission-page:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.tourtois-settings-advanced:not([hidden]) {
+  display: grid;
+  align-content: start;
+  gap: var(--spacing-xl);
+}
+
+/* An App's Advanced page: titled sections, each a muted line and its keys. */
+.tourtois-settings-advanced > section {
+  display: grid;
+  justify-items: start;
+  gap: var(--spacing-sm);
+}
+.tourtois-settings-advanced > section > * {
+  justify-self: stretch;
+}
+.tourtois-settings-advanced > section > .btn {
+  justify-self: start;
+}
+.tourtois-settings-description {
+  margin: 0;
+  color: var(--stipe-fg-muted);
+}
+
+.tourtois-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.tourtois-settings-app-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-left: auto;
+}
+
+.tourtois-settings-app-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.tourtois-settings-app-header h2 {
+  margin: 0;
+}
+
+.tourtois-settings-app-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.tourtois-settings-app-heading :is(svg, .caps-monogram) {
+  width: 2rem;
+  height: 2rem;
+}
+
+.tourtois-app-permission-entry {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: var(--spacing-md);
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.tourtois-permission-display {
+  display: flex;
+  flex: 1;
+  min-height: 16rem;
+}
+
+.tourtois-permission-display .caps-display-gasket {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.tourtois-permission-display .caps-screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+.tourtois-permission-screen-footer {
+  flex-shrink: 0;
+}
+.tourtois-permission-legend-heading {
+  display: flex;
+  margin-bottom: var(--spacing-xs);
+}
+.tourtois-permission-legend-divider {
+  --divider-color: var(--stipe-hairline);
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  height: auto;
+  min-height: 1rem;
+  font-size: 0.625rem;
+  gap: var(--spacing-sm);
+}
+.tourtois-permission-legend-divider::before,
+.tourtois-permission-legend-divider::after {
+  width: auto;
+  min-width: var(--spacing-sm);
+  height: 1px;
+}
+.tourtois-permission-legend-divider:first-child::before,
+.tourtois-permission-legend-divider:last-child::after {
+  flex: 0 0 var(--spacing-sm);
+}
+.tourtois-permission-legend-divider:last-child {
+  flex: 0 1 auto;
+}
+.tourtois-permission-legend-divider .tourtois-permission-help {
+  white-space: normal;
+  text-align: right;
+}
+
+.tourtois-permission-display-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.tourtois-permission-selectors {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md);
+}
+.tourtois-permission-selectors .caps-field {
+  min-width: 0;
+}
+.tourtois-permission-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  font-size: 0.75rem;
+  margin: 0;
+}
+.tourtois-permission-legend > div {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex: 1 1 max-content;
+  min-width: 0;
+}
+.tourtois-permission-legend dt {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+.tourtois-permission-legend svg {
+  width: 1rem;
+  height: 1rem;
+}
+.tourtois-permission-legend dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-base-content);
+}
+.tourtois-permission-help {
+  font-size: 0.75rem;
+  margin: 0;
+  color: var(--color-base-content);
+}
+@media (max-width: 680px) {
+  .tourtois-permission-selectors {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tourtois-settings-discard {
+  padding: var(--spacing-md);
+  border-top: var(--border) solid var(--stipe-hairline);
+}
+
+/* The <=480px settings layout (hide the nav, show the mobile <select>) is
+   owned entirely by settings-navigation.css, @imported above; this file no
+   longer duplicates that breakpoint's rules. */
+
+.tourtois-focused-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-inline-start: auto;
+}
+@media (max-width: 540px) {
+  .tourtois-app-permission-entry .tourtois-permission-selectors {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tourtois-desktop-menu .tourtois-team-name {
+    display: none;
+  }
+  /* The running-App menu and mascot each occupy one phone touch slot. */
+  .tourtois-desktop-menu > .caps-app-bar {
+    min-inline-size: calc(var(--caps-touch-target) + var(--spacing-sm));
+  }
+  .tourtois-desktop-menu .caps-app-bar-launcher-button {
+    width: var(--caps-touch-target);
+    height: var(--caps-touch-target);
+    padding: var(--spacing-xs);
+  }
+  .tourtois-desktop-menu > .tourtois-system-menu-trigger {
+    flex-shrink: 0;
+    min-inline-size: var(--caps-touch-target);
+  }
+}
+
+.tourtois-app-settings-facts {
+  display: grid;
+  gap: var(--spacing-sm, 0.5rem);
+  margin: var(--spacing-md, 0.75rem) 0;
+}
+
+.tourtois-app-settings-facts div {
+  display: grid;
+  gap: var(--spacing-xs, 0.25rem);
+  grid-template-columns: 9rem minmax(0, 1fr);
+}
+
+.tourtois-app-settings-facts dt {
+  color: var(--stipe-fg-muted, var(--color-base-content));
+  font-size: 0.8rem;
+}
+
+.tourtois-app-settings-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.tourtois-pane-layer {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  width: 100%;
+}
+
+.tourtois-pane {
+  pointer-events: auto;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.tourtois-pane-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.tourtois-app-pane .tourtois-pane-body > div {
+  /* The window's stable App slot; the host mounts the App frame inside it. */
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.tourtois-app-pane .tourtois-pane-body iframe {
+  border: 0;
+  display: block;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+.tourtois-window-status {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: 12px;
+  color: var(--stipe-fg-muted);
+}
+.tourtois-app-loading {
+  align-items: center;
+  background: var(--color-base-100);
+  color: var(--color-base-content);
+  display: flex;
+  gap: var(--spacing-md);
+  inset: 0;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  position: absolute;
+  z-index: 1;
+}
+.tourtois-app-loading > :is(svg, .caps-monogram) {
+  flex: none;
+  height: 2rem;
+  width: 2rem;
+}
+.tourtois-app-loading > div {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+.tourtois-app-loading span {
+  color: var(--stipe-fg-muted);
+  font-size: var(--text-sm);
+}
+.tourtois-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  pointer-events: auto;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.tourtois-team-git {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  overflow-y: auto;
+}
+.tourtois-team-git > h2,
+.tourtois-team-git > .tourtois-settings-lede {
+  margin: 0;
+}
+.tourtois-team-git > h2 + .tourtois-settings-lede {
+  margin-top: calc(var(--spacing-xs) - var(--spacing-lg));
+}
+
+/* The tracker is one settings row; its details, notes and action sit under
+   the label, past the row's Sigil. */
+.tourtois-tracker-repository {
+  --tourtois-tracker-inset: calc(1.75rem + var(--spacing-sm));
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.tourtois-tracker-repository-row {
+  grid-template-columns: minmax(0, 6rem) minmax(0, 1fr);
+  align-items: baseline;
+  padding-inline-start: var(--tourtois-tracker-inset);
+  font-size: var(--text-sm);
+}
+
+.tourtois-tracker-repository-value {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.tourtois-tracker-repository-note {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--stipe-fg-muted);
+}
+.tourtois-tracker-repository-note[data-tone="error"] {
+  color: var(--color-error);
+}
+.tourtois-tracker-repository > .tourtois-tracker-repository-note {
+  padding-inline-start: var(--tourtois-tracker-inset);
+}
+
+.tourtois-tracker-repository-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding-inline-start: var(--tourtois-tracker-inset);
+}
+.tourtois-tracker-repository-action > :first-child {
+  flex: 1 1 16rem;
+}
+.tourtois-tracker-repository-action > .btn {
+  margin-inline-start: auto;
+}
+
+.tourtois-team-git-sigil {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+/* The App screen scrolls as one instrument, leaving its header and Save visible. */
+.tourtois-app-permission-entry .tourtois-permission-display {
+  min-height: 0;
+}
+.tourtois-permission-screen-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--spacing-xs);
+}
+.tourtois-permission-section-heading {
+  margin: var(--spacing-sm) 0 2px;
+  padding-bottom: 2px;
+  border-bottom: var(--border) solid var(--stipe-hairline);
+}
+.tourtois-permission-screen-body
+  section:first-child
+  .tourtois-permission-section-heading {
+  margin-top: var(--spacing-xs);
+}
+.tourtois-permission-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 0.75rem;
+}
+.tourtois-permission-shortcuts label,
+.tourtois-permission-all-rights {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+.tourtois-permission-shortcuts > span {
+  flex-basis: 100%;
+}
+@media (max-width: 540px) {
+  .tourtois-permission-selectors > div:empty {
+    display: none;
+  }
+}
+
+/* Layer roots stay transparent; composed portal content receives input. */
+.tourtois-shell [data-maosaico-layer] > * {
+  pointer-events: auto;
+}
+
+.tourtois-launcher-preference {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: var(--spacing-xl) minmax(0, 1fr) 7rem;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  min-width: 0;
+}
+.tourtois-launcher-preference-identity {
+  display: grid;
+  gap: var(--spacing-2xs);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Bento geometry belongs to Maosaico; these boxes only host and scroll its Gills. */
+.tourtois-desktop {
+  height: 100%;
+  overflow: auto;
+  padding: 16px;
+}
+.tourtois-desktop-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.tourtois-desktop-controls {
+  margin-bottom: 16px;
+}
+.tourtois-desktop-add-gill {
+  width: 11rem;
+  flex: 0 0 auto;
+}
+.tourtois-gill-controls {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+}
+.tourtois-gill-sizes {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+.tourtois-desktop-stage {
+  position: relative;
+}
+.tourtois-desktop-tile {
+  position: absolute;
+  min-width: 0;
+}
+.tourtois-gill-frame {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.tourtois-gill-frame > :last-child {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.tourtois-gill-body {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+.tourtois-gill-text-row {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+}
+
+/* Touch controls share the title row; reserve their height before arranging so
+   entering edit mode leaves the Gill content's viewport unchanged. */
+@media (max-width: 640px), (any-pointer: coarse) {
+  .tourtois-gill-frame .caps-section-card-heading-row {
+    min-height: 44px;
+  }
+  .tourtois-gill-frame .caps-card-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Measure the natural Gill body without margins collapsing out of its box. */
+.tourtois-gill-content {
+  display: flow-root;
+}
+
+@media (max-width: 640px), (any-pointer: coarse) {
+  .tourtois-gill-sizes {
+    gap: 20px;
+  }
+  /* Reset Caps join composition when its expanded touch targets apply. */
+  .tourtois-gill-sizes > .join-item {
+    --join-ss: initial;
+    --join-se: initial;
+    --join-es: initial;
+    --join-ee: initial;
+    margin-inline-start: 0;
+  }
+}
+
+/* Keep the maintained Caps modal and scrim; phone placement is a bottom sheet. */
+@media (max-width: 540px) {
+  .tourtois-gill-param-dialog {
+    top: auto;
+    bottom: 0;
+    translate: -50% 0;
+  }
+}
+
+.tourtois-avatar-picker {
+  display: grid;
+  grid-template-columns: minmax(9rem, 0.7fr) minmax(0, 2fr);
+  align-items: start;
+  gap: var(--spacing-lg);
+}
+.tourtois-avatar-preview {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  padding: var(--spacing-md);
+}
+.tourtois-avatar-preview p {
+  font-size: var(--text-sm);
+}
+.tourtois-avatar-large {
+  display: block;
+  width: 10rem;
+  height: 10rem;
+  max-width: 100%;
+}
+.tourtois-avatar-controls {
+  display: grid;
+  gap: var(--spacing-lg);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+.tourtois-avatar-characters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+}
+.tourtois-avatar-character-preview {
+  display: block;
+  height: 4.5rem;
+  width: 100%;
+}
+.tourtois-avatar-swatches,
+.tourtois-avatar-faces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+.tourtois-avatar-swatch {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--color-base-300);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.tourtois-avatar-custom-colours {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+.tourtois-avatar-custom-colours input {
+  min-height: 2.75rem;
+  padding: 0.25rem;
+}
+.tourtois-avatar-agents {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  text-align: center;
+  font-size: var(--text-xs);
+}
+.tourtois-avatar-agent-preview {
+  display: block;
+  width: 100%;
+  height: 3rem;
+}
+@media (max-width: 700px) {
+  .tourtois-avatar-picker {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tourtois-avatar-large {
+    width: 7rem;
+    height: 7rem;
+  }
+}

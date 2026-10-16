@@ -1,0 +1,153 @@
+/* Tourtois desktop chrome: menu bar, App menus, command dialogs and status. */
+.tourtois-desktop-menu {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  /* A 48px bar on the Stipe grid: 40px launcher and 32px menu triggers sit
+     on whole 4px and 8px insets. Its rules are inset shadows, so the 1px
+     lines never push the row off the grid. */
+  flex: 0 0 var(--spacing-3xl);
+  height: var(--spacing-3xl);
+  min-height: var(--spacing-3xl);
+  gap: var(--spacing-xs);
+  padding: 0 var(--spacing-sm);
+  background: var(--color-base-200);
+  color: var(--color-base-content);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 24%, transparent),
+    inset 0 -1px 0
+      color-mix(in oklab, var(--color-base-content) 14%, var(--color-base-200));
+  font-size: 12px;
+}
+.tourtois-focused-app {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 750;
+  line-height: var(--spacing-lg);
+  padding-inline: var(--spacing-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tourtois-command-palette {
+  display: grid;
+  gap: var(--spacing-sm);
+  max-width: min(44rem, calc(100vw - 1rem));
+  width: min(44rem, calc(100vw - 1rem));
+}
+.tourtois-command-palette-heading {
+  align-items: center;
+  display: flex;
+  font-size: var(--text-lg);
+  font-weight: 650;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+.tourtois-command-palette-heading svg {
+  height: 1.5rem;
+  width: 1.5rem;
+}
+.tourtois-command-palette-item {
+  align-items: center;
+  display: flex;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  width: 100%;
+}
+.tourtois-command-palette-item-icon {
+  display: grid;
+  flex: 0 0 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  width: 1.5rem;
+}
+.tourtois-command-palette-item-icon svg {
+  height: 1.5rem;
+  width: 1.5rem;
+}
+.tourtois-command-palette-item-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tourtois-command-palette-item small {
+  flex: 0 0 auto;
+  color: var(--stipe-fg-muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+.tourtois-command-palette-shortcut {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.2rem;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+.tourtois-command-palette-footer {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  justify-content: space-between;
+  padding: var(--spacing-xs) var(--spacing-sm) 0;
+}
+.tourtois-command-palette-close-hint {
+  color: var(--stipe-fg-muted);
+  font-size: var(--text-xs);
+}
+.tourtois-command-palette-leader-hint {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  justify-content: flex-end;
+}
+@media (max-width: 28rem) {
+  .tourtois-command-palette-item small {
+    font-size: 0.6rem;
+    max-width: 4.5rem;
+    text-align: right;
+    white-space: normal;
+  }
+  .tourtois-command-palette-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .tourtois-command-palette-leader-hint {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 540px) {
+  .tourtois-desktop-menu {
+    gap: 0;
+  }
+  /* The App surface identifies itself without a clipped repeat in the bar. */
+  .tourtois-focused-app {
+    display: none;
+  }
+}
+
+/* App status actions: flat chips on the picker's surface that keep their
+   size, show a pressed or open state, and go icon-only on a phone. */
+.tourtois-status-chip {
+  flex: none;
+  max-width: none;
+}
+.tourtois-status-chip[aria-pressed="true"],
+.tourtois-status-chip[aria-expanded="true"] {
+  background: var(--color-base-300);
+}
+@media (max-width: 640px) {
+  .tourtois-status-chip:has(> svg) .tourtois-status-chip-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vitest/globals", "vite/client"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noEmit": true
+  },
+  "include": [
+    "workbench/**/*.ts",
+    "workbench/**/*.tsx",
+    ".ladle/**/*.ts",
+    ".ladle/**/*.tsx"
+  ]
+}
