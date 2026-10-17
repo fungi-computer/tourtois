@@ -111,7 +111,7 @@ export function LauncherGill({
               {
                 id: "all-apps",
                 label: "All Apps ›",
-                icon: <Sigil name="installApps" />,
+                icon: <Sigil name="allApps" />,
                 onSelect: onAllApps,
               },
             ]}

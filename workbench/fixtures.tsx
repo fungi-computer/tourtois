@@ -165,7 +165,7 @@ function appDirectory(
           {
             appId: "games",
             displayName: "Games",
-            icon: "run",
+            icon: "games",
             roles: ["games"],
           },
         ]
@@ -773,6 +773,7 @@ function createFixtureHost(
           events.onNavigationState?.(state);
           return Promise.resolve();
         },
+        onActivate: () => () => undefined,
         onBack: (handler) => {
           back = handler;
           return () => {
@@ -907,7 +908,7 @@ function createFixtureHost(
               <ShedWorkspaceView app={shed.app} computerId="Workbench" />
             </ShedDataContext.Provider>
           ) : workflows ? (
-            <WorkflowEditor store={workflows} />
+            <WorkflowEditor store={workflows} active />
           ) : null,
         );
       };
@@ -927,6 +928,7 @@ function createFixtureHost(
         },
         requestClose: async () => (await inkcap?.requestClose()) ?? true,
         requestBack: async () => (await back?.()) ?? false,
+        activateNavigation: () => Promise.resolve(false),
         activateStatus: async (action) =>
           (await statusAction?.(action)) ?? false,
         dispose: () =>

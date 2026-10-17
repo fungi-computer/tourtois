@@ -19,10 +19,12 @@ import {
 } from "@fungi.computer/maosaico";
 import {
   AppError,
+  type AppNavigationActivation,
+  type AppNavigationState,
   type AppStatusAction,
   type AppStatusItem as AppStatusItemData,
 } from "@fungi.computer/agar";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { AppIcon } from "./app-icon.js";
 import { useWindowMotion } from "./use-window-motion.js";
 import { backHint } from "./shell-commands.js";
@@ -31,6 +33,40 @@ import {
   type AppWindowProjection,
 } from "./app-windows.js";
 import { launchComputerId, type AppDirectoryApp } from "./app-launch.js";
+
+/**
+ * The App's own path, commands and state, when it publishes them; an App
+ * that publishes none keeps the title and subtitle in its header.
+ */
+function headerContent(
+  navigation: AppNavigationState | null,
+  popover: HTMLElement | null,
+  activate: (activation: AppNavigationActivation) => void,
+): Partial<ComponentProps<typeof WindowHeader>> {
+  if (navigation?.crumbs === undefined || navigation.crumbs.length === 0)
+    return {};
+  let content: Partial<ComponentProps<typeof WindowHeader>> = {
+    crumbs: navigation.crumbs,
+    popover,
+    onCrumb: (crumbId, siblingId) => {
+      activate(
+        siblingId === undefined
+          ? { kind: "crumb", crumbId }
+          : { kind: "crumb", crumbId, siblingId },
+      );
+    },
+    onAction: (actionId) => {
+      activate({ kind: "action", actionId });
+    },
+  };
+  if (navigation.primary !== undefined)
+    content = { ...content, primary: navigation.primary };
+  if (navigation.menu !== undefined)
+    content = { ...content, menu: navigation.menu };
+  if (navigation.status !== undefined)
+    content = { ...content, status: navigation.status };
+  return content;
+}
 
 const windowStatusLabel = (projection: AppWindowProjection): string => {
   if (projection.status === "error")
@@ -100,6 +136,7 @@ export function AppPane({
   onSelectComputer: (windowId: string, computerId: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const popover = useLayer("popover");
   const [computerPickerOpen, setComputerPickerOpen] = useState(false);
   useEffect(() => {
     if (projection.launch.computers === undefined) return;
@@ -200,6 +237,14 @@ export function AppPane({
         {...(projection.navigation?.title === undefined
           ? {}
           : { subtitle: projection.navigation.title })}
+        {...headerContent(projection.navigation, popover, (activation) => {
+          void manager
+            .activateNavigation(projection.windowId, activation)
+            .catch((cause: unknown) => {
+              console.error("App workbench operation failed", cause);
+              onError("App could not handle that action.");
+            });
+        })}
         density={layout.mode === "tiled" ? "compact" : "regular"}
         icon={<AppIcon roles={projection.launch.roles} icon={icon} />}
         {...(projection.navigation?.canGoBack === true

@@ -150,7 +150,7 @@ const keysFixtureIds = defineIdFamily({
 const keysDemoApps = (
   [
     { appId: "bonsai", displayName: "Bonsai", icon: "bonsai", roles: [] },
-    { appId: "trellis", displayName: "Trellis", icon: "run", roles: [] },
+    { appId: "trellis", displayName: "Trellis", icon: "trellis", roles: [] },
     {
       appId: "shed",
       displayName: "Shed",

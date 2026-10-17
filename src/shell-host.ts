@@ -1,6 +1,14 @@
 import {
   APP_NAVIGATION_TITLE_MAX,
   parseAppStatusItems,
+  APP_NAVIGATION_CRUMBS_MAX,
+  APP_NAVIGATION_LABEL_MAX,
+  APP_NAVIGATION_MENU_MAX,
+  APP_NAVIGATION_PRIMARY_MAX,
+  APP_NAVIGATION_SIBLINGS_MAX,
+  APP_NAVIGATION_STATUS_MAX,
+  type AppHeaderCommand,
+  type AppHeaderStatus,
   type AppNavigationState,
 } from "@fungi.computer/agar";
 import type { AppCommandContribution } from "@fungi.computer/agar/host";
@@ -58,10 +66,51 @@ const platformDestinationsSchema = z
   )
   .max(8);
 
+const relayId = z.string().min(1).max(64);
+const relayLabel = z.string().min(1).max(APP_NAVIGATION_LABEL_MAX);
+const relayCommands = (maximum: number) =>
+  z
+    .array(
+      z.strictObject({
+        id: relayId,
+        label: relayLabel,
+        variant: z.enum(["primary", "outline", "ghost"]).optional(),
+        tone: z.literal("destructive").optional(),
+        disabled: z.boolean().optional(),
+      }),
+    )
+    .max(maximum);
 const navigationRelaySchema = z
   .strictObject({
     canGoBack: z.boolean(),
     title: z.string().trim().min(1).max(APP_NAVIGATION_TITLE_MAX).optional(),
+    crumbs: z
+      .array(
+        z.strictObject({
+          id: relayId,
+          label: relayLabel,
+          siblings: z
+            .array(z.strictObject({ id: relayId, label: relayLabel }))
+            .max(APP_NAVIGATION_SIBLINGS_MAX)
+            .optional(),
+        }),
+      )
+      .max(APP_NAVIGATION_CRUMBS_MAX)
+      .optional(),
+    primary: relayCommands(APP_NAVIGATION_PRIMARY_MAX).optional(),
+    menu: relayCommands(APP_NAVIGATION_MENU_MAX).optional(),
+    status: z
+      .array(
+        z.strictObject({
+          id: relayId,
+          label: relayLabel,
+          tone: z
+            .enum(["neutral", "info", "warning", "success", "error"])
+            .optional(),
+        }),
+      )
+      .max(APP_NAVIGATION_STATUS_MAX)
+      .optional(),
   })
   .nullable();
 
@@ -69,9 +118,42 @@ const navigationRelaySchema = z
 function parseNavigationRelay(value: unknown): AppNavigationState | null {
   const state = navigationRelaySchema.parse(value);
   if (state === null) return null;
-  return state.title === undefined
-    ? { canGoBack: state.canGoBack }
-    : { canGoBack: state.canGoBack, title: state.title };
+  let parsed: AppNavigationState = { canGoBack: state.canGoBack };
+  if (state.title !== undefined) parsed = { ...parsed, title: state.title };
+  if (state.crumbs !== undefined)
+    parsed = {
+      ...parsed,
+      crumbs: state.crumbs.map((crumb) => {
+        const { siblings, ...rest } = crumb;
+        return siblings === undefined ? rest : { ...rest, siblings };
+      }),
+    };
+  if (state.primary !== undefined)
+    parsed = { ...parsed, primary: state.primary.map(commandOf) };
+  if (state.menu !== undefined)
+    parsed = { ...parsed, menu: state.menu.map(commandOf) };
+  if (state.status !== undefined)
+    parsed = { ...parsed, status: state.status.map(statusOf) };
+  return parsed;
+}
+
+type RelayedCommand = z.output<ReturnType<typeof relayCommands>>[number];
+function commandOf(command: RelayedCommand): AppHeaderCommand {
+  let copy: AppHeaderCommand = { id: command.id, label: command.label };
+  if (command.variant !== undefined)
+    copy = { ...copy, variant: command.variant };
+  if (command.tone !== undefined) copy = { ...copy, tone: command.tone };
+  if (command.disabled !== undefined)
+    copy = { ...copy, disabled: command.disabled };
+  return copy;
+}
+function statusOf(item: {
+  id: string;
+  label: string;
+  tone?: AppHeaderStatus["tone"] | undefined;
+}): AppHeaderStatus {
+  const copy: AppHeaderStatus = { id: item.id, label: item.label };
+  return item.tone === undefined ? copy : { ...copy, tone: item.tone };
 }
 
 function childLaunch(launch: AppLaunchDescriptor): WorkbenchChildLaunch {
@@ -233,6 +315,7 @@ export function createTourtoisShell(
       reconfigure: (nextLaunch) => handle.reconfigure(childLaunch(nextLaunch)),
       requestClose: () => handle.requestClose(),
       requestBack: () => handle.requestBack(),
+      activateNavigation: (activation) => handle.activateNavigation(activation),
       activateStatus: (action) => handle.activateStatus(action),
       dispose: close,
     };

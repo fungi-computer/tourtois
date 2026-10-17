@@ -82,7 +82,7 @@ export function SettingsHome({
               aria-label="Website assistant"
               label="Website assistant"
               description="Set up chat on your WordPress site."
-              icon={<Sigil name="connected" />}
+              icon={<Sigil name="internet" />}
               onClick={() => {
                 onNavigate({ category: "channels" });
               }}
@@ -95,7 +95,7 @@ export function SettingsHome({
               aria-label="Selling"
               label="Selling"
               description="Sell Apps on the Bazaar."
-              icon={<Sigil name="installApps" />}
+              icon={<Sigil name="sell" />}
               onClick={() => {
                 onNavigate({ category: "selling", appId: null });
               }}
@@ -128,7 +128,7 @@ export function SettingsHome({
           <DataRow className="p-0">
             <ActionRow
               aria-label="Members and invites"
-              icon={<Sigil name="listAgents" />}
+              icon={<Sigil name="members" />}
               label="Members and invites"
               description="People and invitations."
               onClick={team.openMembers}
@@ -155,7 +155,7 @@ export function SettingsHome({
           <DataRow className="p-0">
             <ActionRow
               aria-label="Internet access"
-              icon={<Sigil name="connected" />}
+              icon={<Sigil name="internet" />}
               label="Internet access"
               description="Each Computer’s outside access."
               trailing={
