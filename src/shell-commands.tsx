@@ -6,7 +6,7 @@ import {
   backBinding,
   shellCommands,
   type ShellActions,
-} from "@fungi.computer/oyster/shell/commands";
+} from "@fungi.computer/nacre/commands";
 import {
   useEffect,
   useMemo,
@@ -17,11 +17,11 @@ import {
 
 import type { TourtoisAppSurfaceHost } from "./app-surface.js";
 import { AppIcon } from "./app-icon.js";
-import { installShellKeys } from "@fungi.computer/oyster/shell/keys";
+import { installShellKeys } from "@fungi.computer/nacre/keys";
 
 /** The Back hint for this platform, e.g. "Back (Ctrl K, then [)". */
 export function backHint(): string {
-  const key = backBinding.slice("<leader> ".length);
+  const key = backBinding.slice("<leader>".length);
   return `Back (${isMac() ? "⌘K" : "Ctrl K"}, then ${key})`;
 }
 
@@ -102,7 +102,7 @@ export function useShellCommands(
         description:
           "Hide visible Apps, or restore the Apps hidden by Show desktop.",
         projections: {
-          bindings: { values: ["<leader> d"], order: 8 },
+          bindings: { values: ["<leader>d"], order: 8 },
           palette: { order: 18 },
           help: { order: 8 },
         },

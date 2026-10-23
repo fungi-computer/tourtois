@@ -1,7 +1,7 @@
 import type {
   MountPlatformControls,
   MountShell,
-} from "@fungi.computer/oyster/shell/shell-module";
+} from "@fungi.computer/nacre/shell-module";
 
 /**
  * This Release's shell module, emitted as `shell.js` beside `index.html`.

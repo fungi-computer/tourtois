@@ -5,7 +5,7 @@ import { AppIcon } from "./app-icon.js";
 import {
   addressKey,
   type AppAddress,
-} from "@fungi.computer/oyster/shell/app-directory";
+} from "@fungi.computer/nacre/app-directory";
 import { OwnSprite } from "./member-avatar.js";
 import type { SettingsLocation } from "./settings-routes.js";
 

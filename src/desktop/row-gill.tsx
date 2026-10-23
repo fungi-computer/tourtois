@@ -5,7 +5,7 @@ import {
   decodeDeclaredGillResponse,
   type GillResponse,
 } from "@fungi.computer/gills";
-import type { TeamWorkbenchHostHandle } from "@fungi.computer/oyster/shell/workbench";
+import type { TeamWorkbenchHostHandle } from "@fungi.computer/nacre/workbench";
 import type {
   AppDeclaredGill,
   AppGillDesktopSize,

@@ -116,12 +116,20 @@ function appLaunchRequiresDirectoryUpdate(
   return (
     next.appId !== current.appId ||
     next.surfaceId !== current.surfaceId ||
-    stableLaunchHref(next.href, true) !== stableLaunchHref(current.href, true)
+    stableLaunchHref(next.href, true, next.releaseId !== current.releaseId) !==
+      stableLaunchHref(current.href, true, next.releaseId !== current.releaseId)
   );
 }
 
-function stableLaunchHref(href: string, ignoreReleaseId = false): string {
+function stableLaunchHref(
+  href: string,
+  ignoreReleaseId = false,
+  ignoreAuthorityVersion = false,
+): string {
   const url = new URL(href, "https://tourtois.invalid");
   if (ignoreReleaseId) url.searchParams.delete("releaseId");
+  // A promotion changes both selection facts. Leave the admitted mount alone
+  // until Reload; other authority/permission changes still reconcile normally.
+  if (ignoreAuthorityVersion) url.searchParams.delete("authorityVersion");
   return url.pathname + url.search;
 }

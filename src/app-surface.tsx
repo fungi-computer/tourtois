@@ -15,30 +15,32 @@ import type {
 import type { AppOpenInput, AppRoleChoice } from "@fungi.computer/agar/apps";
 import type { AppDeclaredCommand } from "@fungi.computer/puffball/app";
 import type { AppWindowMount } from "./app-windows.js";
+import type { WindowEvents } from "@fungi.computer/nacre/window-manager";
 
 /** What one mounted App may raise toward the shell. */
-export type TourtoisAppMountEvents = Readonly<{
-  onComputerChoice?: () => Promise<void>;
-  onAgentSessionSelection: (
-    selection: AgentSessionSelection | null,
-  ) => Promise<void>;
-  /** A presentation-neutral file handoff to another App. */
-  onNavigation?: (input: FileNavigationInput) => Promise<void>;
-  onAppOpen?: (input: AppOpenInput) => Promise<void>;
-  /** Which App the Team's role routing would open for one role. */
-  onAppRole?: (role: string) => Promise<AppRoleChoice>;
-  onSelectionChanged?: () => Promise<boolean>;
-  /** The App's parsed navigation state for its window chrome. */
-  onNavigationState?: (state: AppNavigationState | null) => void;
-  /** The App's parsed status readouts for its window's status bar. */
-  onStatusItems?: (items: readonly AppStatusItem[]) => void;
-  /**
-   * The App's own document took focus, as when the person clicks into it.
-   * Its sandboxed frame keeps that pointer from this document, so the App's
-   * focus report is what raises its window.
-   */
-  onFocus?: () => void;
-}>;
+export type TourtoisAppMountEvents = Pick<WindowEvents, "onDeliveryPending"> &
+  Readonly<{
+    onComputerChoice?: () => Promise<void>;
+    onAgentSessionSelection: (
+      selection: AgentSessionSelection | null,
+    ) => Promise<void>;
+    /** A presentation-neutral file handoff to another App. */
+    onNavigation?: (input: FileNavigationInput) => Promise<void>;
+    onAppOpen?: (input: AppOpenInput) => Promise<void>;
+    /** Which App the Team's role routing would open for one role. */
+    onAppRole?: (role: string) => Promise<AppRoleChoice>;
+    onSelectionChanged?: () => Promise<boolean>;
+    /** The App's parsed navigation state for its window chrome. */
+    onNavigationState?: (state: AppNavigationState | null) => void;
+    /** The App's parsed status readouts for its window's status bar. */
+    onStatusItems?: (items: readonly AppStatusItem[]) => void;
+    /**
+     * The App's own document took focus, as when the person clicks into it.
+     * Its sandboxed frame keeps that pointer from this document, so the App's
+     * focus report is what raises its window.
+     */
+    onFocus?: () => void;
+  }>;
 
 export type TourtoisAppSurfaceHost = Readonly<{
   /** Mount an App and route its presentation-neutral events here. */

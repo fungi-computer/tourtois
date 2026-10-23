@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   workbenchDirectorySchema,
   type WorkbenchDirectory,
-} from "@fungi.computer/oyster/shell/workbench-directory";
+} from "@fungi.computer/nacre/workbench-directory";
 
 const noRoles: WorkbenchDirectory["roles"] = {};
 
@@ -21,6 +21,9 @@ export function useAppDirectory(
     // The host's selection read can finish before Tourtois mounts. Keep the
     // result fresh for that handoff; explicit mutations still invalidate it.
     staleTime: 5_000,
+    // Quiet open Apps need release availability too, not just after a request
+    // is refused. React Query pauses this polling while the page is hidden.
+    refetchInterval: 15_000,
   });
   return {
     query,

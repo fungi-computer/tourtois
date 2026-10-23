@@ -9,7 +9,7 @@ import { AppWorkbench } from "./AppWorkbench.js";
 import type { SettingsLocation } from "./settings-routes.js";
 import type { ReactNode } from "react";
 import type { AppBarItem } from "@fungi.computer/caps/blocks/app-bar";
-import type { WorkbenchDirectory } from "@fungi.computer/oyster/shell/workbench-directory";
+import type { WorkbenchDirectory } from "@fungi.computer/nacre/workbench-directory";
 import type { PlatformControls } from "./platform-controls.js";
 import type { AppStorage } from "@fungi.computer/agar/storage";
 import type { DesktopGillTransport } from "./desktop/row-gill.js";

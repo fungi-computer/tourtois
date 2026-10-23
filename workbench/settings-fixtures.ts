@@ -1,4 +1,4 @@
-import type { AppDirectory } from "@fungi.computer/oyster/shell/app-directory";
+import type { AppDirectory } from "@fungi.computer/nacre/app-directory";
 import { appDeclarationSchema } from "@fungi.computer/puffball/app";
 import * as Schema from "effect/Schema";
 import tourtoisManifest from "../package.json" with { type: "json" };

@@ -6,7 +6,7 @@ import {
 import type {
   AppCatalog,
   AppDirectory,
-} from "@fungi.computer/oyster/shell/app-directory";
+} from "@fungi.computer/nacre/app-directory";
 import { parseJsonValue } from "@fungi.computer/whistle/wire";
 import { appBackend } from "../backend/methods.js";
 import type { DesktopMethods } from "../src/desktop-api.js";

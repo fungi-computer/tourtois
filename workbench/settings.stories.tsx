@@ -11,7 +11,8 @@ import { desktopSettingsHandler } from "../src/desktop/consent.js";
 import { SystemSettings } from "../src/SystemSettings.js";
 import type { SettingsLocation } from "../src/settings-routes.js";
 import { workbenchPorts } from "./host-ports.js";
-import type { KeyRecord, KeysPort } from "../src/Keys.js";
+import type { KeysPort } from "../src/Keys.js";
+import type { KeySummary } from "@fungi.computer/ear-tag/keys";
 import { createDesktopFixture } from "./fixtures.js";
 import { settingsApps, settingsIconApps } from "./settings-fixtures.js";
 import "./workbench.css";
@@ -190,18 +191,33 @@ const keysDemoApps = (
   };
 });
 
-function keysFixture(initial: readonly KeyRecord[]) {
-  const keys: KeyRecord[] = initial.map((key) => ({ ...key }));
+function keysFixture(initial: readonly KeySummary<string>[]) {
+  let keys: KeySummary<string>[] = initial.map((key) => ({ ...key }));
   const port: KeysPort = {
+    scope: "oyster-demo",
+    expiry: "optional",
+    options: (apps) => {
+      const targets = apps.map((app) => ({
+        id: app.installationId,
+        name: app.displayName,
+      }));
+      return Promise.resolve([
+        { capability: "apps.read", label: "Read Apps", targets },
+        { capability: "apps.use", label: "Use Apps", targets },
+        { capability: "computer.use", label: "Use the Computer" },
+      ]);
+    },
     list: () => Promise.resolve({ keys: structuredClone(keys) }),
     issue: (draft) => {
-      const key: KeyRecord = {
+      const key: KeySummary<string> = {
         keyId: keysFixtureIds.key.generate(),
         name: draft.name,
         grants: [...draft.grants],
-        computerAccess: draft.computerAccess,
-        expiresAt: draft.expiresAt,
+        grantVersion: 1,
+        rateLimit: null,
+        expiresAt: draft.expiresAt ?? null,
         createdAt: Date.now(),
+        updatedAt: Date.now(),
         lastUsedAt: null,
         revokedAt: null,
       };
@@ -211,19 +227,29 @@ function keysFixture(initial: readonly KeyRecord[]) {
     revoke: (keyId) => {
       const key = keys.find((candidate) => candidate.keyId === keyId);
       if (!key) throw new Error("Unknown key");
-      key.revokedAt = Date.now();
-      return Promise.resolve(structuredClone(key));
+      const revoked = { ...key, revokedAt: Date.now() };
+      keys = keys.map((row) => (row.keyId === keyId ? revoked : row));
+      return Promise.resolve({
+        key: revoked,
+        notice: "Key revoked.",
+        retry: false,
+      });
     },
   };
   return port;
 }
 
-const keysSampleRecords: readonly KeyRecord[] = [
+const keysSampleRecords: readonly KeySummary<string>[] = [
   {
     keyId: "key_chanterelle",
     name: "chanterelle",
-    grants: [{ level: "write", target: { kind: "all" } }],
-    computerAccess: true,
+    grants: [
+      { capability: "apps.use", targets: { kind: "all" } },
+      { capability: "computer.use", targets: { kind: "all" } },
+    ],
+    grantVersion: 1,
+    rateLimit: null,
+    updatedAt: Date.now(),
     expiresAt: null,
     createdAt: Date.now() - 30 * 24 * 60 * 60 * 1000,
     lastUsedAt: Date.now() - 2 * 60 * 60 * 1000,
@@ -234,18 +260,20 @@ const keysSampleRecords: readonly KeyRecord[] = [
     name: "morel",
     grants: [
       {
-        level: "write",
-        target: {
+        capability: "apps.use",
+        targets: {
           kind: "selected",
-          installationIds: ["installation:workflows"],
+          ids: ["installation:workflows"],
         },
       },
       {
-        level: "read",
-        target: { kind: "selected", installationIds: ["installation:bonsai"] },
+        capability: "apps.read",
+        targets: { kind: "selected", ids: ["installation:bonsai"] },
       },
     ],
-    computerAccess: false,
+    grantVersion: 1,
+    rateLimit: null,
+    updatedAt: Date.now(),
     expiresAt: Date.now() + 90 * 24 * 60 * 60 * 1000,
     createdAt: Date.now() - 7 * 24 * 60 * 60 * 1000,
     lastUsedAt: null,
@@ -256,11 +284,13 @@ const keysSampleRecords: readonly KeyRecord[] = [
     name: "porcini",
     grants: [
       {
-        level: "write",
-        target: { kind: "selected", installationIds: ["installation:grove"] },
+        capability: "apps.use",
+        targets: { kind: "selected", ids: ["installation:grove"] },
       },
     ],
-    computerAccess: false,
+    grantVersion: 1,
+    rateLimit: null,
+    updatedAt: Date.now(),
     expiresAt: null,
     createdAt: Date.now() - 60 * 24 * 60 * 60 * 1000,
     lastUsedAt: Date.now() - 5 * 24 * 60 * 60 * 1000,

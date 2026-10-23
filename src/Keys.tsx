@@ -1,11 +1,9 @@
 import { SectionHeading } from "@fungi.computer/caps/blocks/section-heading";
-import { ActionRow } from "@fungi.computer/caps/components/action-row";
-import { Badge } from "@fungi.computer/caps/components/badge";
 import { Button } from "@fungi.computer/caps/components/button";
 import { Checkbox } from "@fungi.computer/caps/components/checkbox";
 import { DataList, DataRow } from "@fungi.computer/caps/components/data-list";
 import { Field, FormFooter } from "@fungi.computer/caps/components/field";
-import { Select } from "@fungi.computer/caps/components/select";
+import { Input } from "@fungi.computer/caps/components/input";
 import {
   FormFields,
   SchemaForm,
@@ -14,126 +12,83 @@ import {
   useSchemaFormStatus,
 } from "@fungi.computer/caps/form";
 import { defineIdFamily } from "@fungi.computer/cairn/id";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import type { Grant } from "@fungi.computer/ear-tag/grants";
+import type {
+  IssueKeyInput,
+  KeySummary,
+  UpdateGrantsInput,
+} from "@fungi.computer/ear-tag/keys";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, type ComponentType, type ReactNode } from "react";
 import * as z from "zod";
 
-/** One App's level a key may hold: read-only, or read and change. */
-const keyAppAccessLevelSchema = z.enum(["read", "write"]);
-export type KeyAppAccessLevel = z.output<typeof keyAppAccessLevelSchema>;
-
-/** What a grant reaches: every installed App (including future installs), or named ones. */
-export const keyGrantTargetSchema = z.discriminatedUnion("kind", [
-  z.strictObject({ kind: z.literal("all") }),
-  z.strictObject({
-    kind: z.literal("selected"),
-    installationIds: z.array(z.string().min(1)),
-  }),
-]);
-export type KeyGrantTarget = z.output<typeof keyGrantTargetSchema>;
-/** One App-scoped grant a key holds. */
-export const keyGrantSchema = z.strictObject({
-  level: keyAppAccessLevelSchema,
-  target: keyGrantTargetSchema,
-});
-export type KeyGrant = z.output<typeof keyGrantSchema>;
-
-/** One key as the host lists it; its secret never comes back after issuing. */
-export const keyRecordSchema = z.strictObject({
-  keyId: z.string().min(1),
-  name: z.string().min(1),
-  grants: z.array(keyGrantSchema),
-  /** The computer.use grant: off unless the owner turns it on for this key. */
-  computerAccess: z.boolean(),
-  expiresAt: z.number().int().nonnegative().nullable(),
-  createdAt: z.number().int().nonnegative(),
-  lastUsedAt: z.number().int().nonnegative().nullable(),
-  revokedAt: z.number().int().nonnegative().nullable(),
-});
-export type KeyRecord = z.output<typeof keyRecordSchema>;
-/** Every key this owner has issued. */
-export const keysViewSchema = z.strictObject({
-  keys: z.array(keyRecordSchema),
-});
-export type KeysView = z.output<typeof keysViewSchema>;
-/** What the owner submits to issue one key. */
-export type KeyIssueDraft = Readonly<{
-  name: string;
-  grants: readonly KeyGrant[];
-  computerAccess: boolean;
-  expiresAt: number | null;
-}>;
-/** The plaintext secret, shown exactly once, plus the issued record. */
-export const keyIssueResultSchema = z.strictObject({
-  plaintext: z.string().min(1),
-  key: keyRecordSchema,
-});
-export type KeyIssueResult = z.output<typeof keyIssueResultSchema>;
-/** The host's owner-direct custody for Keys. */
-export type KeysPort = Readonly<{
-  list(): Promise<KeysView>;
-  issue(draft: KeyIssueDraft): Promise<KeyIssueResult>;
-  revoke(keyId: string, requestId: string): Promise<KeyRecord>;
-}>;
-/** One App this Oyster has installed, as the Keys page needs it. */
 export type KeyAppOption = Readonly<{
   installationId: string;
   displayName: string;
 }>;
+export type KeyTargetOption = Readonly<{ id: string; name: string }>;
+/** Presentation supplied by the host, not another capability catalog. */
+export type KeyGrantOption = Readonly<{
+  capability: string;
+  label: string;
+  /** Omit for capabilities which have no selected-target form. */
+  targets?: readonly KeyTargetOption[];
+}>;
+export type KeyIssueDraft = Pick<
+  IssueKeyInput<string>,
+  "name" | "grants" | "expiresAt"
+>;
+export type KeysView = Readonly<{ keys: readonly KeySummary<string>[] }>;
+export type KeyIssueResult = Readonly<{
+  plaintext: string;
+  key: KeySummary<string>;
+}>;
+export type KeyChange = Readonly<{
+  key: KeySummary<string>;
+  notice: string;
+  /** Replay the same command, never generate another mutation identity. */
+  retry: boolean;
+}>;
+export type KeyGrantPreviewProps = Readonly<{
+  grants: readonly Grant[];
+  onReady: (ready: boolean) => void;
+}>;
+/** Hosts decode their current transport with their own Ear Tag vocabulary. */
+export type KeysPort = Readonly<{
+  scope: string;
+  expiry: "required" | "optional";
+  options(
+    apps: readonly KeyAppOption[],
+    signal: AbortSignal,
+  ): Promise<readonly KeyGrantOption[]>;
+  list(): Promise<KeysView>;
+  issue(draft: KeyIssueDraft): Promise<KeyIssueResult>;
+  updateGrants?(input: UpdateGrantsInput<string>): Promise<KeyChange>;
+  revoke(keyId: string, requestId: string): Promise<KeyChange>;
+  Preview?: ComponentType<KeyGrantPreviewProps>;
+}>;
 
-const revokeIds = defineIdFamily({
-  family: "tourtois-keys-revoke-request",
+const mutationIds = defineIdFamily({
+  family: "tourtois-keys-mutation",
   version: 1,
   kinds: { request: { prefix: "request" } },
 });
+type Command =
+  | Readonly<{ kind: "revoke"; keyId: string; requestId: string }>
+  | Readonly<{ kind: "grants"; input: UpdateGrantsInput<string> }>;
 
-const queryKey = ["tourtois", "keys"] as const;
+const keyQueryKeys = {
+  list: (scope: string) => ["tourtois", "keys", scope] as const,
+  options: (scope: string, apps: readonly KeyAppOption[]) =>
+    [...keyQueryKeys.list(scope), "options", apps] as const,
+};
 
-const accessLevelLabel = {
-  read: "Read",
-  write: "Read and change",
-} satisfies Readonly<Record<KeyAppAccessLevel, string>>;
-
-function grantSummary(
-  grants: readonly KeyGrant[],
-  apps: readonly KeyAppOption[],
-): string {
-  const all = grants.find((grant) => grant.target.kind === "all");
-  if (all)
-    return `All Apps, including future installs (${accessLevelLabel[all.level]})`;
-  if (grants.length === 0) return "No App access";
-  const names = new Map(
-    apps.map((app) => [app.installationId, app.displayName]),
-  );
-  return grants
-    .flatMap((grant) =>
-      grant.target.kind === "selected"
-        ? grant.target.installationIds.map(
-            (id) => `${names.get(id) ?? id} (${accessLevelLabel[grant.level]})`,
-          )
-        : [],
-    )
-    .join(", ");
+/** Scope changes remount the secret-once state as well as separating query caches. */
+export function Keys(props: { port: KeysPort; apps: readonly KeyAppOption[] }) {
+  return <KeysContent key={props.port.scope} {...props} />;
 }
 
-function expirySummary(key: Pick<KeyRecord, "expiresAt">): string {
-  if (key.expiresAt === null) return "Never expires";
-  const date = new Date(key.expiresAt).toLocaleDateString();
-  return key.expiresAt <= Date.now() ? `Expired ${date}` : `Expires ${date}`;
-}
-
-function lastUsedSummary(key: Pick<KeyRecord, "lastUsedAt">): string {
-  return key.lastUsedAt === null
-    ? "Never used"
-    : `Last used ${new Date(key.lastUsedAt).toLocaleDateString()}`;
-}
-
-/**
- * The Keys settings on a standalone host: issue, list and revoke keys that
- * act with the owner's own access, limited to the Apps, level and expiry
- * chosen here. A key never gets its own identity; it narrows the owner's.
- */
-export function Keys({
+function KeysContent({
   port,
   apps,
 }: {
@@ -141,16 +96,51 @@ export function Keys({
   apps: readonly KeyAppOption[];
 }) {
   const client = useQueryClient();
-  const view = useQuery({ queryKey, queryFn: () => port.list() });
-  const refresh = () => client.invalidateQueries({ queryKey });
-  const revoke = useMutation({
-    mutationFn: (keyId: string) =>
-      port.revoke(keyId, revokeIds.request.generate()),
-    onSuccess: refresh,
+  const queryKey = keyQueryKeys.list(port.scope);
+  const view = useQuery({ queryKey, queryFn: () => port.list(), retry: false });
+  const options = useQuery({
+    queryKey: keyQueryKeys.options(port.scope, apps),
+    queryFn: ({ signal }) => port.options(apps, signal),
+    retry: false,
   });
-  const keys = view.data?.keys ?? [];
-  const [formKey, setFormKey] = useState(0);
   const [issued, setIssued] = useState<KeyIssueResult | null>(null);
+  const [editing, setEditing] = useState<KeySummary<string> | null>(null);
+  const [command, setCommand] = useState<Command | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const refresh = () => client.invalidateQueries({ queryKey });
+  const mutate = async (pending: Command) => {
+    setCommand(pending);
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const change =
+        pending.kind === "revoke"
+          ? await port.revoke(pending.keyId, pending.requestId)
+          : await (() => {
+              if (port.updateGrants === undefined)
+                throw new Error("Grant editing is not offered by this host");
+              return port.updateGrants(pending.input);
+            })();
+      setNotice(change.notice);
+      setEditing(null);
+      if (!change.retry) setCommand(null);
+      await refresh();
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "The key change could not be confirmed.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+  const labels = new Map(
+    options.data?.map((option) => [option.capability, option.label]),
+  );
   return (
     <section
       className="tourtois-settings-content tourtois-keys"
@@ -158,79 +148,148 @@ export function Keys({
     >
       <SectionHeading>Keys</SectionHeading>
       <p className="tourtois-settings-lede">
-        Anyone holding this key can read the Apps you pick. Where you choose
-        &ldquo;Read and change,&rdquo; it can change data without asking you
-        first. If it can change Workflows, it can also run Workflows with your
-        access, but only on the Apps it can reach.
+        Anyone holding a key can act with your current access, limited to its
+        grants and expiry, without asking again. Read grants cannot make
+        changes. Grants which run Workflows can also run them with your access,
+        within the key's targets.
       </p>
       {view.isPending ? <p>Loading keys…</p> : null}
       {view.isError ? (
-        <div role="status">
-          <p>Keys could not be loaded.</p>
-          <Button size="sm" onClick={() => void view.refetch()}>
-            Retry
+        <p role="alert">
+          Keys could not be loaded.{" "}
+          <Button onClick={() => void view.refetch()}>Retry</Button>
+        </p>
+      ) : null}
+      {options.isError ? (
+        <p role="alert">
+          Capability targets could not be loaded.{" "}
+          <Button onClick={() => void options.refetch()}>Retry targets</Button>
+        </p>
+      ) : null}
+      {view.isSuccess && view.data.keys.length === 0 ? (
+        <p>No keys yet.</p>
+      ) : null}
+      <DataList aria-label="Keys">
+        {(view.data?.keys ?? []).map((key) => (
+          <DataRow
+            key={key.keyId}
+            style={{ gridTemplateColumns: "minmax(0, 1fr)" }}
+          >
+            <div className="grid min-w-0 gap-sm">
+              <div className="grid min-w-0 gap-xs break-words">
+                <strong>
+                  {key.name}
+                  {key.revokedAt !== null ? " · Revoked" : ""}
+                </strong>
+                <p>
+                  {key.grants.length === 0
+                    ? "Authority unavailable; revoke and issue a new key."
+                    : key.grants
+                        .map(
+                          (grant) =>
+                            `${labels.get(grant.capability) ?? grant.capability}: ${grant.targets.kind === "all" ? "all current and future targets" : grant.targets.ids.join(", ")}`,
+                        )
+                        .join(" · ")}
+                </p>
+                <p>
+                  {key.expiresAt === null
+                    ? "Never expires"
+                    : `${key.expiresAt <= Date.now() ? "Expired" : "Expires"} ${new Date(key.expiresAt).toLocaleString()}`}{" "}
+                  ·{" "}
+                  {key.lastUsedAt === null
+                    ? "Use not recorded"
+                    : `Last used ${new Date(key.lastUsedAt).toLocaleString()}`}
+                </p>
+              </div>
+              {key.revokedAt === null ? (
+                <div className="flex flex-wrap gap-sm">
+                  {port.updateGrants !== undefined && key.grants.length > 0 ? (
+                    <Button
+                      aria-label={`Edit ${key.name}`}
+                      disabled={busy || command !== null}
+                      onClick={() => {
+                        setEditing(key);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  ) : null}
+                  <Button
+                    aria-label={`Revoke ${key.name}`}
+                    disabled={busy || command !== null}
+                    onClick={() =>
+                      void mutate({
+                        kind: "revoke",
+                        keyId: key.keyId,
+                        requestId: mutationIds.request.generate(),
+                      })
+                    }
+                  >
+                    Revoke
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          </DataRow>
+        ))}
+      </DataList>
+      {notice ? <p role="status">{notice}</p> : null}
+      {error ? <p role="alert">{error}</p> : null}
+      {command !== null ? (
+        <div className="flex gap-sm">
+          <Button disabled={busy} onClick={() => void mutate(command)}>
+            Retry key change
+          </Button>
+          <Button
+            disabled={busy}
+            onClick={() => {
+              setCommand(null);
+              setEditing(null);
+              void refresh();
+            }}
+          >
+            Reload keys
           </Button>
         </div>
       ) : null}
-      {view.isSuccess && keys.length === 0 ? <p>No keys yet.</p> : null}
-      {keys.length > 0 ? (
-        <DataList aria-label="Keys">
-          {keys.map((key) => {
-            const revoked = key.revokedAt !== null;
-            return (
-              <DataRow key={key.keyId} className="p-0">
-                <ActionRow
-                  label={
-                    <>
-                      {key.name}{" "}
-                      {revoked ? (
-                        <Badge size="sm" variant="quiet">
-                          Revoked
-                        </Badge>
-                      ) : null}
-                      {key.computerAccess ? (
-                        <Badge size="sm" variant="quiet">
-                          Computer
-                        </Badge>
-                      ) : null}
-                    </>
-                  }
-                  description={`${grantSummary(key.grants, apps)} · ${expirySummary(key)} · ${lastUsedSummary(key)}`}
-                  trailing={
-                    revoked ? null : (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        aria-label={`Revoke ${key.name}`}
-                        disabled={revoke.isPending}
-                        onClick={() => {
-                          revoke.mutate(key.keyId);
-                        }}
-                      >
-                        Revoke
-                      </Button>
-                    )
-                  }
-                />
-              </DataRow>
-            );
-          })}
-        </DataList>
-      ) : null}
-      {revoke.isError ? (
-        <p role="alert">The key could not be revoked.</p>
+      {editing !== null && options.data !== undefined ? (
+        <EditKey
+          key={editing.keyId + ":" + String(editing.grantVersion)}
+          record={editing}
+          port={port}
+          options={options.data}
+          disabled={busy || command !== null}
+          onCancel={() => {
+            setEditing(null);
+          }}
+          onSave={(grants) =>
+            mutate({
+              kind: "grants",
+              input: {
+                requestId: mutationIds.request.generate(),
+                keyId: editing.keyId,
+                expectedGrantVersion: editing.grantVersion,
+                grants,
+              },
+            })
+          }
+        />
       ) : null}
       <SectionHeading>New key</SectionHeading>
       {issued === null ? (
-        <IssueKey
-          key={formKey}
-          apps={apps}
-          onIssue={async (draft) => {
-            const result = await port.issue(draft);
-            setIssued(result);
-            await refresh();
-          }}
-        />
+        options.data === undefined ? (
+          <p>Loading capability targets…</p>
+        ) : (
+          <IssueKey
+            port={port}
+            options={options.data}
+            onIssue={async (draft) => {
+              const result = await port.issue(draft);
+              setIssued(result);
+              await refresh();
+            }}
+          />
+        )
       ) : (
         <div className="grid gap-sm" role="status">
           <p>
@@ -238,11 +297,8 @@ export function Keys({
           </p>
           <code className="break-all">{issued.plaintext}</code>
           <Button
-            type="button"
-            variant="outline"
             onClick={() => {
               setIssued(null);
-              setFormKey((current) => current + 1);
             }}
           >
             I copied the key
@@ -253,83 +309,298 @@ export function Keys({
   );
 }
 
-const expiryChoiceSchema = z.enum(["never", "30", "90", "365"]);
-const issueFormFields = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Give this key a name.")
-    .max(128)
-    .meta(field({ label: "Name", required: true, maxLength: 128 })),
-  expiry: expiryChoiceSchema.meta(
-    field({
-      label: "Expires after",
-      options: {
-        never: "Never",
-        "30": "30 days",
-        "90": "90 days",
-        "365": "1 year",
-      },
-    }),
-  ),
-});
-type IssueFormValues = z.input<typeof issueFormFields>;
-const issueFormDefaults: IssueFormValues = { name: "", expiry: "never" };
+function GrantEditor({
+  grants,
+  onChange,
+  options,
+  disabled,
+}: {
+  grants: readonly Grant[];
+  onChange: (grants: readonly Grant[]) => void;
+  options: readonly KeyGrantOption[];
+  disabled: boolean;
+}) {
+  return (
+    <fieldset className="grid gap-sm" disabled={disabled}>
+      <legend>Capability grants</legend>
+      {options.map((option) => {
+        const grant = grants.find(
+          (current) => current.capability === option.capability,
+        );
+        const replace = (targets: Grant["targets"]) => {
+          onChange(
+            grants.map((current) =>
+              current.capability === option.capability
+                ? { ...current, targets }
+                : current,
+            ),
+          );
+        };
+        return (
+          <div key={option.capability} className="grid gap-xs">
+            <Field label={option.label} orientation="inline">
+              <Checkbox
+                name={"cap:" + option.capability}
+                checked={grant !== undefined}
+                onChange={(event) => {
+                  onChange(
+                    event.currentTarget.checked
+                      ? [
+                          ...grants,
+                          {
+                            capability: option.capability,
+                            targets: { kind: "all" },
+                          },
+                        ]
+                      : grants.filter(
+                          (current) => current.capability !== option.capability,
+                        ),
+                  );
+                }}
+              />
+            </Field>
+            {grant !== undefined && option.targets !== undefined ? (
+              <div className="grid gap-xs pl-md">
+                <Field
+                  label="All current and future targets"
+                  orientation="inline"
+                >
+                  <Checkbox
+                    name={"all:" + option.capability}
+                    checked={grant.targets.kind === "all"}
+                    onChange={(event) => {
+                      replace(
+                        event.currentTarget.checked
+                          ? { kind: "all" }
+                          : { kind: "selected", ids: [] },
+                      );
+                    }}
+                  />
+                </Field>
+                {grant.targets.kind === "selected" ? (
+                  <>
+                    {option.targets.length === 0 ? (
+                      <p>No targets available.</p>
+                    ) : null}
+                    {option.targets.map((target) => (
+                      <Field
+                        key={target.id}
+                        label={target.name}
+                        orientation="inline"
+                      >
+                        <Checkbox
+                          name={option.capability + ":" + target.id}
+                          checked={
+                            grant.targets.kind === "selected" &&
+                            grant.targets.ids.includes(target.id)
+                          }
+                          onChange={(event) => {
+                            const ids =
+                              grant.targets.kind === "selected"
+                                ? grant.targets.ids
+                                : [];
+                            replace({
+                              kind: "selected",
+                              ids: event.currentTarget.checked
+                                ? [...ids, target.id]
+                                : ids.filter((id) => id !== target.id),
+                            });
+                          }}
+                        />
+                      </Field>
+                    ))}
+                    {grant.targets.ids
+                      .filter(
+                        (id) =>
+                          !option.targets?.some((target) => target.id === id),
+                      )
+                      .map((id) => (
+                        <p key={id}>Unavailable target: {id}</p>
+                      ))}
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+      {grants
+        .filter(
+          (grant) =>
+            !options.some((option) => option.capability === grant.capability),
+        )
+        .map((grant) => (
+          <div key={grant.capability}>
+            <p>{grant.capability} is no longer offered by this host.</p>
+            <Button
+              type="button"
+              onClick={() => {
+                onChange(grants.filter((current) => current !== grant));
+              }}
+            >
+              Remove {grant.capability}
+            </Button>
+          </div>
+        ))}
+    </fieldset>
+  );
+}
 
-const perAppChoiceSchema = z.enum(["none", "read", "write"]);
-type PerAppChoice = z.output<typeof perAppChoiceSchema>;
+function GrantDraft({
+  port,
+  options,
+  initial,
+  disabled = false,
+  children,
+}: {
+  port: KeysPort;
+  options: readonly KeyGrantOption[];
+  initial: readonly Grant[];
+  disabled?: boolean;
+  children: (grants: readonly Grant[], ready: boolean) => ReactNode;
+}) {
+  const [grants, setGrants] = useState(initial);
+  const [review, setReview] = useState<{
+    grants: readonly Grant[];
+    ready: boolean;
+  } | null>(null);
+  const Preview = port.Preview;
+  const valid =
+    grants.length > 0 &&
+    grants.every((grant) =>
+      options.some((option) => option.capability === grant.capability),
+    ) &&
+    !grants.some(
+      (grant) =>
+        grant.targets.kind === "selected" && grant.targets.ids.length === 0,
+    );
+  const ready =
+    valid &&
+    (Preview === undefined || (review?.grants === grants && review.ready));
+  return (
+    <>
+      <GrantEditor
+        grants={grants}
+        onChange={setGrants}
+        options={options}
+        disabled={disabled}
+      />
+      {Preview ? (
+        <Preview
+          grants={grants}
+          onReady={(ready) => {
+            setReview((current) =>
+              current?.grants === grants && current.ready === ready
+                ? current
+                : { grants, ready },
+            );
+          }}
+        />
+      ) : null}
+      {children(grants, ready)}
+    </>
+  );
+}
 
 function IssueKey({
-  apps,
+  port,
+  options,
   onIssue,
 }: {
-  apps: readonly KeyAppOption[];
+  port: KeysPort;
+  options: readonly KeyGrantOption[];
   onIssue: (draft: KeyIssueDraft) => Promise<void>;
 }) {
-  const [allApps, setAllApps] = useState(false);
-  const [allAppsLevel, setAllAppsLevel] = useState<KeyAppAccessLevel>("read");
-  const [perApp, setPerApp] = useState<Readonly<Record<string, PerAppChoice>>>(
-    () => Object.fromEntries(apps.map((app) => [app.installationId, "none"])),
+  const [busy, setBusy] = useState(false);
+  return (
+    <GrantDraft port={port} options={options} initial={[]} disabled={busy}>
+      {(grants, ready) => (
+        <IssueForm
+          port={port}
+          grants={grants}
+          ready={ready}
+          onIssue={async (draft) => {
+            setBusy(true);
+            try {
+              await onIssue(draft);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      )}
+    </GrantDraft>
   );
-  const [computerAccess, setComputerAccess] = useState(false);
-  const selectedCount = Object.values(perApp).filter(
-    (choice) => choice !== "none",
-  ).length;
-  const hasAccess = allApps || selectedCount > 0;
+}
+
+function IssueForm({
+  port,
+  grants,
+  ready,
+  onIssue,
+}: {
+  port: KeysPort;
+  grants: readonly Grant[];
+  ready: boolean;
+  onIssue: (draft: KeyIssueDraft) => Promise<void>;
+}) {
+  const [custom, setCustom] = useState("");
+  const expiryValues: ["30", "90", "365", "custom", ..."never"[]] =
+    port.expiry === "required"
+      ? ["30", "90", "365", "custom"]
+      : ["30", "90", "365", "custom", "never"];
+  const expiry = z.enum(expiryValues);
+  const finiteExpiryOptions = {
+    "30": "30 days",
+    "90": "90 days",
+    "365": "1 year",
+    custom: "Custom date",
+  };
+  const schema = z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1, "Give this key a name.")
+      .max(128)
+      .meta(field({ label: "Name", required: true, maxLength: 128 })),
+    expiry: expiry.meta(
+      field({
+        label: "Expires after",
+        options:
+          port.expiry === "optional"
+            ? { ...finiteExpiryOptions, never: "Never" }
+            : finiteExpiryOptions,
+      }),
+    ),
+  });
   const model = useSchemaForm({
-    schema: issueFormFields,
-    defaultValues: issueFormDefaults,
+    schema,
+    defaultValues: {
+      name: "",
+      expiry: port.expiry === "required" ? "30" : "never",
+    },
     onSubmit: async (value) => {
-      if (!hasAccess)
+      if (!ready)
         return {
           kind: "refused",
-          error: "Choose at least one App before issuing a key.",
+          error: "Choose grants and finish their review before issuing.",
         };
-      const grants: KeyGrant[] = allApps
-        ? [{ level: allAppsLevel, target: { kind: "all" } }]
-        : (["write", "read"] as const).flatMap((level) => {
-            const installationIds = Object.entries(perApp)
-              .filter(([, choice]) => choice === level)
-              .map(([installationId]) => installationId);
-            return installationIds.length === 0
-              ? []
-              : [
-                  {
-                    level,
-                    target: { kind: "selected" as const, installationIds },
-                  },
-                ];
-          });
+      const expiresAt =
+        value.expiry === "never"
+          ? undefined
+          : value.expiry === "custom"
+            ? new Date(custom).getTime()
+            : Date.now() + Number(value.expiry) * 86_400_000;
+      if (
+        expiresAt !== undefined &&
+        (!Number.isSafeInteger(expiresAt) || expiresAt <= Date.now())
+      )
+        return { kind: "refused", error: "Choose a finite future expiry." };
       try {
-        await onIssue({
-          name: value.name,
-          grants,
-          computerAccess,
-          expiresAt:
-            value.expiry === "never"
-              ? null
-              : Date.now() + Number(value.expiry) * 24 * 60 * 60 * 1000,
-        });
+        const draft = { name: value.name, grants };
+        await onIssue(
+          expiresAt === undefined ? draft : { ...draft, expiresAt },
+        );
         return { kind: "saved" };
       } catch (cause) {
         return {
@@ -342,91 +613,73 @@ function IssueKey({
       }
     },
   });
-  const { submitting: issuing } = useSchemaFormStatus(model);
+  const { submitting } = useSchemaFormStatus(model);
   return (
     <SchemaForm
       model={model}
       aria-label="Issue a key"
-      disabled={issuing}
       footer={
         <FormFooter error={model.error}>
-          <Button type="submit" disabled={!hasAccess || issuing}>
-            {issuing ? "Issuing…" : "Issue key"}
+          <Button type="submit" disabled={!ready || submitting}>
+            Issue key
           </Button>
         </FormFooter>
       }
     >
-      <FormFields model={model} disabled={issuing} />
-      <Field label="All Apps, including future installs" orientation="inline">
-        <Checkbox
-          name="allApps"
-          checked={allApps}
-          disabled={issuing}
+      <FormFields model={model} />
+      <Field label="Custom expiry">
+        <Input
+          type="datetime-local"
+          name="customExpiry"
+          value={custom}
+          disabled={submitting}
           onChange={(event) => {
-            setAllApps(event.currentTarget.checked);
-          }}
-        />
-      </Field>
-      {allApps ? (
-        <Field label="Access level for all Apps" orientation="horizontal">
-          <Select
-            name="allAppsLevel"
-            disabled={issuing}
-            value={allAppsLevel}
-            onChange={(event) => {
-              setAllAppsLevel(
-                keyAppAccessLevelSchema.parse(event.currentTarget.value),
-              );
-            }}
-          >
-            <option value="read">Read</option>
-            <option value="write">Read and change</option>
-          </Select>
-        </Field>
-      ) : apps.length === 0 ? (
-        <p>No Apps installed yet.</p>
-      ) : (
-        apps.map((app) => (
-          <Field
-            key={app.installationId}
-            label={app.displayName}
-            orientation="horizontal"
-          >
-            <Select
-              name={`app:${app.installationId}`}
-              disabled={issuing}
-              value={perApp[app.installationId] ?? "none"}
-              onChange={(event) => {
-                const choice = perAppChoiceSchema.parse(
-                  event.currentTarget.value,
-                );
-                setPerApp((current) => ({
-                  ...current,
-                  [app.installationId]: choice,
-                }));
-              }}
-            >
-              <option value="none">No access</option>
-              <option value="read">Read</option>
-              <option value="write">Read and change</option>
-            </Select>
-          </Field>
-        ))
-      )}
-      <Field
-        label="Computer access"
-        description="Off by default. On lets this key run commands on this Oyster’s Computer."
-        orientation="inline"
-      >
-        <Checkbox
-          name="computerAccess"
-          checked={computerAccess}
-          disabled={issuing}
-          onChange={(event) => {
-            setComputerAccess(event.currentTarget.checked);
+            setCustom(event.currentTarget.value);
           }}
         />
       </Field>
     </SchemaForm>
+  );
+}
+
+function EditKey({
+  record,
+  port,
+  options,
+  disabled,
+  onSave,
+  onCancel,
+}: {
+  record: KeySummary<string>;
+  port: KeysPort;
+  options: readonly KeyGrantOption[];
+  disabled: boolean;
+  onSave: (grants: readonly Grant[]) => Promise<void>;
+  onCancel: () => void;
+}) {
+  return (
+    <section aria-label={"Edit " + record.name} className="grid gap-sm">
+      <SectionHeading>Edit {record.name}</SectionHeading>
+      <GrantDraft
+        port={port}
+        options={options}
+        initial={record.grants}
+        disabled={disabled}
+      >
+        {(grants, ready) => (
+          <div className="flex gap-sm">
+            <Button
+              disabled={disabled || !ready}
+              onClick={() => void onSave(grants)}
+            >
+              Save grants
+            </Button>
+            <Button disabled={disabled} onClick={onCancel}>
+              Cancel
+            </Button>
+          </div>
+        )}
+      </GrantDraft>
+    </section>
   );
 }

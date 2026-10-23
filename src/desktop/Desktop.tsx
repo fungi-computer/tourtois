@@ -14,7 +14,7 @@ import { GripVertical, Trash2 } from "lucide-react";
 import { Select } from "@fungi.computer/caps/components/select";
 import { Badge } from "@fungi.computer/caps/components/badge";
 import { Sigil } from "@fungi.computer/sigils";
-import type { WorkbenchDirectory } from "@fungi.computer/oyster/shell/workbench-directory";
+import type { WorkbenchDirectory } from "@fungi.computer/nacre/workbench-directory";
 import { DeclaredAppIcon } from "../app-icon.js";
 import {
   createDesktopLayoutClient,

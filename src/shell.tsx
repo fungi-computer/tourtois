@@ -5,7 +5,7 @@ import { createQueryClient } from "@fungi.computer/agar/query";
 import type {
   MountShell,
   ShellMountInput,
-} from "@fungi.computer/oyster/shell/shell-module";
+} from "@fungi.computer/nacre/shell-module";
 import { DropdownMenuItem } from "@fungi.computer/caps/components/dropdown-menu";
 import { tourtoisLaunchers } from "./desktop/own-launchers.js";
 import { Sigil } from "@fungi.computer/sigils";
@@ -17,7 +17,7 @@ import {
 import { TeamTourtois } from "./TeamDesktop.js";
 import { AppSurfaceHostProvider } from "./app-surface.js";
 import { accountAvatarQuery, MemberAvatarSource } from "./member-avatar.js";
-import { createTourtoisShell } from "./shell-host.js";
+import { createTourtoisShell, readWorkbenchComputers } from "./shell-host.js";
 
 function CanonicalStatus({ message }: { message: string }): React.JSX.Element {
   return (
@@ -83,12 +83,7 @@ function MountedTourtois({
           teamId={connection.team.teamId}
           teamName={connection.team.name}
           computersReader={(signal) =>
-            connection.workbench
-              .computers({ limit: 100, offset: 0 })
-              .then((page) => {
-                if (signal.aborted) throw new DOMException("", "AbortError");
-                return page.computers;
-              })
+            readWorkbenchComputers(connection.workbench, signal)
           }
           directoryReader={() => connection.workbench.directory()}
           takeAppOpenRequest={() => connection.workbench.takeAppOpenRequest()}
@@ -128,7 +123,9 @@ function MountedTourtois({
  */
 export const mountShell: MountShell = (root, shell) => {
   const queryClient = createQueryClient();
-  const reactRoot = createRoot(root);
+  // The Release bundles its own React runtime. Keep its useId values distinct
+  // from the embedding host's labels, controls and portalled overlays.
+  const reactRoot = createRoot(root, { identifierPrefix: "tourtois-shell-" });
   reactRoot.render(
     <QueryClientProvider client={queryClient}>
       <MountedTourtois shell={shell} />

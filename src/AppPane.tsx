@@ -1,9 +1,12 @@
 import { IconButton } from "@fungi.computer/caps/components/icon-button";
 import {
   AppStatusBar,
+  AppStatusItem,
+  StatusBarChip,
   StatusBarPicker,
 } from "@fungi.computer/caps/blocks/app-status-bar";
 import { Sigil } from "@fungi.computer/sigils";
+import { describeAppError } from "@fungi.computer/agar/errors";
 import {
   WindowActions,
   WindowBody,
@@ -31,6 +34,7 @@ import { backHint } from "./shell-commands.js";
 import {
   createAppWindowManager,
   type AppWindowProjection,
+  type AppLaunchDescriptor,
 } from "./app-windows.js";
 import { launchComputerId, type AppDirectoryApp } from "./app-launch.js";
 
@@ -70,9 +74,10 @@ function headerContent(
 
 const windowStatusLabel = (projection: AppWindowProjection): string => {
   if (projection.status === "error")
-    return `${projection.launch.title} unavailable`;
+    return describeAppError(projection.error).message;
   if (projection.status === "loading")
     return `${projection.launch.title} opening…`;
+  if (projection.status === "getting-ready") return "Getting ready…";
   return projection.launch.title;
 };
 
@@ -115,6 +120,7 @@ export function FocusedWindowControls({
 
 export function AppPane({
   projection,
+  nextLaunch,
   icon,
   manager,
   onError,
@@ -125,6 +131,7 @@ export function AppPane({
   onSelectComputer,
 }: {
   projection: AppWindowProjection;
+  nextLaunch?: AppLaunchDescriptor | null;
   icon: string | null | undefined;
   manager: ReturnType<typeof createAppWindowManager>;
   onError: (message: string) => void;
@@ -296,11 +303,16 @@ export function AppPane({
           </>
         }
       />
-      {projection.status === "loading" ? (
+      {projection.status === "loading" ||
+      projection.status === "getting-ready" ? (
         <div className="tourtois-app-loading" role="status">
           <AppIcon roles={projection.launch.roles} icon={icon} />
           <div>
-            <strong>Opening {projection.launch.title}…</strong>
+            <strong>
+              {projection.status === "getting-ready"
+                ? "Getting ready…"
+                : `Opening ${projection.launch.title}…`}
+            </strong>
             <span>Preparing this App for your workspace.</span>
           </div>
         </div>
@@ -324,6 +336,18 @@ export function AppPane({
       />
       <WindowStatusBar
         projection={projection}
+        onReload={
+          nextLaunch && nextLaunch.releaseId !== projection.launch.releaseId
+            ? () => {
+                void manager
+                  .replace(projection.windowId, nextLaunch)
+                  .catch((cause: unknown) => {
+                    console.error("App reload failed", cause);
+                    onError("App could not be reloaded.");
+                  });
+              }
+            : undefined
+        }
         computerPickerOpen={computerPickerOpen}
         onComputerPickerOpenChange={setComputerPickerOpen}
         onSelectComputer={(computerId) => {
@@ -347,7 +371,11 @@ export function AppPane({
  * One window's status bar, owned by the shell like its title bar: the
  * window's Computer first (only the person changes it, here), then the items
  * the App declared as data. The shell renders every item with Caps pieces and
- * hands the person's use back to the App. A window with neither has no bar.
+ * hands the person's use back to the App. Release availability shares this
+ * existing footer instead of competing with App navigation in the header.
+ * Reload sits beside the App's far-end readouts. Phone chrome keeps one row:
+ * a shorter notice takes precedence over Inkcap's low-value file count, never
+ * over the App's save state. Desktop presentation stays unchanged.
  */
 export function WindowStatusBar({
   projection,
@@ -356,6 +384,7 @@ export function WindowStatusBar({
   surface,
   computerPickerOpen,
   onComputerPickerOpenChange,
+  onReload,
 }: {
   projection: AppWindowProjection;
   onSelectComputer: (computerId: string) => void;
@@ -364,11 +393,26 @@ export function WindowStatusBar({
   surface?: () => HTMLElement | null;
   computerPickerOpen?: boolean;
   onComputerPickerOpenChange?: (open: boolean) => void;
+  /** Uses the window manager's ordinary, veto-respecting replacement. */
+  onReload?: (() => void) | undefined;
 }) {
   const popover = useLayer("popover");
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    // Match Caps' phone status-bar breakpoint, including its touch targets.
+    const media = window.matchMedia("(max-width: 640px)");
+    const update = () => {
+      setPhone(media.matches);
+    };
+    update();
+    media.addEventListener("change", update);
+    return () => {
+      media.removeEventListener("change", update);
+    };
+  }, []);
   const { computers, title } = projection.launch;
   const items = projection.statusItems;
-  if (computers === undefined && items.length === 0) return null;
+  if (computers === undefined && items.length === 0 && !onReload) return null;
   const anchorFor = (key: HTMLElement): AppStatusAction["anchor"] => {
     const origin = surface?.()?.getBoundingClientRect();
     if (!origin) return undefined;
@@ -388,7 +432,17 @@ export function WindowStatusBar({
     />
   );
   const end = items.filter((item) => item.end === true);
-  const start = items.filter((item) => item.end !== true);
+  const start = items.filter(
+    (item) =>
+      item.end !== true &&
+      !(
+        phone &&
+        projection.launch.appId === "inkcap" &&
+        item.kind === "text" &&
+        item.id === "documents"
+      ),
+  );
+  const appReadouts = end.length === 0 ? undefined : end.map(render);
   return (
     <AppStatusBar
       className="tourtois-window-status-bar"
@@ -412,12 +466,39 @@ export function WindowStatusBar({
             }))}
             value={launchComputerId(projection.launch.href)}
             emptyMessage="No Computers are granted to this App"
-            disabled={projection.status === "loading"}
+            disabled={
+              projection.status === "loading" ||
+              projection.status === "getting-ready"
+            }
             onSelect={onSelectComputer}
           />
         )
       }
-      end={end.length === 0 ? undefined : end.map(render)}
+      end={
+        onReload ? (
+          <span
+            className={
+              phone
+                ? "flex min-w-0 items-center gap-xs"
+                : "flex min-w-0 flex-wrap items-center gap-xs"
+            }
+          >
+            {appReadouts}
+            <AppStatusItem>
+              <span role="status">
+                {phone ? "Update ready" : "New version available"}
+              </span>
+              <StatusBarChip
+                label="Reload"
+                aria-label={`Reload ${title}`}
+                onClick={onReload}
+              />
+            </AppStatusItem>
+          </span>
+        ) : (
+          appReadouts
+        )
+      }
     >
       {start.length === 0 ? undefined : start.map(render)}
     </AppStatusBar>

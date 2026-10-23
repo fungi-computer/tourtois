@@ -2,6 +2,11 @@
   "$schema": "https://turborepo.com/schema.json",
   "extends": ["//"],
   "tasks": {
+    // Standalone Settings tests consume Nacre's maintained Computer wire
+    // schemas; hash their actual producer build with the UI under test.
+    "test:unit": {
+      "dependsOn": ["build", "@fungi.computer/nacre#build"],
+    },
     // Workbench fixtures import Shed and Workflows source, which read the
     // Lantern and workflows-wire builds.
     "typecheck": {

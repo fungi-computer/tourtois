@@ -9,7 +9,7 @@ import {
   type AppWindowManager,
   type AppWindowProjection,
 } from "./app-windows.js";
-import type { WorkbenchDirectory } from "@fungi.computer/oyster/shell/workbench-directory";
+import type { WorkbenchDirectory } from "@fungi.computer/nacre/workbench-directory";
 
 export type AppDirectoryApp = WorkbenchDirectory["apps"][number];
 
@@ -190,11 +190,13 @@ function computersForApp(
   app: AppDirectoryApp,
   computers: readonly ComputerOption[],
 ): readonly ComputerOption[] {
-  // A standalone host supplies its fixed context, not fabricated Team grants.
+  // Standalone context is fixed or owner-fleet, never fabricated Team grants.
   // Only an offered inventory entry can become a window's Computer choice.
-  if (app.computer !== undefined)
+  const context = app.computer;
+  if (context === "owner-fleet") return computers;
+  if (context !== undefined)
     return computers.filter(
-      (computer) => computer.computerId === app.computer?.computerId,
+      (computer) => computer.computerId === context.computerId,
     );
   const permission = app.computerPermission;
   if (!permission) return [];

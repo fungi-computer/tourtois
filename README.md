@@ -123,6 +123,25 @@ layout. [src/shell-module.ts](src/shell-module.ts) is the `mountShell` entry,
 can supply. The agent tools are in [backend/methods.ts](backend/methods.ts), and
 [package.json](package.json) declares what the shell asks of its host.
 
+### Open windows and new versions
+
+The directory refreshes every 15 seconds while the desktop is visible, as well
+as on host change notifications. A changed active Release leaves the existing
+App mounted and offers **New version available — Reload** in its existing window
+footer. The footer already owns host status; the header remains the App's
+navigation and window controls.
+
+Reload uses Oyster's ordinary window replacement and asks the mounted App's
+close veto before disposing it. Refusal leaves the old window and the Reload
+offer intact. Acceptance mounts the active Release; closing and reopening also
+uses the active Release without a notice. This does not transfer unsaved memory
+or preserve obsolete backend authority. Permission changes and explicit
+selection-changed recovery retain their existing reconciliation behavior.
+
+With the Tourtois workbench running, `pnpm test:window-new-version` exercises
+the directory change, footer action and reopen at desktop and phone widths.
+`test/window-status-bar.test.tsx` proves the Reload close veto.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

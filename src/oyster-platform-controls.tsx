@@ -6,22 +6,26 @@ import "@fungi.computer/parakeet/styles.css";
 import "./shell.css";
 import { AppError } from "@fungi.computer/agar";
 import { createQueryClient } from "@fungi.computer/agar/query";
-import type { MountPlatformControls } from "@fungi.computer/oyster/shell/shell-module";
-import { workbenchDirectorySchema } from "@fungi.computer/oyster/shell/workbench-directory";
+import type { KeyWire } from "@fungi.computer/ear-tag/keys";
+import type { MountPlatformControls } from "@fungi.computer/nacre/shell-module";
+import { workbenchDirectorySchema } from "@fungi.computer/nacre/workbench-directory";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as S from "effect/Schema";
+import { z } from "zod";
 import { createRoot } from "react-dom/client";
 import {
   agentMcpServersViewSchema,
   createPlatformControls,
-  keyIssueResultSchema,
-  keyRecordSchema,
-  keysViewSchema,
   PlatformControlsView,
   type AgentMcpServersPort,
   type KeysPort,
 } from "./platform-controls.js";
 import { settingsLocationSchema } from "./settings-routes.js";
+import type { PlatformControlsData } from "./platform-controls.js";
+import {
+  OysterComputers,
+  createOysterComputersPort,
+} from "./OysterComputers.js";
 
 async function json(path: string) {
   const response = await fetch(path, {
@@ -86,41 +90,97 @@ const agentMcpServers: AgentMcpServersPort = {
 };
 
 /** Owner-direct Keys custody; a plaintext secret comes back only once, on issue. */
-const keys: KeysPort = {
-  list: async () => keysViewSchema.parse(await json("/api/keys")),
-  issue: async (draft) => {
-    const response = await ownerRequest(
-      "/api/keys",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(draft),
-      },
-      "The key request was refused",
-    );
-    return keyIssueResultSchema.parse(await response.json());
-  },
-  revoke: async (keyId, requestId) => {
-    const response = await ownerRequest(
-      "/api/keys/revoke",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyId, requestId }),
-      },
-      "The key request was refused",
-    );
-    return keyRecordSchema.parse(await response.json());
-  },
-};
+function createOysterKeysPort(
+  oysterKeysWire: Pick<KeyWire<string>, "issue" | "revoke" | "summary">,
+): KeysPort {
+  const oysterKeysView = z.strictObject({
+    keys: z.array(oysterKeysWire.summary),
+  });
+  const oysterKeyIssue = z.strictObject({
+    plaintext: z.string().min(1),
+    key: oysterKeysWire.summary,
+  });
+  const oysterKeyMutation = z.strictObject({ key: oysterKeysWire.summary });
+  return {
+    scope: "oyster",
+    expiry: "optional",
+    options: (apps) => {
+      const targets = apps.map((app) => ({
+        id: app.installationId,
+        name: app.displayName,
+      }));
+      return Promise.resolve([
+        { capability: "apps.read", label: "Read Apps", targets },
+        {
+          capability: "apps.use",
+          label: "Use Apps and run Workflows",
+          targets,
+        },
+        { capability: "computer.use", label: "Use the Computer" },
+      ]);
+    },
+    list: async () => oysterKeysView.parse(await json("/api/keys")),
+    issue: async (draft) => {
+      const response = await ownerRequest(
+        "/api/keys",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(oysterKeysWire.issue.parse(draft)),
+        },
+        "The key request was refused",
+      );
+      return oysterKeyIssue.parse(await response.json());
+    },
+    revoke: async (keyId, requestId) => {
+      const response = await ownerRequest(
+        "/api/keys/revoke",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            oysterKeysWire.revoke.parse({ keyId, requestId }),
+          ),
+        },
+        "The key request was refused",
+      );
+      const result = oysterKeyMutation.parse(await response.json());
+      return { key: result.key, notice: "Key revoked.", retry: false };
+    },
+  };
+}
 
 const directory = async () =>
   workbenchDirectorySchema.parse(await json("/api/workbench/directory"));
 
 export const mountPlatformControls: MountPlatformControls = (root, input) => {
+  const keys = createOysterKeysPort(input.keysWire);
+  const requestAppAccess: NonNullable<
+    PlatformControlsData["requestAppAccess"]
+  > = (target, request, dialog) =>
+    input.requestAppAccess(target, request, {
+      ask: dialog.ask,
+      customize: (installationId) =>
+        dialog.customize({
+          category: "apps",
+          appKey:
+            installationId === null ? null : `installation:${installationId}`,
+          section: "desktop",
+        }),
+    });
   const controls = createPlatformControls({
-    sections: ["home", "apps", "connectors", "keys"],
+    sections: ["home", "apps", "connectors", "computers", "keys"],
   });
+  const computersPort = createOysterComputersPort(
+    new URL(window.location.origin),
+  );
+  const computers = () => (
+    <OysterComputers
+      teamId={input.teamId}
+      port={computersPort}
+      onChanged={controls.changed}
+    />
+  );
   const client = createQueryClient();
   const settings = createRoot(root);
   settings.render(
@@ -128,7 +188,7 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
       <PlatformControlsView
         teamId={input.teamId}
         controls={controls}
-        data={{ directory, agentMcpServers, keys }}
+        data={{ directory, agentMcpServers, computers, keys, requestAppAccess }}
       />
     </QueryClientProvider>,
   );

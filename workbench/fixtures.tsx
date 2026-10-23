@@ -10,7 +10,7 @@ import { createDesktopStorageFixture } from "./desktop-storage.fixture.js";
 import {
   type AppDirectory,
   appAddressSchema,
-} from "@fungi.computer/oyster/shell/app-directory";
+} from "@fungi.computer/nacre/app-directory";
 import { createQueryClient } from "@fungi.computer/agar/query";
 import {
   defaultMemberAvatar,
@@ -32,7 +32,7 @@ import {
 } from "../../inkcap/workbench/fixtures.js";
 import { MediaPane } from "../../prints/src/MediaPane.js";
 import { createPrintsFixture } from "../../prints/workbench/fixtures.js";
-import { createAppSurfaceCommandHost } from "@fungi.computer/oyster/shell/command-host";
+import { createAppSurfaceCommandHost } from "@fungi.computer/nacre/command-host";
 import { mountLocalCommands } from "./local-commands.js";
 import { PagesDemo } from "./pages-demo.js";
 import type {
@@ -287,7 +287,8 @@ export function createDesktopFixture(
     | "no-agents"
     | "games"
     | "pages"
-    | "layers" = "ready",
+    | "layers"
+    | "hero" = "ready",
 ) {
   // A fresh Team has its Apps but no conversations yet.
   const noSessions =
@@ -376,6 +377,12 @@ export function createDesktopFixture(
       desktopCatalogFixture(apps, fixtureRoles(apps, chosenRoles)),
     ),
     gills,
+    activateNewVersion: () => {
+      const app = apps.find((item) => item.appId === "inkcap");
+      if (!app) throw new Error("Inkcap fixture missing");
+      app.releaseId = "workbench-release-next";
+      app.authorityVersion += 1;
+    },
     reset: () => {
       apps = appDirectory(
         scenario === "games",
@@ -395,6 +402,7 @@ export function createDesktopFixture(
         scenario === "mount-error",
         scenario === "missing-session",
         scenario === "computer-choice",
+        scenario === "hero",
       ),
     handlers: [
       msw.http.get("/api/account", () =>
@@ -439,7 +447,18 @@ export function createDesktopFixture(
         }),
       ),
       msw.http.get("/api/teams/workbench/computers", () =>
-        msw.HttpResponse.json({ computers, nextOffset: null }),
+        msw.HttpResponse.json({
+          // The hero shot names its Computer as a Team would.
+          computers:
+            scenario === "hero"
+              ? computers.map((computer) =>
+                  computer.computerId === "workbench-laptop"
+                    ? { ...computer, name: "fernwood-studio" }
+                    : computer,
+                )
+              : computers,
+          nextOffset: null,
+        }),
       ),
       msw.http.get("/api/teams/workbench/agents", () =>
         msw.HttpResponse.json({
@@ -741,11 +760,22 @@ export function createInkcapComputerChoiceFixture() {
   };
 }
 
+/** Opens the Gardener conversation Grove's own timeline scenario provides. */
+const heroGroveOpenRequest = {
+  kind: "navigate" as const,
+  requestId: "hero-open-gardener",
+  params: [
+    { key: "agent", value: "gardener" },
+    { key: "session", value: "gardener-1" },
+  ],
+};
+
 /** Production app components; only Computer capabilities and shell HTTP are local. */
 function createFixtureHost(
   failMount: boolean,
   missingSession: boolean,
   computerChoice = false,
+  hero = false,
 ): TourtoisAppSurfaceHost {
   const commands = createAppSurfaceCommandHost();
   return {
@@ -856,8 +886,9 @@ function createFixtureHost(
       const grove =
         initialLaunch.appId === "grove"
           ? createGroveFixture(
-              "inbox",
-              initialLaunch.openRequest,
+              hero ? "timeline" : "inbox",
+              // The hero shot opens Grove's own richer conversation.
+              hero ? heroGroveOpenRequest : initialLaunch.openRequest,
               missingSession ? ["gone-session"] : [],
             )
           : null;

@@ -1,4 +1,5 @@
-import type { WorkbenchDirectory } from "@fungi.computer/oyster/shell/workbench-directory";
+import type { WorkbenchHostControls } from "@fungi.computer/nacre/workbench";
+import type { WorkbenchDirectory } from "@fungi.computer/nacre/workbench-directory";
 import { AppError } from "@fungi.computer/agar";
 import { Button } from "@fungi.computer/caps/components/button";
 import { toast } from "@fungi.computer/caps/components/toaster";
@@ -7,8 +8,8 @@ import {
   desktopGillSelectionSchema,
   type WorkbenchDesktopSettings,
   type WorkbenchDesktopRegistration,
-} from "@fungi.computer/oyster/shell/workbench";
-import { addressKey } from "@fungi.computer/oyster/shell/app-directory";
+} from "@fungi.computer/nacre/workbench";
+import { addressKey } from "@fungi.computer/nacre/app-directory";
 import { tourtoisQueryKeys } from "./queries.js";
 import { useQuery } from "@tanstack/react-query";
 import type {
@@ -50,18 +51,13 @@ export {
   type AgentMcpServersView,
 } from "./AgentMcpServers.js";
 export {
-  keyGrantSchema,
-  keyGrantTargetSchema,
-  keyIssueResultSchema,
-  keyRecordSchema,
-  keysViewSchema,
-  type KeyAppAccessLevel,
   type KeyAppOption,
-  type KeyGrant,
-  type KeyGrantTarget,
+  type KeyGrantOption,
+  type KeyGrantPreviewProps,
+  type KeyTargetOption,
+  type KeyChange,
   type KeyIssueDraft,
   type KeyIssueResult,
-  type KeyRecord,
   type KeysPort,
   type KeysView,
 } from "./Keys.js";
@@ -96,10 +92,7 @@ export type PlatformControlsHost = PlatformControls &
     desktopConsentReadyAt: () => number;
     /** A child App can suggest Settings; only the member's Review opens them. */
     suggestDesktopSettings: (target: AppAccessTarget) => void;
-    requestAppAccess: (
-      target: AppAccessTarget,
-      input: AppPermissionRequest,
-    ) => Promise<AppPermissionOutcome>;
+    requestAppAccess: WorkbenchHostControls["requestAppAccess"];
     /** View wiring: current location, navigation and the consent handler. */
     /** Settings the embedding host backs with real data and actions. */
     sections?: readonly SettingsLocation["category"][] | undefined;
@@ -356,7 +349,7 @@ export type PlatformControlsData = SettingsSectionPorts &
      * a host without a separate per-App ceiling needs.
      */
     requestAppAccess?(
-      target: AppAccessTarget,
+      target: Parameters<WorkbenchHostControls["requestAppAccess"]>[0],
       input: AppPermissionRequest,
       dialog: AppAccessDialog,
     ): Promise<AppPermissionOutcome>;

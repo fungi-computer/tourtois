@@ -16,13 +16,13 @@ import type { AppDeclaredCommand } from "@fungi.computer/puffball/app";
 import {
   appDirectorySourceId,
   type AppSurfaceCommandHost,
-} from "@fungi.computer/oyster/shell/command-host";
+} from "@fungi.computer/nacre/command-host";
 import {
   leaderKeyMatches,
   leaderKeys,
   parseChord,
   type LeaderKey,
-} from "@fungi.computer/oyster/shell/keys";
+} from "@fungi.computer/nacre/keys";
 
 function isMac(): boolean {
   return /Mac|iPhone|iPad/u.test(navigator.userAgent);
@@ -86,10 +86,10 @@ function commandKeycaps(
     return [mac ? "⌘ K" : "Ctrl K", "then", chordKey(leader.key)];
   const binding = active.bindings.find((row) => row.commandId === commandId);
   const declaredBinding = declared?.projections?.bindings?.values.find(
-    (value) => value.startsWith("<leader> "),
+    (value) => value.startsWith("<leader>"),
   );
   if (declaredBinding !== undefined)
-    return [mac ? "⌘ K" : "Ctrl K", "then", chordKey(declaredBinding.slice(9))];
+    return [mac ? "⌘ K" : "Ctrl K", "then", chordKey(declaredBinding.slice(8))];
   if (binding === undefined) return [];
   const chord = parseChord(binding.binding, mac);
   if (chord === null) return [];

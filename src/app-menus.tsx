@@ -1,5 +1,5 @@
 import { Button } from "@fungi.computer/caps/components/button";
-import type { AppSurfaceCommandHost } from "@fungi.computer/oyster/shell/command-host";
+import type { AppSurfaceCommandHost } from "@fungi.computer/nacre/command-host";
 import type {
   WhistleExecutionOutcome,
   WhistleMenuProjection,

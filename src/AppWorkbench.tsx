@@ -22,12 +22,12 @@ import {
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
-import { addressKey } from "@fungi.computer/oyster/shell/app-directory";
+import { addressKey } from "@fungi.computer/nacre/app-directory";
 import {
   reconcileAppDirectory,
   reconcileAppWindowFromDirectory,
 } from "./app-directory-reconciliation.js";
-import type { WorkbenchDirectory } from "@fungi.computer/oyster/shell/workbench-directory";
+import type { WorkbenchDirectory } from "@fungi.computer/nacre/workbench-directory";
 import { useAppDirectory } from "./app-directory.js";
 import { AppIcon } from "./app-icon.js";
 import {
@@ -380,7 +380,9 @@ export function AppWorkbench({
   ) => {
     return createAppLaunchDescriptor(
       installation,
-      currentLaunch ? launchComputerId(currentLaunch.href) : initialComputerId,
+      currentLaunch
+        ? launchComputerId(currentLaunch.href)
+        : (appsQuery.data?.computer?.computerId ?? initialComputerId),
       window.location.origin,
       computers,
       computersUnavailable,
@@ -866,26 +868,28 @@ export function AppWorkbench({
           className="tourtois-pane-layer"
           data-layout-mode={mode}
         >
-          {appProjection.windows.map((projection, index) => (
-            <AppPane
-              key={projection.windowId}
-              index={index}
-              focusWindow={focusWindow}
-              afterHide={afterHide}
-              onBack={goBack}
-              manager={appWindows}
-              projection={projection}
-              icon={
-                directory.find(
-                  (app) => app.surfaceId === projection.launch.surfaceId,
-                )?.icon
-              }
-              onError={setAppStatus}
-              onSelectComputer={(windowId, computerId) => {
-                void selectWindowComputer(windowId, computerId);
-              }}
-            />
-          ))}
+          {appProjection.windows.map((projection, index) => {
+            const app = directory.find(
+              (item) => item.surfaceId === projection.launch.surfaceId,
+            );
+            return (
+              <AppPane
+                key={projection.windowId}
+                index={index}
+                focusWindow={focusWindow}
+                afterHide={afterHide}
+                onBack={goBack}
+                manager={appWindows}
+                projection={projection}
+                nextLaunch={app ? launchFor(app, projection.launch) : null}
+                icon={app?.icon}
+                onError={setAppStatus}
+                onSelectComputer={(windowId, computerId) => {
+                  void selectWindowComputer(windowId, computerId);
+                }}
+              />
+            );
+          })}
           {extraPanes?.({ activeId, order, focus })}
           {layout.snapPreview && (
             <WindowSnapPreview

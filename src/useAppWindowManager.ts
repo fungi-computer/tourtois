@@ -31,6 +31,9 @@ export function useAppWindowManager(
         mount: async (container, launch, signal, projectionEvents) => {
           if (!host) throw new Error("App host unavailable");
           return await host.mount(container, launch, signal, {
+            ...(projectionEvents.onDeliveryPending && {
+              onDeliveryPending: projectionEvents.onDeliveryPending,
+            }),
             onAgentSessionSelection: (selection) => {
               if (!host.reportAgentSessionSelection)
                 return Promise.reject(

@@ -3,7 +3,7 @@ import type {
   AppCommandHandler,
   AppRoot,
 } from "@fungi.computer/agar";
-import type { AppSurfaceCommandHost } from "@fungi.computer/oyster/shell/command-host";
+import type { AppSurfaceCommandHost } from "@fungi.computer/nacre/command-host";
 import type { AppDeclaredCommand } from "@fungi.computer/puffball/app";
 
 /** In-process transport only. The real Hub bridge owns projection and dispatch. */

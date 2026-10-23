@@ -7,8 +7,8 @@ import {
 import {
   addressKey,
   type AppDirectoryEntry,
-} from "@fungi.computer/oyster/shell/app-directory";
-import type { WorkbenchDesktopSettings } from "@fungi.computer/oyster/shell/workbench";
+} from "@fungi.computer/nacre/app-directory";
+import type { WorkbenchDesktopSettings } from "@fungi.computer/nacre/workbench";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AgentMcpServers } from "./AgentMcpServers.js";
 import { Keys, type KeyAppOption } from "./Keys.js";

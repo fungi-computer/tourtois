@@ -20,10 +20,8 @@ import {
   type WorkbenchPlatformDestination,
   type WorkbenchGillRequest,
   type WorkbenchGillWatch,
-  teamComputerDirectorySchema,
-  teamComputerSchema,
-} from "@fungi.computer/oyster/shell/workbench";
-import { createAppSurfaceCommandHost } from "@fungi.computer/oyster/shell/command-host";
+} from "@fungi.computer/nacre/workbench";
+import { createAppSurfaceCommandHost } from "@fungi.computer/nacre/command-host";
 import * as Schema from "effect/Schema";
 import { type PlatformControls } from "./platform-controls.js";
 import type { GillReply } from "@fungi.computer/gills";
@@ -38,8 +36,9 @@ import type { AppLaunchDescriptor, AppWindowHost } from "./app-windows.js";
 import type { TourtoisAppSurfaceHost } from "./app-surface.js";
 import {
   workbenchDirectorySchema,
+  workbenchComputerDirectorySchema,
   type WorkbenchDirectory,
-} from "@fungi.computer/oyster/shell/workbench-directory";
+} from "@fungi.computer/nacre/workbench-directory";
 
 const teamIdentitySchema = z.strictObject({
   team: z.strictObject({
@@ -49,14 +48,32 @@ const teamIdentitySchema = z.strictObject({
   }),
 });
 export type TeamIdentity = z.output<typeof teamIdentitySchema>["team"];
-const workbenchComputerDirectorySchema = teamComputerDirectorySchema.extend({
-  computers: z.array(
-    teamComputerSchema.pick({ computerId: true, name: true }).strip(),
-  ),
-});
 export type TeamComputerPage = z.output<
   typeof workbenchComputerDirectorySchema
 >;
+
+/** The complete inventory offered to the shell's Computer picker. */
+export async function readWorkbenchComputers(
+  workbench: Pick<TourtoisShell, "computers">,
+  signal: AbortSignal,
+) {
+  const computers: TeamComputerPage["computers"] = [];
+  const assertActive = () => {
+    if (signal.aborted) throw new DOMException("", "AbortError");
+  };
+  let offset = 0;
+  for (;;) {
+    assertActive();
+    const page = await workbench.computers({ limit: 100, offset });
+    assertActive();
+    computers.push(...page.computers);
+    if (page.nextOffset === null) return computers;
+    if (page.nextOffset <= offset)
+      throw new Error("Computer directory pagination did not advance.");
+    offset = page.nextOffset;
+  }
+}
+
 const platformDestinationsSchema = z
   .array(
     z.strictObject({
@@ -74,6 +91,7 @@ const relayCommands = (maximum: number) =>
       z.strictObject({
         id: relayId,
         label: relayLabel,
+        icon: z.literal("play").optional(),
         variant: z.enum(["primary", "outline", "ghost"]).optional(),
         tone: z.literal("destructive").optional(),
         disabled: z.boolean().optional(),
@@ -104,6 +122,7 @@ const navigationRelaySchema = z
         z.strictObject({
           id: relayId,
           label: relayLabel,
+          presentation: z.literal("bead").optional(),
           tone: z
             .enum(["neutral", "info", "warning", "success", "error"])
             .optional(),
@@ -140,6 +159,7 @@ function parseNavigationRelay(value: unknown): AppNavigationState | null {
 type RelayedCommand = z.output<ReturnType<typeof relayCommands>>[number];
 function commandOf(command: RelayedCommand): AppHeaderCommand {
   let copy: AppHeaderCommand = { id: command.id, label: command.label };
+  if (command.icon !== undefined) copy = { ...copy, icon: command.icon };
   if (command.variant !== undefined)
     copy = { ...copy, variant: command.variant };
   if (command.tone !== undefined) copy = { ...copy, tone: command.tone };
@@ -150,10 +170,14 @@ function commandOf(command: RelayedCommand): AppHeaderCommand {
 function statusOf(item: {
   id: string;
   label: string;
+  presentation?: AppHeaderStatus["presentation"] | undefined;
   tone?: AppHeaderStatus["tone"] | undefined;
 }): AppHeaderStatus {
-  const copy: AppHeaderStatus = { id: item.id, label: item.label };
-  return item.tone === undefined ? copy : { ...copy, tone: item.tone };
+  let copy: AppHeaderStatus = { id: item.id, label: item.label };
+  if (item.presentation !== undefined)
+    copy = { ...copy, presentation: item.presentation };
+  if (item.tone !== undefined) copy = { ...copy, tone: item.tone };
+  return copy;
 }
 
 function childLaunch(launch: AppLaunchDescriptor): WorkbenchChildLaunch {
@@ -211,6 +235,7 @@ export function createTourtoisShell(
     signal,
     {
       onAgentSessionSelection,
+      onDeliveryPending,
       onComputerChoice,
       onNavigation,
       onAppOpen,
@@ -228,6 +253,7 @@ export function createTourtoisShell(
     });
     let contribution: AppCommandContribution | undefined;
     const events: TeamWorkbenchChildEvents = {
+      ...(onDeliveryPending && { onDeliveryPending }),
       ...(onComputerChoice && { onComputerChoice }),
       onAgentSessionSelection: (selection) =>
         onAgentSessionSelection(selection),
@@ -287,7 +313,12 @@ export function createTourtoisShell(
     try {
       // The child's frame lives in this window's own slot, so the browser
       // moves, clips and stacks it with the window.
-      handle = await workbench.mount(container, childLaunch(launch), events);
+      handle = await workbench.mount(
+        container,
+        childLaunch(launch),
+        events,
+        signal,
+      );
     } catch (error) {
       commandMount.dispose();
       throw error;

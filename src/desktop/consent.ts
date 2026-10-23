@@ -4,7 +4,7 @@ import {
   desktopGillSelectionSchema,
   type DesktopGillSelection,
   type WorkbenchDesktopSettings,
-} from "@fungi.computer/oyster/shell/workbench";
+} from "@fungi.computer/nacre/workbench";
 import type { DesktopLayoutClient } from "../desktop-client.js";
 import type { DesktopArrangeResult } from "../desktop-layout.js";
 

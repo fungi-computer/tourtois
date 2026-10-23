@@ -19,7 +19,7 @@ import { useState } from "react";
 import type {
   AppAgentPermission,
   AppComputerPermission,
-} from "@fungi.computer/oyster/shell/app-directory";
+} from "@fungi.computer/nacre/app-directory";
 
 const directoryOperations = ["agent.list"] as const;
 const sessionOperations = ["agent.read", "agent.send", "agent.manage"] as const;
@@ -136,6 +136,8 @@ export type AppAccessRequest = Readonly<{
   appName: string;
   agents: readonly AgentAccessOperation[];
   computers: readonly ComputerAccessOperation[];
+  /** A host refusal is visible and cannot be converted into an Allow. */
+  refusal?: Readonly<{ code: string; message: string }>;
   /** Save the grant through the owner's own authority; resolves false when it failed. */
   allow: () => Promise<boolean>;
   settle: (outcome: AppPermissionOutcome) => void;
@@ -190,6 +192,11 @@ export function AppAccessConsent({
               ? `${request.appName} can ${describe([...request.agents, ...request.computers])} for every ${resources(request, "Agent", "Computer")} in this Oyster. You can change this later in System Settings.`
               : ""}
           </DialogDescription>
+          {request?.refusal !== undefined ? (
+            <p role="alert" data-refusal-code={request.refusal.code}>
+              {request.refusal.message}
+            </p>
+          ) : null}
           {failed ? (
             <p role="alert">Access could not be saved. Try again.</p>
           ) : null}
@@ -213,17 +220,18 @@ export function AppAccessConsent({
               Not now
             </Button>
             <Button
-              disabled={saving || request === null}
+              disabled={
+                saving || request === null || request.refusal !== undefined
+              }
               onClick={() => {
-                if (request === null) return;
+                if (request === null || request.refusal !== undefined) return;
                 setSaving(true);
                 setFailed(false);
                 void request.allow().then(
                   (saved) => {
                     if (saved) settle("granted");
                     else {
-                      setSaving(false);
-                      setFailed(true);
+                      settle("declined");
                     }
                   },
                   () => {

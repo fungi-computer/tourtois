@@ -9,7 +9,7 @@ import type { AppStorageWire } from "@fungi.computer/agar/storage";
 import {
   appCatalogResponseSchema,
   type AppCatalog,
-} from "@fungi.computer/oyster/shell/app-directory";
+} from "@fungi.computer/nacre/app-directory";
 import { defineIdFamily } from "@fungi.computer/cairn/id";
 import {
   desktopLayoutSchema,

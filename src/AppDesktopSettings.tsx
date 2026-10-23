@@ -1,14 +1,14 @@
 import { DataListHeading } from "@fungi.computer/caps/components/data-list";
 import { useEffect, useRef, useState } from "react";
 import { AppError } from "@fungi.computer/agar";
-import type { WorkbenchDesktopSettings } from "@fungi.computer/oyster/shell/workbench";
+import type { WorkbenchDesktopSettings } from "@fungi.computer/nacre/workbench";
 import { Button } from "@fungi.computer/caps/components/button";
 import { DataList, DataRow } from "@fungi.computer/caps/components/data-list";
 import { Select } from "@fungi.computer/caps/components/select";
 import type {
   AppDirectoryEntry,
   AppDirectoryGill,
-} from "@fungi.computer/oyster/shell/app-directory";
+} from "@fungi.computer/nacre/app-directory";
 
 export type AppDesktopSettingsApp = Pick<
   AppDirectoryEntry,

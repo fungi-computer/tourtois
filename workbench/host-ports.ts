@@ -3,12 +3,12 @@ import {
   type MemberAvatar,
 } from "@fungi.computer/sprite-zdog/avatar";
 import * as z from "zod";
-import { teamComputerDirectorySchema } from "@fungi.computer/oyster/shell/workbench";
+import { teamComputerDirectorySchema } from "@fungi.computer/nacre/workbench";
 import type { SettingsSectionPorts } from "../src/settings-sections.js";
 import {
   workbenchDirectorySchema,
   type WorkbenchDirectory,
-} from "@fungi.computer/oyster/shell/workbench-directory";
+} from "@fungi.computer/nacre/workbench-directory";
 
 async function hostJson<T>(response: Response, schema: z.ZodType<T>) {
   if (!response.ok) throw new Error(`HTTP ${String(response.status)}`);

@@ -8,7 +8,7 @@ import {
   type WindowMount,
   type WindowManager,
   type WindowManagerOptions,
-} from "@fungi.computer/oyster/shell/window-manager";
+} from "@fungi.computer/nacre/window-manager";
 
 export type AppLaunchDescriptor = Readonly<{
   windowId: string;

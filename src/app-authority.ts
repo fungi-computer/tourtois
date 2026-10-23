@@ -6,7 +6,7 @@ import {
   appAgentPermissionSchema,
   appGenerationPermissionsSchema,
   appMarketplacePermissionsSchema,
-} from "@fungi.computer/oyster/shell/app-directory";
+} from "@fungi.computer/nacre/app-directory";
 
 export const appPermissionChangesSchema = z
   .strictObject({

@@ -42,7 +42,7 @@ export const inkcapApp = {
       description: "Create a new draft in Inkcap",
       sigil: "inkcap",
       projections: {
-        bindings: { values: ["<leader> n"], order: 0 },
+        bindings: { values: ["<leader>n"], order: 0 },
         menu: { order: 0 },
         palette: { order: 0 },
       },

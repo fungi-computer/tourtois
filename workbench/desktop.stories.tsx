@@ -31,10 +31,18 @@ function Desktop({
   fixture,
   demo = false,
   noticeProof = false,
+  versionProof = false,
+  clean = false,
+  teamName = "Local workbench",
 }: {
   fixture: ReturnType<typeof createDesktopFixture>;
   demo?: boolean;
   noticeProof?: boolean;
+  versionProof?: boolean;
+  /** Hide the study's home tiles so only the open windows show. */
+  clean?: boolean;
+  /** The Team name the top bar shows, as a signed-in member sees it. */
+  teamName?: string;
 }) {
   const [client] = useState(() => {
     fixture.reset();
@@ -50,12 +58,22 @@ function Desktop({
   // own (mocked) origin beside the desktop, as Hub does for the dashboard.
   const [controls] = useState(createPlatformControls);
   return (
-    <div className="tourtois-study">
+    <div className="tourtois-study" data-clean={clean ? "" : undefined}>
+      {clean ? (
+        <style>
+          {".tourtois-study[data-clean] .tourtois-desktop-tile { visibility: hidden; } " +
+            // The layout's own 8px tile gutter, below the windows.
+            ".tourtois-study[data-clean] { box-sizing: border-box; padding-bottom: 8px; } " +
+            // In production Grove runs in its own iframe, where h-dvh is the window
+            // body; the workbench mounts it inline, so restore that containment.
+            ".tourtois-study[data-clean] [data-workbench-app] .inbox-app { height: 100%; }"}
+        </style>
+      ) : null}
       <QueryClientProvider client={client}>
         <AppSurfaceHostProvider value={host}>
           <TeamTourtois
             teamId="workbench"
-            teamName="Local workbench"
+            teamName={teamName}
             platform={controls}
             directoryReader={workbenchDirectory}
             computersReader={workbenchComputers}
@@ -70,7 +88,16 @@ function Desktop({
               />
             }
             systemMenuItems={
-              noticeProof ? (
+              versionProof ? (
+                <DropdownMenuItem
+                  onSelect={() => {
+                    fixture.activateNewVersion();
+                    controls.changed();
+                  }}
+                >
+                  Activate new version
+                </DropdownMenuItem>
+              ) : noticeProof ? (
                 <DropdownMenuItem
                   onSelect={() => {
                     toast("App selection changed. Your window stays open.", {
@@ -121,10 +148,44 @@ const workspace = createDesktopFixture();
 export const Workspace: Story = () => <Desktop fixture={workspace} />;
 Workspace.msw = workspace.handlers;
 
+// Docs hero shot: Grove opens its own timeline conversation; the desktop
+// shows only its windows. Reproduce it in the default Tiled layout: open Grove, then Prints.
+const hero = createDesktopFixture("hero");
+// Grove's own persisted layout: Agent rail and conversation list collapsed, so
+// Grove opens on just the conversation. The prior value returns on unmount.
+const groveLayoutKey = "fungi.grove.layout.v1";
+function HeroDesktop() {
+  useState(() => {
+    globalThis.localStorage.setItem(
+      groveLayoutKey,
+      JSON.stringify({
+        agentRailOpen: false,
+        listRailOpen: false,
+        listWidth: 320,
+      }),
+    );
+  });
+  useEffect(
+    () => () => {
+      globalThis.localStorage.removeItem(groveLayoutKey);
+    },
+    [],
+  );
+  return <Desktop fixture={hero} clean teamName="Fernwood Garden Co." />;
+}
+export const Hero: Story = () => <HeroDesktop />;
+Hero.msw = hero.handlers;
+
 // The actual Inkcap and widget producers, with a local host callback transport.
 const computerChoice = createDesktopFixture("computer-choice");
 export const ComputerChoice: Story = () => <Desktop fixture={computerChoice} />;
 ComputerChoice.msw = computerChoice.handlers;
+
+const versionNotice = createDesktopFixture("computer-choice");
+export const NewVersion: Story = () => (
+  <Desktop fixture={versionNotice} versionProof />
+);
+NewVersion.msw = versionNotice.handlers;
 
 /** Controlled host state, not the Team desktop's auto-selected default launch. */
 export const UnattachedInkcap: Story = () => {
