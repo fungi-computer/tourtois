@@ -21,15 +21,20 @@ import { tourtoisQueryKeys } from "./queries.js";
 /** One owner-fleet page returned by the public Computer controls port. */
 export type ComputerPage = z.output<typeof teamComputerDirectorySchema>;
 
-/** Owner controls over the existing standalone fleet, not a second inventory. */
+/** Host-supplied owner controls over the existing fleet, not a second inventory. */
 export type OysterComputersPort = Readonly<{
   list(offset: number): Promise<ComputerPage>;
-  selected(): Promise<string | null>;
   create(name: string | undefined, requestId: string): Promise<TeamComputer>;
   start(computerId: string): Promise<void>;
-  select(computerId: string): Promise<TeamComputer>;
   internetAccess(computerId: string): Promise<boolean>;
   setInternetAccess(computerId: string, enabled: boolean): Promise<boolean>;
+  /** Only hosts with a persisted default for new Apps supply selection. */
+  selection?: Readonly<{
+    selected(): Promise<string | null>;
+    select(computerId: string): Promise<TeamComputer>;
+  }>;
+  /** Operator policy readback, when the host exposes it. Unknown locks writes. */
+  egressPolicy?(): Promise<"enabled" | "globally-disabled" | "team-disabled">;
 }>;
 
 const internetAccessSchema = z.strictObject({ enabled: z.boolean() });
@@ -67,13 +72,6 @@ export function createOysterComputersPort(origin: URL): OysterComputersPort {
       );
       return teamComputerDirectorySchema.parse(await response.json());
     },
-    selected: async () => {
-      const response = await read("/api/workbench/directory");
-      return (
-        workbenchDirectorySchema.parse(await response.json()).computer
-          ?.computerId ?? null
-      );
-    },
     create: async (name, requestId) => {
       const response = await read("/api/computers", {
         method: "POST",
@@ -93,12 +91,21 @@ export function createOysterComputersPort(origin: URL): OysterComputersPort {
       );
       await response.json();
     },
-    select: async (computerId) => {
-      const response = await read("/api/computers/selected", {
-        method: "PUT",
-        body: JSON.stringify({ computerId }),
-      });
-      return teamComputerSchema.parse(await response.json());
+    selection: {
+      selected: async () => {
+        const response = await read("/api/workbench/directory");
+        return (
+          workbenchDirectorySchema.parse(await response.json()).computer
+            ?.computerId ?? null
+        );
+      },
+      select: async (computerId) => {
+        const response = await read("/api/computers/selected", {
+          method: "PUT",
+          body: JSON.stringify({ computerId }),
+        });
+        return teamComputerSchema.parse(await response.json());
+      },
     },
     internetAccess: async (computerId) => {
       const response = await read(
@@ -120,10 +127,12 @@ function InternetAccess({
   teamId,
   computer,
   port,
+  policy,
 }: {
   teamId: string;
   computer: TeamComputer;
   port: OysterComputersPort;
+  policy: "enabled" | "globally-disabled" | "team-disabled" | "unavailable";
 }) {
   const queryKey = tourtoisQueryKeys.oysterInternetAccess(
     teamId,
@@ -148,7 +157,11 @@ function InternetAccess({
         <Switch
           aria-label={`Internet access for ${computer.name}`}
           checked={current.data ?? false}
-          disabled={current.data === undefined || update.isPending}
+          disabled={
+            policy !== "enabled" ||
+            current.data === undefined ||
+            update.isPending
+          }
           onCheckedChange={(enabled) => {
             update.mutate(enabled);
           }}
@@ -172,6 +185,12 @@ function InternetAccess({
       {update.isError ? (
         <p role="alert">Could not save Internet access for {computer.name}.</p>
       ) : null}
+      {policy === "globally-disabled" ? (
+        <p>Internet access is locked by the global off switch.</p>
+      ) : null}
+      {policy === "team-disabled" ? (
+        <p>Internet access is locked for this Team.</p>
+      ) : null}
     </div>
   );
 }
@@ -184,7 +203,7 @@ type Action =
     }>
   | Readonly<{ kind: "start" | "select"; computerId: string }>;
 
-/** Owner Settings over the host's existing inventory and default selection. */
+/** Owner Settings over the host's existing inventory and optional default. */
 export function OysterComputers({
   teamId,
   port,
@@ -200,13 +219,26 @@ export function OysterComputers({
   const intent = useRef<Extract<Action, { kind: "create" }> | null>(null);
   const inventoryKey = tourtoisQueryKeys.oysterComputers(teamId);
   const selectionKey = tourtoisQueryKeys.oysterSelectedComputer(teamId);
+  const selection = port.selection;
   const inventory = useQuery({
     queryKey: tourtoisQueryKeys.oysterComputerPage(teamId, offset),
     queryFn: () => port.list(offset),
   });
   const selected = useQuery({
     queryKey: selectionKey,
-    queryFn: () => port.selected(),
+    enabled: selection !== undefined,
+    queryFn: () =>
+      selection === undefined
+        ? Promise.reject(new Error("This host has no default Computer"))
+        : selection.selected(),
+  });
+  const policy = useQuery({
+    queryKey: tourtoisQueryKeys.oysterEgressPolicy(teamId),
+    enabled: port.egressPolicy !== undefined,
+    queryFn: () =>
+      port.egressPolicy === undefined
+        ? Promise.reject(new Error("This host has no egress policy readback"))
+        : port.egressPolicy(),
   });
   const action = useMutation({
     mutationFn: async (input: Action) => {
@@ -218,7 +250,9 @@ export function OysterComputers({
           await port.start(input.computerId);
           return;
         case "select":
-          await port.select(input.computerId);
+          if (selection === undefined)
+            throw new Error("This host has no default Computer");
+          await selection.select(input.computerId);
       }
     },
     onSuccess: async (_result, input) => {
@@ -229,30 +263,46 @@ export function OysterComputers({
       }
       await Promise.all([
         client.invalidateQueries({ queryKey: inventoryKey }),
-        client.invalidateQueries({ queryKey: selectionKey }),
+        ...(selection === undefined
+          ? []
+          : [client.invalidateQueries({ queryKey: selectionKey })]),
       ]);
       onChanged();
     },
   });
   const unavailable =
     inventory.isError ||
-    selected.isError ||
+    (selection !== undefined && selected.isError) ||
     inventory.isFetching ||
-    selected.isFetching ||
+    (selection !== undefined && selected.isFetching) ||
     action.isPending;
+  const policyStatus =
+    port.egressPolicy === undefined
+      ? "enabled"
+      : (policy.data ?? "unavailable");
 
   return (
     <section className="grid gap-sm" aria-label="Computers">
       <SectionHeading>Computers</SectionHeading>
-      <p>Choose the default Computer used for new App configurations.</p>
+      <p>
+        {selection === undefined
+          ? "Manage your Team's Computers."
+          : "Choose the default Computer used for new App configurations."}
+      </p>
+      {port.egressPolicy !== undefined && policyStatus === "unavailable" ? (
+        <div role="alert">
+          <p>Internet access policy is unavailable; switches are locked.</p>
+          <Button onClick={() => void policy.refetch()}>Retry policy</Button>
+        </div>
+      ) : null}
       {inventory.isPending ? <p role="status">Loading Computers…</p> : null}
-      {inventory.isError || selected.isError ? (
+      {inventory.isError || (selection !== undefined && selected.isError) ? (
         <div role="alert">
           <p>Computer inventory or selection could not be loaded.</p>
           <Button
             onClick={() => {
               void inventory.refetch();
-              void selected.refetch();
+              if (selection !== undefined) void selected.refetch();
             }}
           >
             Retry
@@ -266,45 +316,56 @@ export function OysterComputers({
         <DataList aria-label="Computer inventory">
           {inventory.data.computers.map((computer) => (
             <DataRow key={computer.computerId} className="p-0">
-              <ActionRow
-                label={computer.name}
-                description={
-                  selected.isSuccess && selected.data === computer.computerId
-                    ? "Default for new Apps"
-                    : computer.computerId
-                }
-                trailing={
-                  <div className="flex gap-sm">
-                    <Button
-                      aria-label={`Start ${computer.name}`}
-                      disabled={unavailable}
-                      onClick={() => {
-                        action.mutate({
-                          kind: "start",
-                          computerId: computer.computerId,
-                        });
-                      }}
-                    >
-                      Start
-                    </Button>
-                    <Button
-                      aria-label={`Use ${computer.name} for new Apps`}
-                      disabled={
-                        unavailable || selected.data === computer.computerId
-                      }
-                      onClick={() => {
-                        action.mutate({
-                          kind: "select",
-                          computerId: computer.computerId,
-                        });
-                      }}
-                    >
-                      Use for new Apps
-                    </Button>
-                  </div>
-                }
-              />
-              <InternetAccess teamId={teamId} computer={computer} port={port} />
+              <div className="grid min-w-0 gap-sm">
+                <ActionRow
+                  label={computer.name}
+                  description={
+                    selection !== undefined &&
+                    selected.isSuccess &&
+                    selected.data === computer.computerId
+                      ? "Default for new Apps"
+                      : computer.computerId
+                  }
+                  trailing={
+                    <div className="flex flex-wrap gap-sm">
+                      <Button
+                        aria-label={`Start ${computer.name}`}
+                        disabled={unavailable}
+                        onClick={() => {
+                          action.mutate({
+                            kind: "start",
+                            computerId: computer.computerId,
+                          });
+                        }}
+                      >
+                        Start
+                      </Button>
+                      {selection !== undefined ? (
+                        <Button
+                          aria-label={`Use ${computer.name} for new Apps`}
+                          disabled={
+                            unavailable || selected.data === computer.computerId
+                          }
+                          onClick={() => {
+                            action.mutate({
+                              kind: "select",
+                              computerId: computer.computerId,
+                            });
+                          }}
+                        >
+                          Use for new Apps
+                        </Button>
+                      ) : null}
+                    </div>
+                  }
+                />
+                <InternetAccess
+                  teamId={teamId}
+                  computer={computer}
+                  port={port}
+                  policy={policyStatus}
+                />
+              </div>
             </DataRow>
           ))}
         </DataList>

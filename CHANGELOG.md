@@ -1,5 +1,24 @@
 # @fungi.computer/tourtois
 
+## 0.3.0
+
+### Minor Changes
+
+- Changes since 0.2.1:
+
+  - feat(computers): share Tourtois settings across hosts
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/caps@0.3.0
+  - @fungi.computer/parakeet@0.3.0
+  - @fungi.computer/shiitake@0.4.0
+  - @fungi.computer/agar@0.3.1
+  - @fungi.computer/nacre@0.0.2
+
 ## 0.2.1
 
 ### Patch Changes
