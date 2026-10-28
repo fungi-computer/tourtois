@@ -1,6 +1,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import type {
   WhistleCommand,
+  WhistleCommandKey,
   WhistleExecutionInput,
   WhistleExecutionOutcome,
   WhistleMenuProjection,
@@ -16,6 +17,7 @@ import type { AppOpenInput, AppRoleChoice } from "@fungi.computer/agar/apps";
 import type { AppDeclaredCommand } from "@fungi.computer/puffball/app";
 import type { AppWindowMount } from "./app-windows.js";
 import type { WindowEvents } from "@fungi.computer/nacre/window-manager";
+import type { AppSurfaceCommandHost } from "@fungi.computer/nacre/command-host";
 
 /** What one mounted App may raise toward the shell. */
 export type TourtoisAppMountEvents = Pick<WindowEvents, "onDeliveryPending"> &
@@ -65,6 +67,8 @@ export type TourtoisAppSurfaceHost = Readonly<{
     }>[],
     run: (surfaceId: string, commandId: string) => Promise<void>,
   ) => () => void;
+  /** The App command a snapshot row runs, mounted or from the directory. */
+  appCommand: AppSurfaceCommandHost["appCommand"];
   /** Commands contributed by the currently focused App window. */
   menu: () => readonly WhistleMenuProjection[];
   /** The shell-owned semantic command graph, including every mounted App. */
@@ -76,7 +80,7 @@ export type TourtoisAppSurfaceHost = Readonly<{
   active: () => WhistleSnapshot;
   /** Execute an active command or an exact host-owned programmatic action. */
   execute: (
-    commandId: string,
+    command: WhistleCommandKey,
     input: WhistleExecutionInput,
   ) => Promise<WhistleExecutionOutcome>;
   /** Bind one mounted App's explicit Agent Session selection to the shell. */

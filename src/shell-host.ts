@@ -359,6 +359,7 @@ export function createTourtoisShell(
     focus: commands.focus,
     registerShellCommands: commands.registerShellCommands,
     registerDirectoryCommands: commands.registerDirectoryCommands,
+    appCommand: commands.appCommand,
     menu: commands.menu,
     snapshot: commands.snapshot,
     active: commands.active,

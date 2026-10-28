@@ -31,7 +31,6 @@ import { RowGill, type DesktopGillTransport } from "./row-gill.js";
 export type DesktopProps = {
   phone: boolean;
   apps: WorkbenchDirectory["apps"];
-  inboxSurfaceId: string | null;
   launcherItems: readonly AppBarItem[];
   needsUpdate: NonNullable<WorkbenchDirectory["needsUpdate"]>;
   onAppSettings: (app: WorkbenchDirectory["apps"][number]) => void;
@@ -87,14 +86,19 @@ export function Desktop(props: DesktopProps) {
       props.onOwner?.(null);
       current?.close();
     };
-  }, [
-    props.methods,
-    props.storage,
-    props.apps,
-    props.inboxSurfaceId,
-    props.onOwner,
-    retry,
-  ]);
+  }, [props.methods, props.storage, props.onOwner, retry]);
+  // The backend resolves the desktop against its own App catalog. One owner
+  // lives across directory polls; only a changed App set re-reads it.
+  const catalog = JSON.stringify(
+    props.apps.map((app) => [app.surfaceId, app.releaseId, app.availability]),
+  );
+  const readCatalog = useRef<string | null>(null);
+  useEffect(() => {
+    if (owner === null) return;
+    if (readCatalog.current !== null && readCatalog.current !== catalog)
+      owner.invalidate();
+    readCatalog.current = catalog;
+  }, [owner, catalog]);
   return (
     <div className="tourtois-desktop" data-desktop-bento>
       {error ? (

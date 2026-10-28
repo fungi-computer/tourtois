@@ -100,7 +100,7 @@ export function AppMenus({
                     setPending(command.commandId);
                     setMessage(null);
                     void host
-                      .execute(command.commandId, {
+                      .execute(command.command, {
                         origin: "menu",
                         signal: controller.signal,
                       })

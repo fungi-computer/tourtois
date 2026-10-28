@@ -1,5 +1,35 @@
 # @fungi.computer/tourtois
 
+## 0.4.0
+
+### Minor Changes
+
+- Changes since 0.3.1:
+
+  - refactor(whistle)!: execute commands by their typed key; only Whistle mints
+    ids
+  - fix(vishnu): migrate recorded spectator traces to typed Whistle keys
+  - fix(whistle): key commands by a typed namespace and id, not a rebuilt string
+  - fix(tourtois): re-read the desktop through the client's own invalidation
+  - feat(agar): status buttons carry a status light
+  - perf(tourtois): poll the App directory every minute
+  - perf(tourtois): build the desktop layout client once
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.5.0
+  - @fungi.computer/caps@0.4.0
+  - @fungi.computer/nacre@0.1.0
+  - @fungi.computer/parakeet@0.5.0
+  - @fungi.computer/shiitake@0.6.0
+  - @fungi.computer/whistle@0.3.0
+
 ## 0.3.1
 
 ### Patch Changes

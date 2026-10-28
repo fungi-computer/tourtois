@@ -1,6 +1,10 @@
 import { defineIdFamily } from "@fungi.computer/cairn/id";
 import type { AppOpenInput } from "@fungi.computer/agar/apps";
-import type { WhistleSnapshot } from "@fungi.computer/whistle";
+import {
+  sameWhistleCommand,
+  type WhistleMenuProjection,
+  type WhistleSnapshot,
+} from "@fungi.computer/whistle";
 import { type TourtoisAppSurfaceHost } from "./app-surface.js";
 import { AppError } from "@fungi.computer/agar";
 import {
@@ -10,6 +14,7 @@ import {
   type AppWindowProjection,
 } from "./app-windows.js";
 import type { WorkbenchDirectory } from "@fungi.computer/nacre/workbench-directory";
+import { appSurfaceCommandKey } from "@fungi.computer/nacre/command-host";
 
 export type AppDirectoryApp = WorkbenchDirectory["apps"][number];
 
@@ -235,15 +240,48 @@ export function launchForComputer(
   };
 }
 
+/** An editor surface's admitted open-file row, once the App registered it. */
+export function findOpenFileCommand(
+  snapshot: WhistleSnapshot,
+  surfaceId: string,
+): WhistleMenuProjection | undefined {
+  const key = appSurfaceCommandKey({ surfaceId, commandId: "open-file" });
+  return snapshot.menu.find((row) => sameWhistleCommand(row.command, key));
+}
+
 /** Find the user's already-open editor by its admitted open-file command. */
 export function findOpenFileEditor<
   Window extends Pick<AppWindowProjection, "launch">,
 >(windows: readonly Window[], snapshot: WhistleSnapshot): Window | undefined {
-  return windows.find((window) =>
-    snapshot.menu.some(
-      (command) => command.commandId === `${window.launch.surfaceId}:open-file`,
-    ),
+  return windows.find(
+    (window) =>
+      findOpenFileCommand(snapshot, window.launch.surfaceId) !== undefined,
   );
+}
+
+/**
+ * Resolve once a just-mounted App has registered a declared command: an App
+ * window is ready when its host connects, and registers its commands after.
+ */
+export function waitForSurfaceCommand(
+  host: Pick<TourtoisAppSurfaceHost, "subscribe">,
+  isRegistered: () => boolean,
+): Promise<void> {
+  if (isRegistered()) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      unsubscribe();
+      reject(new Error("The App did not register its declared command."));
+    }, 10_000);
+    const check = () => {
+      if (!isRegistered()) return;
+      window.clearTimeout(timeout);
+      unsubscribe();
+      resolve();
+    };
+    const unsubscribe = host.subscribe(check);
+    check();
+  });
 }
 
 /**
@@ -269,7 +307,7 @@ export async function resolveFileEditorWindow(options: {
   apps: readonly AppDirectoryApp[];
   roles: AppDirectoryRoles;
   appWindows: ReturnType<typeof createAppWindowManager>;
-  appSurfaceHost: TourtoisAppSurfaceHost;
+  appSurfaceHost: Pick<TourtoisAppSurfaceHost, "snapshot" | "subscribe">;
   computerId: string;
   computers: readonly ComputerOption[];
   origin: string;
@@ -307,7 +345,17 @@ export async function resolveFileEditorWindow(options: {
     .read()
     .windows.find((window) => window.windowId === candidate.windowId);
   const editor = mounted
-    ? findOpenFileEditor([mounted], options.appSurfaceHost.snapshot())
+    ? await waitForSurfaceCommand(
+        options.appSurfaceHost,
+        () =>
+          findOpenFileCommand(
+            options.appSurfaceHost.snapshot(),
+            mounted.launch.surfaceId,
+          ) !== undefined,
+      ).then(
+        () => mounted,
+        () => undefined,
+      )
     : undefined;
   if (editor) return { launch: editor.launch, opened: true };
 

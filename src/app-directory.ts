@@ -22,8 +22,10 @@ export function useAppDirectory(
     // result fresh for that handoff; explicit mutations still invalidate it.
     staleTime: 5_000,
     // Quiet open Apps need release availability too, not just after a request
-    // is refused. React Query pauses this polling while the page is hidden.
-    refetchInterval: 15_000,
+    // is refused. Every directory read costs the host a Registry read, and
+    // explicit mutations already invalidate this query, so the poll is a slow
+    // backstop. React Query pauses it while the page is hidden.
+    refetchInterval: 60_000,
   });
   return {
     query,

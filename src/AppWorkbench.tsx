@@ -37,6 +37,7 @@ import {
   attachWindowComputer,
   launchComputerId,
   launchForComputer,
+  findOpenFileCommand,
   launchForRoleIntent,
   requireHandledNavigation,
   resolveFileEditorWindow,
@@ -122,7 +123,7 @@ function phoneShowDesktop(
   if (!phone || !covered || !host) return undefined;
   return () => {
     void host
-      .execute("shell:desktop.show", { origin: "menu" })
+      .execute({ namespace: "shell", id: "desktop.show" }, { origin: "menu" })
       .then((outcome) => {
         if (outcome.status !== "handled") {
           console.error("Phone Show desktop refused", outcome);
@@ -456,8 +457,13 @@ export function AppWorkbench({
       focusWindow(launch.windowId);
       appSurfaceHost.focus?.(launch.surfaceId);
 
-      const commandId = `${launch.surfaceId}:open-file`;
-      const outcome = await appSurfaceHost.execute(commandId, {
+      const openFile = findOpenFileCommand(
+        appSurfaceHost.snapshot(),
+        launch.surfaceId,
+      );
+      if (!openFile)
+        throw new Error("The editor's open-file command is unavailable.");
+      const outcome = await appSurfaceHost.execute(openFile.command, {
         origin: "programmatic",
         arguments: input,
       });
@@ -649,10 +655,6 @@ export function AppWorkbench({
     }),
     ...extraLaunchers,
   );
-  const inboxSurfaceId = useMemo(
-    () => appForRole(directory, directoryRoles, "inbox")?.surfaceId ?? null,
-    [directory, directoryRoles],
-  );
   const visibility = desktopVisibility({
     hasVisibleWindows:
       hasVisibleAppWindows(appProjection) ||
@@ -825,7 +827,6 @@ export function AppWorkbench({
             phone={phone}
             editing={desktopEditing}
             onEditingChange={setDesktopEditing}
-            inboxSurfaceId={inboxSurfaceId}
             onOwner={receiveDesktopOwner}
             launcherItems={launchableItems}
             onAllApps={() => {

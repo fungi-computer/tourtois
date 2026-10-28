@@ -1,35 +1,12 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { TourtoisAppSurfaceHost } from "./app-surface.js";
-import type { AppDirectoryApp } from "./app-launch.js";
+import { waitForSurfaceCommand, type AppDirectoryApp } from "./app-launch.js";
+import { appSurfaceCommandKey } from "@fungi.computer/nacre/command-host";
+import { sameWhistleCommand } from "@fungi.computer/whistle";
 import type {
   createAppWindowManager,
   AppLaunchDescriptor,
 } from "./app-windows.js";
-
-function waitForPaletteCommand(
-  host: TourtoisAppSurfaceHost,
-  commandId: string,
-): Promise<void> {
-  const isReady = () =>
-    host.active().palette.some((command) => command.commandId === commandId);
-  if (isReady()) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      unsubscribe();
-      reject(new Error("The App did not register its declared command."));
-    }, 10_000);
-    const finish = () => {
-      window.clearTimeout(timeout);
-      unsubscribe();
-      resolve();
-    };
-    const check = () => {
-      if (isReady()) finish();
-    };
-    const unsubscribe = host.subscribe(check);
-    check();
-  });
-}
 
 /** Keep declared commands addressable before their App has mounted. */
 export function useDirectoryCommands({
@@ -87,9 +64,16 @@ export function useDirectoryCommands({
         try {
           await context.manager.open(launch);
           context.onFocus(launch.windowId);
-          const runtimeCommandId = `${encodeURIComponent(surfaceId)}:${commandId}`;
-          await waitForPaletteCommand(host, runtimeCommandId);
-          const outcome = await host.execute(runtimeCommandId, {
+          const key = appSurfaceCommandKey({ surfaceId, commandId });
+          const registered = () =>
+            host
+              .active()
+              .palette.find((row) => sameWhistleCommand(row.command, key));
+          await waitForSurfaceCommand(host, () => registered() !== undefined);
+          const row = registered();
+          if (!row)
+            throw new Error("The App did not register its declared command.");
+          const outcome = await host.execute(row.command, {
             origin: "palette",
           });
           if (outcome.status === "handled") return;

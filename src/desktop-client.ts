@@ -21,6 +21,8 @@ export type DesktopLayoutClient = Readonly<{
   };
   subscribe: (listener: () => void) => () => void;
   refresh: () => Promise<void>;
+  /** Re-read in the background; a failure shows through `refreshFailure`. */
+  invalidate: () => void;
   mutate: (
     method: DesktopMutation,
     input: WhistleJsonValue,
@@ -117,10 +119,11 @@ export async function createDesktopLayoutClient({
       });
     return pending;
   };
-  const unsubscribe = watch.subscribe(() => {
-    // Handle watcher failures through the same idempotent state publisher.
+  // Handle background failures through the same idempotent state publisher.
+  const invalidate = () => {
     void refresh().catch(publishRefreshFailure);
-  });
+  };
+  const unsubscribe = watch.subscribe(invalidate);
   const close = () => {
     closed = true;
     retirePending?.();
@@ -147,6 +150,7 @@ export async function createDesktopLayoutClient({
       };
     },
     refresh,
+    invalidate,
     async mutate(method, input) {
       const result = desktopArrangeResultSchema.parse(
         await methods.call(method, JSON.stringify(input)),

@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@fungi.computer/caps/components/dialog";
 import type {
+  WhistleCommandKey,
   WhistleExecutionOutcome,
   WhistlePaletteProjection,
   WhistleSnapshot,
@@ -47,14 +48,6 @@ export type PaletteApp = Readonly<{
   roles: readonly string[];
   surfaceId: string;
 }>;
-
-function appCommandId(surfaceId: string, commandId: string): string {
-  return `${encodeURIComponent(surfaceId)}:${commandId}`;
-}
-
-function directoryCommandId(surfaceId: string, commandId: string): string {
-  return `app-directory:${encodeURIComponent(surfaceId)}-${encodeURIComponent(commandId)}`;
-}
 
 function chordKey(key: string): string {
   switch (key) {
@@ -121,7 +114,7 @@ export function CommandDialogs({
   container: dialog,
   renderIcon,
 }: Readonly<{
-  host: Pick<AppSurfaceCommandHost, "execute"> | null;
+  host: Pick<AppSurfaceCommandHost, "appCommand" | "execute"> | null;
   state: ShellCommandState;
   focusedWindow:
     | Readonly<{
@@ -169,15 +162,26 @@ export function CommandDialogs({
         surfaceId: focusedWindow.launch.surfaceId,
       }
     : undefined;
-  const focusedCommandIds = new Set(
-    focusedApp?.commands.flatMap((command) => [
-      appCommandId(focusedApp.surfaceId, command.id),
-      directoryCommandId(focusedApp.surfaceId, command.id),
-    ]) ?? [],
-  );
+  // The App a palette row belongs to, and the command its Release declares.
+  const paletteEntry = (command: WhistlePaletteProjection) => {
+    const target = host?.appCommand(command);
+    if (target === undefined) return undefined;
+    const app =
+      target.surfaceId === focusedApp?.surfaceId
+        ? focusedApp
+        : command.sourceId === appDirectorySourceId
+          ? directoryApps.find((entry) => entry.surfaceId === target.surfaceId)
+          : undefined;
+    if (app === undefined) return undefined;
+    return {
+      app,
+      declared: app.commands.find((entry) => entry.id === target.commandId),
+    };
+  };
   const isFocusedCommand = (command: WhistlePaletteProjection) =>
     command.scope === focusedApp?.surfaceId ||
-    focusedCommandIds.has(command.commandId);
+    (focusedApp !== undefined &&
+      paletteEntry(command)?.app.surfaceId === focusedApp.surfaceId);
   const orderedPaletteRows = [
     ...palette.filter(isFocusedCommand),
     ...palette.filter(
@@ -196,21 +200,11 @@ export function CommandDialogs({
     seenPaletteIds.add(command.commandId);
     return true;
   });
-  const appByCommandId = new Map<string, PaletteApp>();
-  if (focusedApp)
-    for (const command of focusedApp.commands)
-      appByCommandId.set(
-        appCommandId(focusedApp.surfaceId, command.id),
-        focusedApp,
-      );
-  for (const app of directoryApps)
-    for (const command of app.commands)
-      appByCommandId.set(directoryCommandId(app.surfaceId, command.id), app);
   const mac = isMac();
   const run = useCallback(
-    (commandId: string, origin: "keyboard" | "palette") => {
+    (command: WhistleCommandKey, origin: "keyboard" | "palette") => {
       if (!host) return;
-      void host.execute(commandId, { origin }).then((outcome) => {
+      void host.execute(command, { origin }).then((outcome) => {
         const message = outcomeMessage(outcome);
         if (message !== null) onStatus(message);
       });
@@ -224,7 +218,7 @@ export function CommandDialogs({
         onStatus(row.availability.reason);
         return;
       }
-      run(row.commandId, "keyboard");
+      run(row.command, "keyboard");
     },
     [onStatus, run, setKeysOpen],
   );
@@ -301,7 +295,7 @@ export function CommandDialogs({
             getKey={(command) => command.commandId}
             getLabel={(command) => command.title}
             getSearchText={(command) => {
-              const app = appByCommandId.get(command.commandId);
+              const app = paletteEntry(command)?.app;
               return `${command.title} ${command.category} ${command.description ?? ""} ${app?.name ?? ""} ${app ? `opens ${app.name}` : ""}`;
             }}
             groupBy={(command) => {
@@ -317,18 +311,11 @@ export function CommandDialogs({
               <div className="tourtois-command-palette-item">
                 <span className="tourtois-command-palette-item-icon">
                   {(() => {
-                    const app = appByCommandId.get(command.commandId);
-                    if (app === undefined) return null;
-                    const declared = app.commands.find(
-                      (entry) =>
-                        (command.sourceId === appDirectorySourceId
-                          ? directoryCommandId(app.surfaceId, entry.id)
-                          : appCommandId(app.surfaceId, entry.id)) ===
-                        command.commandId,
-                    );
+                    const entry = paletteEntry(command);
+                    if (entry === undefined) return null;
                     return renderIcon(
-                      app.roles,
-                      declared?.sigil ?? app.icon ?? undefined,
+                      entry.app.roles,
+                      entry.declared?.sigil ?? entry.app.icon ?? undefined,
                     );
                   })()}
                 </span>
@@ -336,22 +323,14 @@ export function CommandDialogs({
                   {command.title}
                 </span>
                 {command.sourceId === appDirectorySourceId ? (
-                  appByCommandId.get(command.commandId)?.name !==
-                  focusedApp?.name ? (
+                  paletteEntry(command)?.app.name !== focusedApp?.name ? (
                     <small>
-                      opens{" "}
-                      {appByCommandId.get(command.commandId)?.name ?? "App"}
+                      opens {paletteEntry(command)?.app.name ?? "App"}
                     </small>
                   ) : null
                 ) : null}
                 {(() => {
-                  const app = appByCommandId.get(command.commandId);
-                  const declared = app?.commands.find((entry) =>
-                    [
-                      appCommandId(app.surfaceId, entry.id),
-                      directoryCommandId(app.surfaceId, entry.id),
-                    ].includes(command.commandId),
-                  );
+                  const declared = paletteEntry(command)?.declared;
                   return (
                     <span className="tourtois-command-palette-shortcut">
                       {commandKeycaps(
@@ -380,7 +359,7 @@ export function CommandDialogs({
             onValueChange={(_value, command) => {
               if (!command) return;
               setCommandLineOpen(false);
-              run(command.commandId, "palette");
+              run(command.command, "palette");
             }}
           />
           <div className="tourtois-command-palette-footer">

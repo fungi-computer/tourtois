@@ -977,6 +977,7 @@ function createFixtureHost(
     active: commands.active,
     registerShellCommands: commands.registerShellCommands,
     registerDirectoryCommands: commands.registerDirectoryCommands,
+    appCommand: commands.appCommand,
     execute: commands.execute,
     subscribe: commands.subscribe,
     focus: commands.focus,

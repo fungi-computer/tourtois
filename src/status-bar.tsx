@@ -37,11 +37,13 @@ const StatusBarButton = forwardRef<
     label: string;
     icon?: ReactNode;
     count?: ReactNode;
+    /** A status light before the label. */
+    light?: ReactNode;
     pressed?: boolean;
     expanded?: boolean;
   }
 >(function StatusBarButton(
-  { label, icon, count, pressed, expanded, ...props },
+  { label, icon, count, light, pressed, expanded, ...props },
   ref,
 ) {
   return (
@@ -55,6 +57,7 @@ const StatusBarButton = forwardRef<
       {...(expanded === undefined ? {} : { "aria-expanded": expanded })}
     >
       {icon}
+      {light}
       <span className="caps-status-bar-picker-label tourtois-status-chip-label">
         {label}
       </span>
@@ -82,6 +85,16 @@ export function WindowStatusItem({
     item.count > 0 ? (
       <CountBadge count={item.count} />
     ) : null;
+  const light =
+    item.kind === "button" &&
+    (item.tone !== undefined || item.busy === true) ? (
+      <Status
+        size="compact"
+        aria-hidden="true"
+        tone={item.tone ?? "accent"}
+        motion={item.busy === true ? "pulse" : "none"}
+      />
+    ) : undefined;
   switch (item.kind) {
     case "text":
       return item.tone === undefined ? (
@@ -95,6 +108,7 @@ export function WindowStatusItem({
           label={item.text}
           icon={item.icon === undefined ? undefined : statusIcons[item.icon]}
           count={count}
+          light={light}
           title={item.title ?? item.text}
           disabled={item.disabled}
           aria-haspopup={item.opens}
