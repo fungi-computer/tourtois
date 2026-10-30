@@ -1,6 +1,6 @@
 {
   "name": "@fungi.computer/tourtois",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "scripts": {
     "clean": "node --input-type=module --eval \"import { rm } from 'node:fs/promises'; await rm('dist', { recursive: true, force: true });\"",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.workbench.json && tsc -p backend/tsconfig.json && tsc -p test/workerd/tsconfig.json",
@@ -11,18 +11,18 @@
     "build:workbench": "pnpm run workbench:build"
   },
   "dependencies": {
-    "@fungi.computer/agar": "0.5.0",
+    "@fungi.computer/agar": "0.6.0",
     "@fungi.computer/cairn": "0.1.0",
-    "@fungi.computer/caps": "0.4.0",
+    "@fungi.computer/caps": "0.5.0",
     "@fungi.computer/ear-tag": "0.1.0",
     "@fungi.computer/gills": "0.2.0",
     "@fungi.computer/maosaico": "0.1.0",
-    "@fungi.computer/parakeet": "0.5.0",
-    "@fungi.computer/puffball": "0.2.0",
-    "@fungi.computer/shiitake": "0.6.0",
+    "@fungi.computer/parakeet": "0.6.0",
+    "@fungi.computer/puffball": "0.3.0",
+    "@fungi.computer/shiitake": "0.7.0",
     "@fungi.computer/sigils": "0.2.0",
     "@fungi.computer/sprite": "0.2.0",
-    "@fungi.computer/sprite-zdog": "0.2.0",
+    "@fungi.computer/sprite-zdog": "0.3.0",
     "@fungi.computer/whistle": "0.3.0",
     "@tanstack/history": "1.162.1",
     "@tanstack/react-form": "1.33.2",
@@ -34,13 +34,13 @@
     "lucide-react": "0.460.0",
     "react-dom": "18.3.1",
     "zod": "4.4.3",
-    "@fungi.computer/nacre": "0.1.0"
+    "@fungi.computer/nacre": "0.1.1"
   },
   "devDependencies": {
-    "@fungi.computer/oyster": "0.6.0",
+    "@fungi.computer/oyster": "0.7.0",
     "@cloudflare/workers-types": "5.20260828.1",
-    "@fungi.computer/forage": "0.2.0",
-    "@fungi.computer/mycelium": "0.2.3",
+    "@fungi.computer/forage": "0.2.1",
+    "@fungi.computer/mycelium": "0.3.0",
     "@ladle/react": "5.1.1",
     "@types/react": "18.3.3",
     "@vitejs/plugin-react": "6.1.1",

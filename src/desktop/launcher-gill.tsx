@@ -65,18 +65,16 @@ export function LauncherGill({
       onContentHeight={onContentHeight}
       editHandle={
         editHandle ?? (
-          <>
-            <Button
-              size="sm"
-              variant="ghost"
-              aria-expanded={editing}
-              onClick={() => {
-                setEditing(!editing);
-              }}
-            >
-              {editing ? "Done" : "Edit launcher"}
-            </Button>
-          </>
+          <Button
+            size="xs"
+            variant="outline"
+            aria-expanded={editing}
+            onClick={() => {
+              setEditing(!editing);
+            }}
+          >
+            {editing ? "Done" : "Edit launcher"}
+          </Button>
         )
       }
     >

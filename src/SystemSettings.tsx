@@ -28,6 +28,12 @@ import {
 } from "./settings-leave-guard.js";
 import { Button } from "@fungi.computer/caps/components/button";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@fungi.computer/caps/components/tabs";
+import {
   WindowFrame,
   WindowHeader,
   WindowActions,
@@ -314,124 +320,109 @@ export function SystemSettings({
                 aria-label="App settings"
                 hidden={!appSection || appKey === null}
               >
-                <div className="tourtois-settings-app-header">
-                  <SectionHeading className="tourtois-settings-app-heading">
-                    {selected ? (
-                      <AppIcon roles={selected.roles} icon={selected.icon} />
-                    ) : null}
-                    {selected
-                      ? (selected.displayName ?? selected.appId)
-                      : "Apps"}
-                  </SectionHeading>
-                  {selected ? (
-                    <div
-                      className="tourtois-settings-app-tabs"
-                      role="group"
+                <Tabs
+                  className="flex min-h-0 flex-1 flex-col"
+                  value={
+                    advanced ? "advanced" : desktop ? "desktop" : "permissions"
+                  }
+                  onValueChange={(section) => {
+                    if (
+                      section === "permissions" ||
+                      section === "desktop" ||
+                      section === "advanced"
+                    )
+                      onNavigate({ category: "apps", appKey, section });
+                  }}
+                >
+                  <div className="tourtois-settings-app-header">
+                    <SectionHeading className="tourtois-settings-app-heading">
+                      {selected ? (
+                        <AppIcon roles={selected.roles} icon={selected.icon} />
+                      ) : null}
+                      {selected
+                        ? (selected.displayName ?? selected.appId)
+                        : "Apps"}
+                    </SectionHeading>
+                    <TabsList
+                      variant="segmented"
+                      className="ml-auto w-auto"
+                      hidden={
+                        !selected || (desktopOnly && AppAdvanced === undefined)
+                      }
                       aria-label="App settings sections"
                     >
                       {!desktopOnly ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className={
-                            !advanced && !desktop
-                              ? "bg-base-300 text-base-content"
-                              : undefined
-                          }
-                          aria-pressed={!advanced && !desktop}
-                          onClick={() => {
-                            onNavigate({
-                              category: "apps",
-                              appKey,
-                              section: "permissions",
-                            });
-                          }}
-                        >
+                        <TabsTrigger value="permissions">
                           Permissions
-                        </Button>
+                        </TabsTrigger>
                       ) : null}
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className={
-                          desktop ? "bg-base-300 text-base-content" : undefined
-                        }
-                        aria-pressed={desktop}
-                        onClick={() => {
-                          onNavigate({
-                            category: "apps",
-                            appKey,
-                            section: "desktop",
-                          });
-                        }}
-                      >
-                        Desktop
-                      </Button>
+                      <TabsTrigger value="desktop">Desktop</TabsTrigger>
                       {AppAdvanced !== undefined ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className={
-                            advanced
-                              ? "bg-base-300 text-base-content"
-                              : undefined
-                          }
-                          aria-pressed={advanced}
-                          onClick={() => {
-                            onNavigate({
-                              category: "apps",
-                              appKey,
-                              section: "advanced",
-                            });
-                          }}
-                        >
-                          Advanced
-                        </Button>
+                        <TabsTrigger value="advanced">Advanced</TabsTrigger>
                       ) : null}
-                    </div>
-                  ) : null}
-                </div>
-                <div className="tourtois-settings-app-content">
-                  {!selected ? (
-                    <p>
-                      Choose an app to manage its permissions and advanced
-                      settings.
-                    </p>
-                  ) : null}
-                  <div
-                    className="tourtois-settings-permissions"
-                    hidden={!selected || advanced || desktop}
-                  >
+                    </TabsList>
+                  </div>
+                  <div className="tourtois-settings-app-content">
+                    {!selected ? (
+                      <p>
+                        Choose an app to manage its permissions and advanced
+                        settings.
+                      </p>
+                    ) : null}
+                    {/* Host editors retain their drafts across tab changes. */}
                     {AppPermissions !== undefined ? (
-                      <AppPermissions
-                        selectedKey={appKey}
-                        onAccepted={onAccepted}
-                      />
+                      <TabsContent
+                        value="permissions"
+                        forceMount
+                        className="mt-0 flex min-h-0 flex-1 flex-col"
+                      >
+                        <div
+                          className="tourtois-settings-permissions"
+                          hidden={!selected}
+                        >
+                          <AppPermissions
+                            selectedKey={appKey}
+                            onAccepted={onAccepted}
+                          />
+                        </div>
+                      </TabsContent>
+                    ) : null}
+                    <TabsContent
+                      value="desktop"
+                      forceMount
+                      className="mt-0 flex min-h-0 flex-1 flex-col"
+                    >
+                      {selected && desktop && desktopOnly ? (
+                        <AppCallPermissions
+                          calls={selected.calls}
+                          apps={apps}
+                        />
+                      ) : null}
+                      {selected && desktop ? (
+                        <AppDesktopSettings
+                          key={selected.surfaceId}
+                          app={selected}
+                          desktop={desktopSettings}
+                          consentReadyAt={desktopConsentReadyAt}
+                        />
+                      ) : null}
+                    </TabsContent>
+                    {AppAdvanced !== undefined ? (
+                      <TabsContent
+                        value="advanced"
+                        forceMount
+                        className="mt-0 flex min-h-0 flex-1 flex-col"
+                      >
+                        <AppAdvanced
+                          selectedKey={appKey}
+                          visible={advanced}
+                          onNavigate={onNavigate}
+                          onAccepted={onAccepted}
+                        />
+                      </TabsContent>
                     ) : null}
                   </div>
-                  {selected && desktop && desktopOnly ? (
-                    <AppCallPermissions calls={selected.calls} apps={apps} />
-                  ) : null}
-                  {selected && desktop ? (
-                    <AppDesktopSettings
-                      key={selected.surfaceId}
-                      app={selected}
-                      desktop={desktopSettings}
-                      consentReadyAt={desktopConsentReadyAt}
-                    />
-                  ) : null}
-                  {AppAdvanced !== undefined ? (
-                    <AppAdvanced
-                      selectedKey={appKey}
-                      visible={advanced}
-                      onNavigate={onNavigate}
-                      onAccepted={onAccepted}
-                    />
-                  ) : null}
-                </div>
+                </Tabs>
               </section>
             ) : null}
           </div>

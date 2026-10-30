@@ -14,8 +14,9 @@ export const mountShell: MountShell = async (root, input) => {
 };
 
 /**
- * Tourtois's own Settings for a host that has none, such as a standalone
- * Oyster; they load as their own lazy chunk under this module's URL.
+ * Standalone Oyster Settings chrome, loaded as its own lazy chunk.
+ * App Permissions frame the host's page instead of importing host code;
+ * other sections retain their existing host-backed ports.
  */
 export const mountPlatformControls: MountPlatformControls = async (
   root,

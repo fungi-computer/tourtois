@@ -312,7 +312,7 @@ function ArrangedDesktop({
         <div className="tourtois-desktop-controls">
           <Button
             size="sm"
-            variant="ghost"
+            variant="outline"
             onClick={() => {
               onEditingChange(false);
             }}
@@ -322,6 +322,7 @@ function ArrangedDesktop({
           <div className="tourtois-desktop-add-gill">
             <Select
               aria-label="Add widget"
+              className="select-sm"
               value=""
               disabled={saving}
               onChange={(event) => {
@@ -347,7 +348,7 @@ function ArrangedDesktop({
           </div>
           <Button
             size="sm"
-            variant="ghost"
+            variant="outline"
             disabled={saving}
             onClick={() => {
               void save("layout.reset", {});
@@ -358,7 +359,7 @@ function ArrangedDesktop({
           {snapshot.canWriteTeam ? (
             <Button
               size="sm"
-              variant="ghost"
+              variant="outline"
               disabled={saving}
               onClick={() => {
                 void save("layout.set", { layout: snapshot.layout }, "team");

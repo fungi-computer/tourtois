@@ -83,8 +83,11 @@ methods. Tourtois's code loads as one lazy chunk behind that module, so no host
 bundles it, and a fork mounts the same way.
 
 Tourtois asks the host to mount each App in that App's own sandboxed frame,
-under its own installation, Release and permissions. Settings pages are supplied
-by the host too: Tourtois offers a page only when the host backs it.
+under its own installation, Release and permissions. Tourtois imports no host
+implementation package. Standalone App Permissions frame Oyster's own grants
+page, also available without a shell; the changed Oyster and Tourtois ship
+together. Other Settings sections still use their existing host-backed ports:
+this repair does not frame Keys, MCP servers, Computers or the consent dialog.
 
 ## Agent tools
 

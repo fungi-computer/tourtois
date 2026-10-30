@@ -1,5 +1,36 @@
 # @fungi.computer/tourtois
 
+## 0.5.0
+
+### Minor Changes
+
+- Changes since 0.4.0:
+
+  - fix(tourtois): fit framed permissions into Settings
+  - fix(tourtois): frame Oyster-owned App permissions
+  - fix(tourtois): stop importing the Oyster host runtime
+  - fix(tourtois): retain full-height settings tab panels
+  - fix(tourtois): use Caps controls for desktop and settings
+  - fix(oyster)!: remove owner consent for anonymous App methods
+  - fix(caps): use one resize knob in video apps
+  - feat(oyster): share App permissions and provision the home Shell
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.6.0
+  - @fungi.computer/caps@0.5.0
+  - @fungi.computer/parakeet@0.6.0
+  - @fungi.computer/puffball@0.3.0
+  - @fungi.computer/shiitake@0.7.0
+  - @fungi.computer/sprite-zdog@0.3.0
+  - @fungi.computer/nacre@0.1.1
+
 ## 0.4.0
 
 ### Minor Changes

@@ -249,13 +249,6 @@
   gap: var(--spacing-sm);
 }
 
-.tourtois-settings-app-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs);
-  margin-left: auto;
-}
-
 .tourtois-settings-app-header {
   display: flex;
   align-items: center;
@@ -531,15 +524,6 @@
 .tourtois-app-loading span {
   color: var(--stipe-fg-muted);
   font-size: var(--text-sm);
-}
-.tourtois-divider {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  pointer-events: auto;
-  cursor: col-resize;
-  touch-action: none;
 }
 
 .tourtois-team-git {

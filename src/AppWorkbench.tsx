@@ -3,6 +3,7 @@ import { desktopSettingsHandler } from "./desktop/consent.js";
 import { AppError, type FileNavigationInput } from "@fungi.computer/agar";
 import type { AppOpenInput } from "@fungi.computer/agar/apps";
 import { type AppBarItem } from "@fungi.computer/caps/blocks/app-bar";
+import { ResizeHandle } from "@fungi.computer/caps/components/resize-handle";
 import { toast, Toaster } from "@fungi.computer/caps/components/toaster";
 import { WindowSnapPreview } from "@fungi.computer/caps/components/window";
 import {
@@ -905,30 +906,16 @@ export function AppWorkbench({
             />
           )}
           {layout.divider ? (
-            <div
-              className="tourtois-divider"
-              role="separator"
-              aria-label="Main window width"
-              aria-orientation="vertical"
-              aria-valuemin={Math.round(layout.divider.min)}
-              aria-valuemax={Math.round(layout.divider.max)}
-              aria-valuenow={Math.round(layout.divider.position)}
-              tabIndex={0}
-              style={{ left: layout.divider.position, ...layout.stackingStyle }}
+            <ResizeHandle
               {...layout.divider.props}
-              onKeyDown={(event) => {
-                if (!layout.divider) return;
-                const step =
-                  new Map([
-                    ["ArrowLeft", -32],
-                    ["ArrowRight", 32],
-                  ]).get(event.key) ?? 0;
-                if (step) {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  layout.resizeMain(layout.divider.position + step);
-                }
-              }}
+              className="pointer-events-auto absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+              aria-label="Main window width"
+              orientation="vertical"
+              min={layout.divider.min}
+              max={layout.divider.max}
+              value={layout.divider.position}
+              onValueChange={layout.resizeMain}
+              style={{ left: layout.divider.position, ...layout.stackingStyle }}
             />
           ) : null}
         </MaosaicoRegion>
