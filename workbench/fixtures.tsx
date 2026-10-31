@@ -210,7 +210,6 @@ function appDirectory(
     marketplacePermissions: {
       browse: false,
       purchase: false,
-      installFree: false,
     },
     agentPermission: {
       kind: "all-team-agents" as const,

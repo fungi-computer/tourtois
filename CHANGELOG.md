@@ -1,5 +1,29 @@
 # @fungi.computer/tourtois
 
+## 0.5.1
+
+### Patch Changes
+
+- Changes since 0.5.0:
+
+  - fix(hub): follow Settings tab semantics in browser proofs
+  - fix(sigils): make the Tourtois foot path valid SVG
+  - fix(apps): require owner confirmation for every installation
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/caps@0.6.0
+  - @fungi.computer/nacre@0.1.2
+  - @fungi.computer/parakeet@0.6.1
+  - @fungi.computer/puffball@0.4.0
+  - @fungi.computer/shiitake@0.8.0
+  - @fungi.computer/sigils@0.2.1
+  - @fungi.computer/agar@0.6.1
+
 ## 0.5.0
 
 ### Minor Changes
