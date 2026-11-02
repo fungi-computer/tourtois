@@ -1,7 +1,7 @@
 /**
  * Sample App declarations for the workbench desktop: in-file copies of the
  * Inkcap, Prints and Grove manifests, so Tourtois depends on no sibling App
- * package. The real App-set rendering proof is Bonsai test:app-set.
+ * package. The real App-set rendering review is Oyster capture:app-set.
  */
 export const inkcapApp = {
   displayName: "Inkcap",

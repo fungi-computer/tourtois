@@ -1,13 +1,12 @@
 import { Card } from "@fungi.computer/caps/components/card";
-import { DataListHeading } from "@fungi.computer/caps/components/data-list";
+import { Field, FieldSet } from "@fungi.computer/caps/components/field";
 import {
-  RadioGroup,
-  RadioGroupItem,
-  RadioGroupCard,
-} from "@fungi.computer/caps/components/radio-group";
+  IconRadio,
+  SwatchRadio,
+} from "@fungi.computer/caps/components/icon-radio";
+import { RadioGroup } from "@fungi.computer/caps/components/radio-group";
 import { Switch } from "@fungi.computer/caps/components/switch";
 import { Input } from "@fungi.computer/caps/components/input";
-import { Field } from "@fungi.computer/caps/components/field";
 import {
   renderStyles,
   renderStyleLabels,
@@ -25,6 +24,7 @@ import {
   deriveAgentAvatar,
   type MemberAvatar,
 } from "@fungi.computer/sprite-zdog/avatar";
+import { Sigil } from "@fungi.computer/sigils";
 import { AvatarPreview } from "./AvatarPreview.js";
 
 const names = { mushroom: "Shiitake", cat: "Cat", burger: "Burger" };
@@ -61,6 +61,7 @@ export function AvatarPicker({
     );
   };
   const primarySlot = catalog.identitySlots[0];
+  const colourLabel = avatar.character === "mushroom" ? "Cap colour" : "Colour";
   const selectedSwatch =
     swatches.find(([, primary, secondary]) =>
       catalog.identitySlots.every(
@@ -76,13 +77,14 @@ export function AvatarPicker({
       </Card>
       <fieldset disabled={disabled} className="tourtois-avatar-controls">
         <legend className="sr-only">Customize your avatar</legend>
-        <section aria-labelledby="avatar-character">
-          <DataListHeading level={3} id="avatar-character">
-            Character
-          </DataListHeading>
+        <FieldSet
+          legend="Character"
+          icon={<Sigil name="agent" />}
+          layout="columns"
+        >
           <RadioGroup
-            aria-labelledby="avatar-character"
-            className="tourtois-avatar-characters"
+            aria-label="Character"
+            className="caps-field-icon-choices"
             orientation="horizontal"
             value={avatar.character}
             onValueChange={(raw) => {
@@ -91,11 +93,13 @@ export function AvatarPicker({
             }}
           >
             {avatarCharacters.map((character) => (
-              <RadioGroupCard
+              <IconRadio
                 key={character}
                 value={character}
-                title={names[character]}
-                description={
+                label={names[character]}
+                caption={names[character]}
+                art="color"
+                icon={
                   <AvatarPreview
                     avatar={{
                       ...avatar,
@@ -104,20 +108,21 @@ export function AvatarPicker({
                         character === avatar.character ? avatar.appearance : {},
                       expression: "normal",
                     }}
-                    className="tourtois-avatar-character-preview"
+                    className="tourtois-avatar-key-art"
                   />
                 }
               />
             ))}
           </RadioGroup>
-        </section>
-        <section aria-labelledby="avatar-colours">
-          <DataListHeading level={3} id="avatar-colours">
-            {avatar.character === "mushroom" ? "Cap colour" : "Colour"}
-          </DataListHeading>
+        </FieldSet>
+        <FieldSet
+          legend={colourLabel}
+          icon={<Sigil name="prints" />}
+          layout="columns"
+        >
           <RadioGroup
-            aria-labelledby="avatar-colours"
-            className="tourtois-avatar-swatches"
+            aria-label={colourLabel}
+            className="caps-field-icon-choices"
             orientation="horizontal"
             value={selectedSwatch}
             onValueChange={(name) => {
@@ -137,74 +142,85 @@ export function AvatarPicker({
             }}
           >
             {swatches.map(([name, color]) => (
-              <label
-                key={name}
-                title={name}
-                className="tourtois-avatar-swatch"
-                style={{ backgroundColor: color }}
-              >
-                <RadioGroupItem value={name} aria-label={name} />
-              </label>
+              <SwatchRadio key={name} value={name} label={name} color={color} />
             ))}
           </RadioGroup>
+        </FieldSet>
+        <FieldSet
+          legend="Custom"
+          icon={<Sigil name="write" />}
+          layout="columns"
+        >
           <div className="tourtois-avatar-custom-colours">
             {catalog.identitySlots.map((slot) => {
               const control = catalog.controls[slot];
               if (control?.type !== "color") return null;
+              const label =
+                slot === primarySlot ? "Custom colour" : "Accent colour";
               return (
-                <Field
+                <Input
                   key={`${avatar.character}:${slot}:${String(resolved[slot])}`}
-                  label={
-                    slot === primarySlot ? "Custom colour" : "Accent colour"
-                  }
-                >
-                  <Input
-                    type="color"
-                    defaultValue={String(resolved[slot])}
-                    onBlur={(event) => {
-                      if (event.currentTarget.value !== resolved[slot])
-                        change({
-                          appearance: {
-                            ...avatar.appearance,
-                            [slot]: event.currentTarget.value,
-                          },
-                        });
-                    }}
-                  />
-                </Field>
+                  type="color"
+                  aria-label={label}
+                  title={label}
+                  defaultValue={String(resolved[slot])}
+                  onBlur={(event) => {
+                    if (event.currentTarget.value !== resolved[slot])
+                      change({
+                        appearance: {
+                          ...avatar.appearance,
+                          [slot]: event.currentTarget.value,
+                        },
+                      });
+                  }}
+                />
               );
             })}
           </div>
-        </section>
-        <section aria-labelledby="avatar-expression">
-          <DataListHeading level={3} id="avatar-expression">
-            Resting face
-          </DataListHeading>
+        </FieldSet>
+        <FieldSet
+          legend="Resting face"
+          icon={<Sigil name="chat" />}
+          layout="columns"
+        >
           <RadioGroup
-            aria-labelledby="avatar-expression"
-            className="tourtois-avatar-faces"
+            aria-label="Resting face"
+            className="caps-field-icon-choices"
             orientation="horizontal"
             value={avatar.expression}
             onValueChange={(expression) => {
               change({ expression });
             }}
           >
-            {catalog.expressions.map((expression) => (
-              <RadioGroupCard
-                key={expression}
-                value={expression}
-                title={expression.charAt(0).toUpperCase() + expression.slice(1)}
-              />
-            ))}
+            {catalog.expressions.map((expression) => {
+              const label =
+                expression.charAt(0).toUpperCase() + expression.slice(1);
+              return (
+                <IconRadio
+                  key={expression}
+                  value={expression}
+                  label={label}
+                  caption={label}
+                  art="color"
+                  icon={
+                    <AvatarPreview
+                      avatar={{ ...avatar, expression }}
+                      className="tourtois-avatar-key-art"
+                    />
+                  }
+                />
+              );
+            })}
           </RadioGroup>
-        </section>
-        <section aria-labelledby="avatar-style">
-          <DataListHeading level={3} id="avatar-style">
-            Drawing style
-          </DataListHeading>
+        </FieldSet>
+        <FieldSet
+          legend="Drawing style"
+          icon={<Sigil name="generateMedia" />}
+          layout="columns"
+        >
           <RadioGroup
-            aria-labelledby="avatar-style"
-            className="tourtois-sprite-styles"
+            aria-label="Drawing style"
+            className="caps-field-icon-choices"
             orientation="horizontal"
             value={avatar.renderStyle}
             onValueChange={(raw) => {
@@ -212,48 +228,53 @@ export function AvatarPicker({
             }}
           >
             {renderStyles.map((renderStyle) => (
-              <RadioGroupCard
+              <IconRadio
                 key={renderStyle}
                 value={renderStyle}
-                title={renderStyleLabels[renderStyle]}
-                description={
+                label={renderStyleLabels[renderStyle]}
+                caption={renderStyleLabels[renderStyle]}
+                art="color"
+                icon={
                   <AvatarPreview
                     avatar={{ ...avatar, renderStyle }}
-                    className="tourtois-sprite-style-preview"
+                    className="tourtois-avatar-key-art"
                   />
                 }
               />
             ))}
           </RadioGroup>
-        </section>
-        <section aria-labelledby="avatar-agents">
-          <DataListHeading level={3} id="avatar-agents">
-            Your new Agents
-          </DataListHeading>
-          <Field label="Give each Agent its own colour">
-            <Switch
-              checked={agentColors === "shift"}
-              onCheckedChange={(checked) => {
-                onChange({ ...value, agentColors: checked ? "shift" : "keep" });
-              }}
-            />
-          </Field>
-          <p className="tourtois-settings-lede">
-            A preview of your preference for new Agents. Existing Agents keep
-            their look.
-          </p>
-          <div className="tourtois-avatar-agents">
-            {exampleNames.map((name) => (
-              <div key={name}>
-                <AvatarPreview
-                  avatar={deriveAgentAvatar(avatar, agentColors, name)}
-                  className="tourtois-avatar-agent-preview"
-                />
-                <span>{name}</span>
-              </div>
-            ))}
+        </FieldSet>
+        <FieldSet
+          legend="New Agents"
+          icon={<Sigil name="members" />}
+          layout="columns"
+          description="A preview of your preference for new Agents. Existing Agents keep their look."
+        >
+          <div className="tourtois-avatar-agents-panel">
+            <Field label="Give each Agent its own colour" orientation="inline">
+              <Switch
+                checked={agentColors === "shift"}
+                onCheckedChange={(checked) => {
+                  onChange({
+                    ...value,
+                    agentColors: checked ? "shift" : "keep",
+                  });
+                }}
+              />
+            </Field>
+            <div className="tourtois-avatar-agents">
+              {exampleNames.map((name) => (
+                <div key={name}>
+                  <AvatarPreview
+                    avatar={deriveAgentAvatar(avatar, agentColors, name)}
+                    className="tourtois-avatar-agent-preview"
+                  />
+                  <span>{name}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </section>
+        </FieldSet>
       </fieldset>
     </div>
   );

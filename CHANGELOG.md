@@ -1,5 +1,33 @@
 # @fungi.computer/tourtois
 
+## 0.6.0
+
+### Minor Changes
+
+- Changes since 0.5.3:
+
+  - feat(caps,tourtois,hub): check keys for short multi-selects
+  - feat(caps,tourtois): tight Sigil-labelled keys, connectors and avatar
+    settings
+  - feat(caps,grove,tourtois,hub): tight Sigil-labelled Computer and Agent forms
+  - feat(oyster): manage Keep awake from Oyster and Tourtois Computer settings
+  - fix(tourtois): workbench proof follows the 32px bar, phone switcher and
+    offline samples
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.7.0
+  - @fungi.computer/caps@0.7.0
+  - @fungi.computer/nacre@0.1.3
+  - @fungi.computer/puffball@0.5.0
+  - @fungi.computer/shiitake@0.9.1
+  - @fungi.computer/parakeet@0.7.1
+
 ## 0.5.3
 
 ### Patch Changes

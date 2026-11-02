@@ -1,11 +1,14 @@
 import { SectionHeading } from "@fungi.computer/caps/blocks/section-heading";
 import { Button } from "@fungi.computer/caps/components/button";
-import { Checkbox } from "@fungi.computer/caps/components/checkbox";
+import {
+  CheckKey,
+  CheckKeys,
+} from "@fungi.computer/caps/components/icon-checkbox";
 import { DataList, DataRow } from "@fungi.computer/caps/components/data-list";
-import { Field, FormFooter } from "@fungi.computer/caps/components/field";
+import { FieldSet, FormFooter } from "@fungi.computer/caps/components/field";
+import { KeycapButton } from "@fungi.computer/caps/components/keycap";
 import { Input } from "@fungi.computer/caps/components/input";
 import {
-  FormFields,
   SchemaForm,
   field,
   useSchemaForm,
@@ -21,6 +24,8 @@ import type {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ComponentType, type ReactNode } from "react";
 import * as z from "zod";
+import { Sigil, type SigilName } from "@fungi.computer/sigils";
+import { SettingsItem } from "./settings-item.js";
 
 export type KeyAppOption = Readonly<{
   installationId: string;
@@ -31,6 +36,10 @@ export type KeyTargetOption = Readonly<{ id: string; name: string }>;
 export type KeyGrantOption = Readonly<{
   capability: string;
   label: string;
+  /** The grant's Sigil on its check key; a lock when absent. */
+  icon?: SigilName;
+  /** One quiet line under the label, such as "Owner only". */
+  hint?: string;
   /** Omit for capabilities which have no selected-target form. */
   targets?: readonly KeyTargetOption[];
 }>;
@@ -143,7 +152,7 @@ function KeysContent({
   );
   return (
     <section
-      className="tourtois-settings-content tourtois-keys"
+      className="tourtois-settings-content tourtois-settings-stack tourtois-keys"
       aria-label="Keys"
     >
       <SectionHeading>Keys</SectionHeading>
@@ -155,92 +164,113 @@ function KeysContent({
       </p>
       {view.isPending ? <p>Loading keys…</p> : null}
       {view.isError ? (
-        <p role="alert">
-          Keys could not be loaded.{" "}
-          <Button onClick={() => void view.refetch()}>Retry</Button>
-        </p>
+        <div role="alert" className="tourtois-settings-notice">
+          <p>Keys could not be loaded.</p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void view.refetch()}
+          >
+            Retry
+          </Button>
+        </div>
       ) : null}
       {options.isError ? (
-        <p role="alert">
-          Capability targets could not be loaded.{" "}
-          <Button onClick={() => void options.refetch()}>Retry targets</Button>
-        </p>
+        <div role="alert" className="tourtois-settings-notice">
+          <p>Capability targets could not be loaded.</p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void options.refetch()}
+          >
+            Retry targets
+          </Button>
+        </div>
       ) : null}
       {view.isSuccess && view.data.keys.length === 0 ? (
-        <p>No keys yet.</p>
+        <p className="tourtois-settings-empty">No keys yet.</p>
       ) : null}
       <DataList aria-label="Keys">
         {(view.data?.keys ?? []).map((key) => (
-          <DataRow
-            key={key.keyId}
-            style={{ gridTemplateColumns: "minmax(0, 1fr)" }}
-          >
-            <div className="grid min-w-0 gap-sm">
-              <div className="grid min-w-0 gap-xs break-words">
-                <strong>
-                  {key.name}
-                  {key.revokedAt !== null ? " · Revoked" : ""}
-                </strong>
-                <p>
-                  {key.grants.length === 0
-                    ? "Authority unavailable; revoke and issue a new key."
-                    : key.grants
-                        .map(
-                          (grant) =>
-                            `${labels.get(grant.capability) ?? grant.capability}: ${grant.targets.kind === "all" ? "all current and future targets" : grant.targets.ids.join(", ")}`,
-                        )
-                        .join(" · ")}
-                </p>
-                <p>
-                  {key.expiresAt === null
-                    ? "Never expires"
-                    : `${key.expiresAt <= Date.now() ? "Expired" : "Expires"} ${new Date(key.expiresAt).toLocaleString()}`}{" "}
-                  ·{" "}
-                  {key.lastUsedAt === null
-                    ? "Use not recorded"
-                    : `Last used ${new Date(key.lastUsedAt).toLocaleString()}`}
-                </p>
-              </div>
-              {key.revokedAt === null ? (
-                <div className="flex flex-wrap gap-sm">
-                  {port.updateGrants !== undefined && key.grants.length > 0 ? (
-                    <Button
-                      aria-label={`Edit ${key.name}`}
+          <DataRow key={key.keyId}>
+            <SettingsItem
+              icon={<Sigil name="restricted" />}
+              title={`${key.name}${key.revokedAt !== null ? " · Revoked" : ""}`}
+              detail={
+                <>
+                  <p>
+                    {key.grants.length === 0
+                      ? "Authority unavailable; revoke and issue a new key."
+                      : key.grants
+                          .map(
+                            (grant) =>
+                              `${labels.get(grant.capability) ?? grant.capability}: ${grant.targets.kind === "all" ? "all current and future targets" : grant.targets.ids.join(", ")}`,
+                          )
+                          .join(" · ")}
+                  </p>
+                  <p>
+                    {key.expiresAt === null
+                      ? "Never expires"
+                      : `${key.expiresAt <= Date.now() ? "Expired" : "Expires"} ${new Date(key.expiresAt).toLocaleString()}`}{" "}
+                    ·{" "}
+                    {key.lastUsedAt === null
+                      ? "Use not recorded"
+                      : `Last used ${new Date(key.lastUsedAt).toLocaleString()}`}
+                  </p>
+                </>
+              }
+              actions={
+                key.revokedAt === null ? (
+                  <>
+                    {port.updateGrants !== undefined &&
+                    key.grants.length > 0 ? (
+                      <KeycapButton
+                        density="compact"
+                        label="Edit"
+                        icon={<Sigil name="write" />}
+                        aria-label={`Edit ${key.name}`}
+                        disabled={busy || command !== null}
+                        onClick={() => {
+                          setEditing(key);
+                        }}
+                      />
+                    ) : null}
+                    <KeycapButton
+                      density="compact"
+                      tone="destructive"
+                      label="Revoke"
+                      aria-label={`Revoke ${key.name}`}
                       disabled={busy || command !== null}
-                      onClick={() => {
-                        setEditing(key);
-                      }}
-                    >
-                      Edit
-                    </Button>
-                  ) : null}
-                  <Button
-                    aria-label={`Revoke ${key.name}`}
-                    disabled={busy || command !== null}
-                    onClick={() =>
-                      void mutate({
-                        kind: "revoke",
-                        keyId: key.keyId,
-                        requestId: mutationIds.request.generate(),
-                      })
-                    }
-                  >
-                    Revoke
-                  </Button>
-                </div>
-              ) : null}
-            </div>
+                      onClick={() =>
+                        void mutate({
+                          kind: "revoke",
+                          keyId: key.keyId,
+                          requestId: mutationIds.request.generate(),
+                        })
+                      }
+                    />
+                  </>
+                ) : undefined
+              }
+            />
           </DataRow>
         ))}
       </DataList>
       {notice ? <p role="status">{notice}</p> : null}
       {error ? <p role="alert">{error}</p> : null}
       {command !== null ? (
-        <div className="flex gap-sm">
-          <Button disabled={busy} onClick={() => void mutate(command)}>
+        <div className="tourtois-settings-notice">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => void mutate(command)}
+          >
             Retry key change
           </Button>
           <Button
+            size="sm"
+            variant="outline"
             disabled={busy}
             onClick={() => {
               setCommand(null);
@@ -278,7 +308,7 @@ function KeysContent({
       <SectionHeading>New key</SectionHeading>
       {issued === null ? (
         options.data === undefined ? (
-          <p>Loading capability targets…</p>
+          <p className="tourtois-settings-empty">Loading capability targets…</p>
         ) : (
           <IssueKey
             port={port}
@@ -291,18 +321,21 @@ function KeysContent({
           />
         )
       ) : (
-        <div className="grid gap-sm" role="status">
-          <p>
+        <div className="tourtois-settings-stack" role="status">
+          <p className="tourtois-settings-lede">
             Copy this key now. It is shown once and cannot be retrieved later.
           </p>
           <code className="break-all">{issued.plaintext}</code>
-          <Button
-            onClick={() => {
-              setIssued(null);
-            }}
-          >
-            I copied the key
-          </Button>
+          <div className="tourtois-settings-notice">
+            <Button
+              size="sm"
+              onClick={() => {
+                setIssued(null);
+              }}
+            >
+              I copied the key
+            </Button>
+          </div>
         </div>
       )}
     </section>
@@ -321,12 +354,47 @@ function GrantEditor({
   disabled: boolean;
 }) {
   return (
-    <fieldset className="grid gap-sm" disabled={disabled}>
-      <legend>Capability grants</legend>
+    <FieldSet
+      legend="Grants"
+      icon={<Sigil name="restricted" />}
+      layout="columns"
+      disabled={disabled}
+      className="tourtois-key-grants"
+    >
+      <CheckKeys>
+        {options.map((option) => (
+          <CheckKey
+            key={option.capability}
+            name={"cap:" + option.capability}
+            label={option.label}
+            icon={<Sigil name={option.icon ?? "restricted"} />}
+            hint={option.hint}
+            checked={grants.some(
+              (current) => current.capability === option.capability,
+            )}
+            onChange={(event) => {
+              onChange(
+                event.currentTarget.checked
+                  ? [
+                      ...grants,
+                      {
+                        capability: option.capability,
+                        targets: { kind: "all" },
+                      },
+                    ]
+                  : grants.filter(
+                      (current) => current.capability !== option.capability,
+                    ),
+              );
+            }}
+          />
+        ))}
+      </CheckKeys>
       {options.map((option) => {
         const grant = grants.find(
           (current) => current.capability === option.capability,
         );
+        if (grant === undefined || option.targets === undefined) return null;
         const replace = (targets: Grant["targets"]) => {
           onChange(
             grants.map((current) =>
@@ -337,90 +405,68 @@ function GrantEditor({
           );
         };
         return (
-          <div key={option.capability} className="grid gap-xs">
-            <Field label={option.label} orientation="inline">
-              <Checkbox
-                name={"cap:" + option.capability}
-                checked={grant !== undefined}
+          <div
+            key={option.capability}
+            role="group"
+            aria-label={`${option.label} targets`}
+            className="tourtois-key-targets"
+          >
+            <p className="tourtois-key-targets-label">{option.label}</p>
+            <CheckKeys>
+              <CheckKey
+                name={"all:" + option.capability}
+                label="All targets"
+                hint="Current and future"
+                checked={grant.targets.kind === "all"}
                 onChange={(event) => {
-                  onChange(
+                  replace(
                     event.currentTarget.checked
-                      ? [
-                          ...grants,
-                          {
-                            capability: option.capability,
-                            targets: { kind: "all" },
-                          },
-                        ]
-                      : grants.filter(
-                          (current) => current.capability !== option.capability,
-                        ),
+                      ? { kind: "all" }
+                      : { kind: "selected", ids: [] },
                   );
                 }}
               />
-            </Field>
-            {grant !== undefined && option.targets !== undefined ? (
-              <div className="grid gap-xs pl-md">
-                <Field
-                  label="All current and future targets"
-                  orientation="inline"
-                >
-                  <Checkbox
-                    name={"all:" + option.capability}
-                    checked={grant.targets.kind === "all"}
-                    onChange={(event) => {
-                      replace(
-                        event.currentTarget.checked
-                          ? { kind: "all" }
-                          : { kind: "selected", ids: [] },
-                      );
-                    }}
-                  />
-                </Field>
-                {grant.targets.kind === "selected" ? (
-                  <>
-                    {option.targets.length === 0 ? (
-                      <p>No targets available.</p>
-                    ) : null}
-                    {option.targets.map((target) => (
-                      <Field
-                        key={target.id}
-                        label={target.name}
-                        orientation="inline"
-                      >
-                        <Checkbox
-                          name={option.capability + ":" + target.id}
-                          checked={
-                            grant.targets.kind === "selected" &&
-                            grant.targets.ids.includes(target.id)
-                          }
-                          onChange={(event) => {
-                            const ids =
-                              grant.targets.kind === "selected"
-                                ? grant.targets.ids
-                                : [];
-                            replace({
-                              kind: "selected",
-                              ids: event.currentTarget.checked
-                                ? [...ids, target.id]
-                                : ids.filter((id) => id !== target.id),
-                            });
-                          }}
-                        />
-                      </Field>
-                    ))}
-                    {grant.targets.ids
-                      .filter(
-                        (id) =>
-                          !option.targets?.some((target) => target.id === id),
-                      )
-                      .map((id) => (
-                        <p key={id}>Unavailable target: {id}</p>
-                      ))}
-                  </>
-                ) : null}
-              </div>
+              {grant.targets.kind === "selected"
+                ? option.targets.map((target) => (
+                    <CheckKey
+                      key={target.id}
+                      name={option.capability + ":" + target.id}
+                      label={target.name}
+                      checked={
+                        grant.targets.kind === "selected" &&
+                        grant.targets.ids.includes(target.id)
+                      }
+                      onChange={(event) => {
+                        const ids =
+                          grant.targets.kind === "selected"
+                            ? grant.targets.ids
+                            : [];
+                        replace({
+                          kind: "selected",
+                          ids: event.currentTarget.checked
+                            ? [...ids, target.id]
+                            : ids.filter((id) => id !== target.id),
+                        });
+                      }}
+                    />
+                  ))
+                : null}
+            </CheckKeys>
+            {grant.targets.kind === "selected" &&
+            option.targets.length === 0 ? (
+              <p className="tourtois-settings-empty">No targets available.</p>
             ) : null}
+            {grant.targets.kind === "selected"
+              ? grant.targets.ids
+                  .filter(
+                    (id) => !option.targets?.some((target) => target.id === id),
+                  )
+                  .map((id) => (
+                    <p key={id} className="tourtois-settings-empty">
+                      Unavailable target: {id}
+                    </p>
+                  ))
+              : null}
           </div>
         );
       })}
@@ -434,6 +480,8 @@ function GrantEditor({
             <p>{grant.capability} is no longer offered by this host.</p>
             <Button
               type="button"
+              size="sm"
+              variant="outline"
               onClick={() => {
                 onChange(grants.filter((current) => current !== grant));
               }}
@@ -442,7 +490,7 @@ function GrantEditor({
             </Button>
           </div>
         ))}
-    </fieldset>
+    </FieldSet>
   );
 }
 
@@ -544,7 +592,6 @@ function IssueForm({
   ready: boolean;
   onIssue: (draft: KeyIssueDraft) => Promise<void>;
 }) {
-  const [custom, setCustom] = useState("");
   const expiryValues: ["30", "90", "365", "custom", ..."never"[]] =
     port.expiry === "required"
       ? ["30", "90", "365", "custom"]
@@ -562,14 +609,45 @@ function IssueForm({
       .trim()
       .min(1, "Give this key a name.")
       .max(128)
-      .meta(field({ label: "Name", required: true, maxLength: 128 })),
+      .meta(
+        field({
+          label: "Name",
+          icon: <Sigil name="write" />,
+          required: true,
+          maxLength: 128,
+        }),
+      ),
     expiry: expiry.meta(
       field({
         label: "Expires after",
+        icon: <Sigil name="schedule" />,
         options:
           port.expiry === "optional"
             ? { ...finiteExpiryOptions, never: "Never" }
             : finiteExpiryOptions,
+      }),
+    ),
+    // Only a custom expiry asks for its date.
+    customExpiry: z.string().meta(
+      field<string>({
+        label: "Custom expiry",
+        icon: <Sigil name="schedule" />,
+        when: (values) => values.expiry === "custom",
+        render: (control) => (
+          <Input
+            type="datetime-local"
+            id={control.id}
+            name={control.name}
+            aria-describedby={control["aria-describedby"]}
+            aria-invalid={control["aria-invalid"]}
+            disabled={control.disabled}
+            value={control.value}
+            onBlur={control.onBlur}
+            onChange={(event) => {
+              control.onChange(event.currentTarget.value);
+            }}
+          />
+        ),
       }),
     ),
   });
@@ -578,6 +656,7 @@ function IssueForm({
     defaultValues: {
       name: "",
       expiry: port.expiry === "required" ? "30" : "never",
+      customExpiry: "",
     },
     onSubmit: async (value) => {
       if (!ready)
@@ -589,7 +668,7 @@ function IssueForm({
         value.expiry === "never"
           ? undefined
           : value.expiry === "custom"
-            ? new Date(custom).getTime()
+            ? new Date(value.customExpiry).getTime()
             : Date.now() + Number(value.expiry) * 86_400_000;
       if (
         expiresAt !== undefined &&
@@ -617,28 +696,16 @@ function IssueForm({
   return (
     <SchemaForm
       model={model}
+      layout="columns"
       aria-label="Issue a key"
       footer={
-        <FormFooter error={model.error}>
+        <FormFooter divider={false} error={model.error}>
           <Button type="submit" disabled={!ready || submitting}>
             Issue key
           </Button>
         </FormFooter>
       }
-    >
-      <FormFields model={model} />
-      <Field label="Custom expiry">
-        <Input
-          type="datetime-local"
-          name="customExpiry"
-          value={custom}
-          disabled={submitting}
-          onChange={(event) => {
-            setCustom(event.currentTarget.value);
-          }}
-        />
-      </Field>
-    </SchemaForm>
+    />
   );
 }
 
@@ -658,7 +725,10 @@ function EditKey({
   onCancel: () => void;
 }) {
   return (
-    <section aria-label={"Edit " + record.name} className="grid gap-sm">
+    <section
+      aria-label={"Edit " + record.name}
+      className="tourtois-settings-stack"
+    >
       <SectionHeading>Edit {record.name}</SectionHeading>
       <GrantDraft
         port={port}
@@ -667,17 +737,23 @@ function EditKey({
         disabled={disabled}
       >
         {(grants, ready) => (
-          <div className="flex gap-sm">
+          <FormFooter divider={false}>
             <Button
+              type="button"
+              variant="ghost"
+              disabled={disabled}
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
               disabled={disabled || !ready}
               onClick={() => void onSave(grants)}
             >
               Save grants
             </Button>
-            <Button disabled={disabled} onClick={onCancel}>
-              Cancel
-            </Button>
-          </div>
+          </FormFooter>
         )}
       </GrantDraft>
     </section>

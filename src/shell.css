@@ -168,45 +168,116 @@
   color: var(--stipe-fg-muted);
 }
 
-.tourtois-sprite-styles {
+/* A settings page in the Prints details rhythm: heading, lede, then its
+   items and forms md apart. Caps owns every control's material; these rules
+   only place them. */
+.tourtois-settings-stack {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
-  gap: var(--spacing-sm);
+  align-content: start;
+  gap: var(--spacing-md);
+  min-width: 0;
+  /* Columns field sets outside a Caps Form stack at phone width with it. */
+  container-type: inline-size;
+}
+.tourtois-settings-stack > .tourtois-settings-lede {
   margin: 0;
-  padding: 0;
-  border: 0;
 }
-
-.tourtois-sprite-styles .caps-choice-card,
-.tourtois-avatar-characters .caps-choice-card {
+.tourtois-settings-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs) var(--spacing-sm);
+}
+.tourtois-settings-notice > p {
+  margin: 0;
+}
+.tourtois-settings-empty {
+  font-size: var(--text-sm);
+  color: var(--stipe-fg-muted);
+}
+/* Each Computer: its SettingsItem over its compact switch rows. */
+.tourtois-computer {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm);
-}
-.tourtois-sprite-styles .caps-choice-card-copy,
-.tourtois-avatar-characters .caps-choice-card-copy {
-  display: contents;
-}
-.tourtois-sprite-styles .caps-choice-card-description,
-.tourtois-avatar-characters .caps-choice-card-description {
-  grid-column: 1 / -1;
-  grid-row: 1;
-}
-.tourtois-sprite-styles .caps-radio,
-.tourtois-avatar-characters .caps-radio {
-  grid-column: 1;
-  grid-row: 2;
-}
-.tourtois-sprite-styles .caps-choice-card-title,
-.tourtois-avatar-characters .caps-choice-card-title {
-  grid-column: 2;
-  grid-row: 2;
+  gap: var(--spacing-2xs);
+  min-width: 0;
 }
 
-.tourtois-sprite-style-preview {
+/* SettingsItem: one object's line on a settings page. */
+.tourtois-settings-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs) var(--spacing-sm);
+  min-width: 0;
+}
+.list-row > .tourtois-settings-item {
+  grid-column: 1 / -1;
+}
+/* A key's grants: one row of check keys, then each chosen grant's targets. */
+.tourtois-key-grants > .caps-fieldset-fields {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+.tourtois-key-targets {
+  display: grid;
+  gap: var(--spacing-2xs);
+  min-width: 0;
+}
+.tourtois-key-targets-label {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--stipe-fg-muted);
+}
+.tourtois-settings-item-copy {
+  display: grid;
+  flex: 1 1 12rem;
+  gap: var(--spacing-2xs);
+  min-width: 0;
+}
+.tourtois-settings-item-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+.tourtois-settings-item-icon {
+  display: inline-flex;
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+}
+.tourtois-settings-item-icon > svg {
   width: 100%;
-  aspect-ratio: 1;
+  height: 100%;
+}
+.tourtois-settings-item-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Detail lines sit under the name, past the Sigil, in quiet small type. */
+.tourtois-settings-item-detail {
+  display: grid;
+  gap: var(--spacing-2xs);
+  min-width: 0;
+  padding-inline-start: calc(1rem + var(--spacing-xs));
+  font-size: var(--text-xs);
+  color: var(--stipe-fg-muted);
+  overflow-wrap: anywhere;
+}
+.tourtois-settings-item-detail > p {
+  margin: 0;
+}
+.tourtois-settings-item-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs) var(--spacing-sm);
 }
 
 .tourtois-settings-app-content:not([hidden]),
@@ -780,56 +851,44 @@
 }
 .tourtois-avatar-controls {
   display: grid;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
   min-width: 0;
+  container-type: inline-size;
+  margin: 0;
   padding: 0;
   border: 0;
 }
-.tourtois-avatar-characters {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--spacing-sm);
-}
-.tourtois-avatar-character-preview {
-  display: block;
-  height: 4.5rem;
+/* Sprite previews fill their icon key's art box. */
+.tourtois-avatar-key-art {
   width: 100%;
-}
-.tourtois-avatar-swatches,
-.tourtois-avatar-faces {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
-}
-.tourtois-avatar-swatch {
-  display: grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border: 1px solid var(--color-base-300);
-  border-radius: 50%;
-  cursor: pointer;
+  height: 100%;
 }
 .tourtois-avatar-custom-colours {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-md);
+  display: flex;
+  gap: var(--spacing-xs);
 }
 .tourtois-avatar-custom-colours input {
-  min-height: 2.75rem;
+  width: 4rem;
+  min-height: 2.25rem;
   padding: 0.25rem;
+}
+.tourtois-avatar-agents-panel {
+  display: grid;
+  gap: var(--spacing-sm);
+  min-width: 0;
 }
 .tourtois-avatar-agents {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  max-width: 20rem;
   text-align: center;
   font-size: var(--text-xs);
+  color: var(--stipe-fg-muted);
 }
 .tourtois-avatar-agent-preview {
   display: block;
   width: 100%;
-  height: 3rem;
+  height: 2.5rem;
 }
 @media (max-width: 700px) {
   .tourtois-avatar-picker {

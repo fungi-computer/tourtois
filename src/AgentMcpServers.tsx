@@ -1,6 +1,4 @@
 import { SectionHeading } from "@fungi.computer/caps/blocks/section-heading";
-import { ActionRow } from "@fungi.computer/caps/components/action-row";
-import { Badge } from "@fungi.computer/caps/components/badge";
 import { Button } from "@fungi.computer/caps/components/button";
 import {
   DataList,
@@ -8,11 +6,13 @@ import {
   DataRow,
 } from "@fungi.computer/caps/components/data-list";
 import { FormFooter } from "@fungi.computer/caps/components/field";
+import { KeycapButton } from "@fungi.computer/caps/components/keycap";
 import { SchemaForm, field, useSchemaForm } from "@fungi.computer/caps/form";
 import { Sigil } from "@fungi.computer/sigils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useMemo, useState } from "react";
 import * as z from "zod";
+import { SettingsItem } from "./settings-item.js";
 
 /** One connected MCP server as the host lists it; the token never comes back. */
 const agentMcpServerSchema = z.strictObject({
@@ -76,9 +76,13 @@ export function AgentMcpServers({ port }: { port: AgentMcpServersPort }) {
       </p>
       {view.isPending ? <p>Loading MCP servers…</p> : null}
       {view.isError ? (
-        <div role="status">
+        <div role="status" className="tourtois-settings-notice">
           <p>MCP servers could not be loaded.</p>
-          <Button size="sm" onClick={() => void view.refetch()}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void view.refetch()}
+          >
             Retry
           </Button>
         </div>
@@ -93,43 +97,35 @@ export function AgentMcpServers({ port }: { port: AgentMcpServersPort }) {
               <Fragment key={agent.agentId}>
                 <DataListHeading>{agent.name}</DataListHeading>
                 {agent.servers.length === 0 ? (
-                  <DataRow>No MCP servers.</DataRow>
+                  <DataRow className="tourtois-settings-empty">
+                    No MCP servers.
+                  </DataRow>
                 ) : null}
                 {agent.servers.map((server) => (
-                  <DataRow key={server.serverId} className="p-0">
-                    <ActionRow
+                  <DataRow key={server.serverId}>
+                    <SettingsItem
                       icon={<Sigil name="connected" />}
-                      label={
-                        <>
-                          {server.name}{" "}
-                          <Badge size="sm" variant="quiet">
-                            MCP
-                          </Badge>
-                        </>
+                      title={server.name}
+                      detail={
+                        <p>
+                          {server.url}
+                          {server.hasBearer ? " · Token saved" : ""}
+                        </p>
                       }
-                      description={server.url}
-                      trailing={
-                        <>
-                          {server.hasBearer ? (
-                            <Badge size="sm" variant="quiet">
-                              Token saved
-                            </Badge>
-                          ) : null}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            aria-label={`Remove ${server.name} from ${agent.name}`}
-                            disabled={remove.isPending}
-                            onClick={() => {
-                              remove.mutate({
-                                agentId: agent.agentId,
-                                serverId: server.serverId,
-                              });
-                            }}
-                          >
-                            Remove
-                          </Button>
-                        </>
+                      actions={
+                        <KeycapButton
+                          density="compact"
+                          tone="destructive"
+                          label="Remove"
+                          aria-label={`Remove ${server.name} from ${agent.name}`}
+                          disabled={remove.isPending}
+                          onClick={() => {
+                            remove.mutate({
+                              agentId: agent.agentId,
+                              serverId: server.serverId,
+                            });
+                          }}
+                        />
                       }
                     />
                   </DataRow>
@@ -168,6 +164,7 @@ function AddMcpServer({
         agentId: z.string().meta(
           field({
             label: "Agent",
+            icon: <Sigil name="agent" />,
             kind: "select",
             options: Object.fromEntries(
               agents.map((agent) => [agent.agentId, agent.name]),
@@ -183,6 +180,7 @@ function AddMcpServer({
           .meta(
             field({
               label: "Name",
+              icon: <Sigil name="write" />,
               help: "The Agent calls its tools as env.mcp.<name>.",
               maxLength: 32,
               placeholder: "linear",
@@ -199,6 +197,7 @@ function AddMcpServer({
           .meta(
             field({
               label: "Server URL",
+              icon: <Sigil name="internet" />,
               kind: "url",
               placeholder: "https://mcp.example.com/mcp",
             }),
@@ -209,8 +208,8 @@ function AddMcpServer({
           .meta(
             field({
               label: "Bearer token",
-              help: "Only if the server asks for one.",
-              optional: true,
+              icon: <Sigil name="restricted" />,
+              help: "Optional: only if the server asks for one.",
               kind: "secret",
             }),
           ),
@@ -254,10 +253,11 @@ function AddMcpServer({
   return (
     <SchemaForm
       model={model}
+      layout="columns"
       aria-label="Add MCP server"
       disabled={add.isPending}
       footer={
-        <FormFooter error={model.error}>
+        <FormFooter divider={false} error={model.error}>
           <Button type="submit">
             {add.isPending ? "Connecting…" : "Add MCP server"}
           </Button>

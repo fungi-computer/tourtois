@@ -1,3 +1,8 @@
+/* Dialogs portal to body, outside the study frame; give them the same face. */
+body {
+  font-family: var(--font-sans);
+}
+
 .tourtois-study {
   height: 100dvh;
   min-height: 0;

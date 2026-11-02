@@ -116,13 +116,26 @@ function createOysterKeysPort(
         name: app.displayName,
       }));
       return Promise.resolve([
-        { capability: "apps.read", label: "Read Apps", targets },
+        {
+          capability: "apps.read",
+          label: "Read Apps",
+          icon: "read",
+          hint: "See Apps and their data",
+          targets,
+        },
         {
           capability: "apps.use",
           label: "Use Apps and run Workflows",
+          icon: "allApps",
+          hint: "Act through Apps",
           targets,
         },
-        { capability: "computer.use", label: "Use the Computer" },
+        {
+          capability: "computer.use",
+          label: "Use the Computer",
+          icon: "computer",
+          hint: "Files and commands",
+        },
       ]);
     },
     list: async () => oysterKeysView.parse(await json("/api/keys")),

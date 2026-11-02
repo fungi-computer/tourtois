@@ -44,6 +44,7 @@ function computerStory(host: "standalone" | "hub" | "team-off"): Story {
     const [readback, setReadback] = useState<boolean | null>(null);
     const [port] = useState(() => {
       const internet = new Map<string, boolean>();
+      const awake = new Map<string, boolean>();
       let selected = first.computerId;
       const shared: OysterComputersPort = {
         list: () => Promise.resolve({ computers, nextOffset: null }),
@@ -52,6 +53,11 @@ function computerStory(host: "standalone" | "hub" | "team-off"): Story {
         internetAccess: (id) => Promise.resolve(internet.get(id) ?? true),
         setInternetAccess: (id, enabled) => {
           internet.set(id, enabled);
+          return Promise.resolve(enabled);
+        },
+        keepAwake: (id) => Promise.resolve(awake.get(id) ?? false),
+        setKeepAwake: (id, enabled) => {
+          awake.set(id, enabled);
           return Promise.resolve(enabled);
         },
         ...(host === "standalone"
@@ -70,6 +76,7 @@ function computerStory(host: "standalone" | "hub" | "team-off"): Story {
               },
             }
           : {
+              idleMetered: true as const,
               egressPolicy: () =>
                 Promise.resolve(
                   host === "team-off"

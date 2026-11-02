@@ -1,11 +1,20 @@
 import { AppError } from "@fungi.computer/agar";
 import { optimisticMutation } from "@fungi.computer/agar/query";
 import { SectionHeading } from "@fungi.computer/caps/blocks/section-heading";
-import { ActionRow } from "@fungi.computer/caps/components/action-row";
 import { Button } from "@fungi.computer/caps/components/button";
 import { DataList, DataRow } from "@fungi.computer/caps/components/data-list";
-import { Input } from "@fungi.computer/caps/components/input";
+import { Field, FormFooter } from "@fungi.computer/caps/components/field";
+import { KeycapButton } from "@fungi.computer/caps/components/keycap";
+import { Status } from "@fungi.computer/caps/components/status";
 import { Switch } from "@fungi.computer/caps/components/switch";
+import {
+  SchemaForm,
+  field,
+  useSchemaForm,
+  type SubmitResult,
+} from "@fungi.computer/caps/form";
+import { Sigil } from "@fungi.computer/sigils";
+import { SettingsItem } from "./settings-item.js";
 import {
   teamComputerDirectorySchema,
   teamComputerSchema,
@@ -13,7 +22,7 @@ import {
 } from "@fungi.computer/nacre/workbench";
 import { workbenchDirectorySchema } from "@fungi.computer/nacre/workbench-directory";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactElement, type ReactNode } from "react";
 import * as z from "zod";
 import { requestIds } from "./team-directory.js";
 import { tourtoisQueryKeys } from "./queries.js";
@@ -28,6 +37,10 @@ export type OysterComputersPort = Readonly<{
   start(computerId: string): Promise<void>;
   internetAccess(computerId: string): Promise<boolean>;
   setInternetAccess(computerId: string, enabled: boolean): Promise<boolean>;
+  keepAwake(computerId: string): Promise<boolean>;
+  setKeepAwake(computerId: string, enabled: boolean): Promise<boolean>;
+  /** Hosts that bill a running Computer's idle time say so beside Keep awake. */
+  idleMetered?: true;
   /** Only hosts with a persisted default for new Apps supply selection. */
   selection?: Readonly<{
     selected(): Promise<string | null>;
@@ -37,7 +50,9 @@ export type OysterComputersPort = Readonly<{
   egressPolicy?(): Promise<"enabled" | "globally-disabled" | "team-disabled">;
 }>;
 
-const internetAccessSchema = z.strictObject({ enabled: z.boolean() });
+/** The durable per-Computer switches an owner manages. */
+export type ComputerSwitchSetting = "internet-access" | "keep-awake";
+const computerSwitchSchema = z.strictObject({ enabled: z.boolean() });
 
 async function request(url: URL, init?: RequestInit): Promise<Response> {
   const response = await fetch(url, {
@@ -65,6 +80,26 @@ async function request(url: URL, init?: RequestInit): Promise<Response> {
 export function createOysterComputersPort(origin: URL): OysterComputersPort {
   const read = (path: string, init?: RequestInit) =>
     request(new URL(path, origin), init);
+  const switchPath = (computerId: string, setting: ComputerSwitchSetting) =>
+    `/api/computers/${encodeURIComponent(computerId)}/${setting}`;
+  const readSwitch = async (
+    computerId: string,
+    setting: ComputerSwitchSetting,
+  ) => {
+    const response = await read(switchPath(computerId, setting));
+    return computerSwitchSchema.parse(await response.json()).enabled;
+  };
+  const writeSwitch = async (
+    computerId: string,
+    setting: ComputerSwitchSetting,
+    enabled: boolean,
+  ) => {
+    const response = await read(switchPath(computerId, setting), {
+      method: "PUT",
+      body: JSON.stringify({ enabled }),
+    });
+    return computerSwitchSchema.parse(await response.json()).enabled;
+  };
   return {
     list: async (offset) => {
       const response = await read(
@@ -107,21 +142,122 @@ export function createOysterComputersPort(origin: URL): OysterComputersPort {
         return teamComputerSchema.parse(await response.json());
       },
     },
-    internetAccess: async (computerId) => {
-      const response = await read(
-        `/api/computers/${encodeURIComponent(computerId)}/internet-access`,
-      );
-      return internetAccessSchema.parse(await response.json()).enabled;
-    },
-    setInternetAccess: async (computerId, enabled) => {
-      const response = await read(
-        `/api/computers/${encodeURIComponent(computerId)}/internet-access`,
-        { method: "PUT", body: JSON.stringify({ enabled }) },
-      );
-      return internetAccessSchema.parse(await response.json()).enabled;
-    },
+    internetAccess: (computerId) => readSwitch(computerId, "internet-access"),
+    setInternetAccess: (computerId, enabled) =>
+      writeSwitch(computerId, "internet-access", enabled),
+    keepAwake: (computerId) => readSwitch(computerId, "keep-awake"),
+    setKeepAwake: (computerId, enabled) =>
+      writeSwitch(computerId, "keep-awake", enabled),
   };
 }
+
+const computerSettings = {
+  "internet-access": { label: "Internet access", sigil: "internet" },
+  "keep-awake": { label: "Keep awake", sigil: "schedule" },
+} as const;
+
+/**
+ * One per-Computer setting row, the same wherever a Computer's switches show:
+ * a Sigil and label, help under it, and the control opposite.
+ */
+export function ComputerSettingRow({
+  setting,
+  description,
+  error,
+  children,
+}: {
+  setting: ComputerSwitchSetting;
+  description?: ReactNode;
+  error?: ReactNode;
+  /** The setting's Switch, or a retry key while it cannot be read. */
+  children: ReactElement;
+}) {
+  const { label, sigil } = computerSettings[setting];
+  return (
+    <DataRow>
+      <Field
+        orientation="horizontal"
+        icon={<Sigil name={sigil} />}
+        label={label}
+        description={description}
+        error={error}
+      >
+        {children}
+      </Field>
+    </DataRow>
+  );
+}
+
+/** One durable per-Computer switch: same read, save, retry and error shape. */
+function ComputerSwitch({
+  setting,
+  description,
+  computer,
+  queryKey,
+  read,
+  write,
+  locked,
+}: {
+  setting: ComputerSwitchSetting;
+  description?: string | undefined;
+  computer: TeamComputer;
+  queryKey: readonly unknown[];
+  read: () => Promise<boolean>;
+  write: (enabled: boolean) => Promise<boolean>;
+  locked: boolean;
+}) {
+  const { label } = computerSettings[setting];
+  const current = useQuery({ queryKey, queryFn: read });
+  const update = useMutation(
+    optimisticMutation({
+      queryKey,
+      apply: (_previous: boolean, enabled: boolean) => enabled,
+      mutationFn: write,
+    }),
+  );
+  return (
+    <ComputerSettingRow
+      setting={setting}
+      description={description}
+      error={
+        current.isError
+          ? `Could not check ${label} for ${computer.name}.`
+          : update.isError
+            ? `Could not save ${label} for ${computer.name}.`
+            : undefined
+      }
+    >
+      {current.isError ? (
+        <Button
+          size="sm"
+          variant="outline"
+          aria-label={`Retry ${label}`}
+          onClick={() => {
+            void current.refetch();
+          }}
+        >
+          Retry
+        </Button>
+      ) : (
+        <Switch
+          aria-label={`${label} for ${computer.name}`}
+          checked={current.data ?? false}
+          disabled={locked || current.data === undefined || update.isPending}
+          onCheckedChange={(enabled) => {
+            update.mutate(enabled);
+          }}
+        />
+      )}
+    </ComputerSettingRow>
+  );
+}
+
+const lockedReason = {
+  enabled: undefined,
+  "globally-disabled": "Internet access is locked by the global off switch.",
+  "team-disabled": "Internet access is locked for this Team.",
+  unavailable: undefined,
+} as const;
 
 function InternetAccess({
   teamId,
@@ -134,66 +270,66 @@ function InternetAccess({
   port: OysterComputersPort;
   policy: "enabled" | "globally-disabled" | "team-disabled" | "unavailable";
 }) {
-  const queryKey = tourtoisQueryKeys.oysterInternetAccess(
-    teamId,
-    computer.computerId,
-  );
-  const current = useQuery({
-    queryKey,
-    queryFn: () => port.internetAccess(computer.computerId),
-  });
-  const update = useMutation(
-    optimisticMutation({
-      queryKey,
-      apply: (_previous: boolean, enabled: boolean) => enabled,
-      mutationFn: (enabled: boolean) =>
-        port.setInternetAccess(computer.computerId, enabled),
-    }),
-  );
   return (
-    <div className="grid gap-sm">
-      <label className="flex gap-sm">
-        Internet access
-        <Switch
-          aria-label={`Internet access for ${computer.name}`}
-          checked={current.data ?? false}
-          disabled={
-            policy !== "enabled" ||
-            current.data === undefined ||
-            update.isPending
-          }
-          onCheckedChange={(enabled) => {
-            update.mutate(enabled);
-          }}
-        />
-      </label>
-      {current.isPending ? (
-        <p role="status">Checking Internet access…</p>
-      ) : null}
-      {current.isError ? (
-        <div role="alert">
-          <p>Could not check Internet access for {computer.name}.</p>
-          <Button
-            onClick={() => {
-              void current.refetch();
-            }}
-          >
-            Retry Internet access
-          </Button>
-        </div>
-      ) : null}
-      {update.isError ? (
-        <p role="alert">Could not save Internet access for {computer.name}.</p>
-      ) : null}
-      {policy === "globally-disabled" ? (
-        <p>Internet access is locked by the global off switch.</p>
-      ) : null}
-      {policy === "team-disabled" ? (
-        <p>Internet access is locked for this Team.</p>
-      ) : null}
-    </div>
+    <ComputerSwitch
+      setting="internet-access"
+      description={lockedReason[policy]}
+      computer={computer}
+      queryKey={tourtoisQueryKeys.oysterInternetAccess(
+        teamId,
+        computer.computerId,
+      )}
+      read={() => port.internetAccess(computer.computerId)}
+      write={(enabled) => port.setInternetAccess(computer.computerId, enabled)}
+      locked={policy !== "enabled"}
+    />
   );
 }
+
+function KeepAwake({
+  teamId,
+  computer,
+  port,
+}: {
+  teamId: string;
+  computer: TeamComputer;
+  port: OysterComputersPort;
+}) {
+  return (
+    <ComputerSwitch
+      setting="keep-awake"
+      computer={computer}
+      queryKey={tourtoisQueryKeys.oysterKeepAwake(teamId, computer.computerId)}
+      read={() => port.keepAwake(computer.computerId)}
+      write={(enabled) => port.setKeepAwake(computer.computerId, enabled)}
+      locked={false}
+      description={keepAwakeHelp(port.idleMetered === true)}
+    />
+  );
+}
+
+/** Keep awake's help; hosts that bill idle time say so. */
+export const keepAwakeHelp = (idleMetered: boolean) =>
+  `${
+    idleMetered
+      ? "Stays on when idle, and idle time is charged."
+      : "Stays on when idle."
+  } Off, it sleeps after 15 idle minutes.`;
+
+const createComputerSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .max(256, "Use at most 256 characters.")
+    .meta(
+      field({
+        label: "Name",
+        icon: <Sigil name="computer" />,
+        placeholder: "Leave blank for a generated name",
+        maxLength: 256,
+      }),
+    ),
+});
 
 type Action =
   | Readonly<{
@@ -215,7 +351,6 @@ export function OysterComputers({
 }) {
   const client = useQueryClient();
   const [offset, setOffset] = useState(0);
-  const [name, setName] = useState("");
   const intent = useRef<Extract<Action, { kind: "create" }> | null>(null);
   const inventoryKey = tourtoisQueryKeys.oysterComputers(teamId);
   const selectionKey = tourtoisQueryKeys.oysterSelectedComputer(teamId);
@@ -258,7 +393,6 @@ export function OysterComputers({
     onSuccess: async (_result, input) => {
       if (input.kind === "create") {
         intent.current = null;
-        setName("");
         setOffset(0);
       }
       await Promise.all([
@@ -276,30 +410,63 @@ export function OysterComputers({
     inventory.isFetching ||
     (selection !== undefined && selected.isFetching) ||
     action.isPending;
+  const create = useSchemaForm({
+    schema: createComputerSchema,
+    defaultValues: { name: "" },
+    failure: "Could not create the Computer.",
+    onSubmit: async ({ name }): Promise<SubmitResult<{ name: string }>> => {
+      const requestedName = name === "" ? undefined : name;
+      // A retried create keeps its request identity until the host confirms it.
+      if (intent.current === null || intent.current.name !== requestedName)
+        intent.current = {
+          kind: "create",
+          name: requestedName,
+          requestId: requestIds.request.generate(),
+        };
+      try {
+        await action.mutateAsync(intent.current);
+      } catch (cause) {
+        return cause instanceof Error
+          ? { kind: "refused", error: cause.message }
+          : { kind: "refused" };
+      }
+      return { kind: "saved", values: { name: "" } };
+    },
+  });
   const policyStatus =
     port.egressPolicy === undefined
       ? "enabled"
       : (policy.data ?? "unavailable");
 
+  const computers = inventory.data?.computers ?? [];
+  const paged = offset > 0 || inventory.data?.nextOffset != null;
   return (
-    <section className="grid gap-sm" aria-label="Computers">
+    <section className="tourtois-settings-stack" aria-label="Computers">
       <SectionHeading>Computers</SectionHeading>
-      <p>
+      <p className="tourtois-settings-lede">
         {selection === undefined
           ? "Manage your Team's Computers."
           : "Choose the default Computer used for new App configurations."}
       </p>
       {port.egressPolicy !== undefined && policyStatus === "unavailable" ? (
-        <div role="alert">
+        <div role="alert" className="tourtois-settings-notice">
           <p>Internet access policy is unavailable; switches are locked.</p>
-          <Button onClick={() => void policy.refetch()}>Retry policy</Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void policy.refetch()}
+          >
+            Retry policy
+          </Button>
         </div>
       ) : null}
       {inventory.isPending ? <p role="status">Loading Computers…</p> : null}
       {inventory.isError || (selection !== undefined && selected.isError) ? (
-        <div role="alert">
+        <div role="alert" className="tourtois-settings-notice">
           <p>Computer inventory or selection could not be loaded.</p>
           <Button
+            size="sm"
+            variant="outline"
             onClick={() => {
               void inventory.refetch();
               if (selection !== undefined) void selected.refetch();
@@ -309,119 +476,118 @@ export function OysterComputers({
           </Button>
         </div>
       ) : null}
-      {inventory.isSuccess && inventory.data.computers.length === 0 ? (
+      {inventory.isSuccess && computers.length === 0 ? (
         <p>No Computers on this page.</p>
       ) : null}
-      {inventory.data !== undefined ? (
-        <DataList aria-label="Computer inventory">
-          {inventory.data.computers.map((computer) => (
-            <DataRow key={computer.computerId} className="p-0">
-              <div className="grid min-w-0 gap-sm">
-                <ActionRow
-                  label={computer.name}
-                  description={
-                    selection !== undefined &&
-                    selected.isSuccess &&
-                    selected.data === computer.computerId
-                      ? "Default for new Apps"
-                      : computer.computerId
-                  }
-                  trailing={
-                    <div className="flex flex-wrap gap-sm">
-                      <Button
-                        aria-label={`Start ${computer.name}`}
-                        disabled={unavailable}
-                        onClick={() => {
-                          action.mutate({
-                            kind: "start",
-                            computerId: computer.computerId,
-                          });
-                        }}
-                      >
-                        Start
-                      </Button>
-                      {selection !== undefined ? (
-                        <Button
-                          aria-label={`Use ${computer.name} for new Apps`}
-                          disabled={
-                            unavailable || selected.data === computer.computerId
-                          }
-                          onClick={() => {
-                            action.mutate({
-                              kind: "select",
-                              computerId: computer.computerId,
-                            });
-                          }}
-                        >
-                          Use for new Apps
-                        </Button>
-                      ) : null}
-                    </div>
-                  }
-                />
-                <InternetAccess
-                  teamId={teamId}
-                  computer={computer}
-                  port={port}
-                  policy={policyStatus}
-                />
-              </div>
-            </DataRow>
-          ))}
-        </DataList>
-      ) : null}
-      <div className="flex gap-sm" aria-label="Computer pages">
-        <Button
-          disabled={unavailable || offset === 0}
-          onClick={() => {
-            setOffset(Math.max(0, offset - 100));
-          }}
-        >
-          Previous
-        </Button>
-        <Button
-          disabled={unavailable || inventory.data?.nextOffset == null}
-          onClick={() => {
-            const next = inventory.data?.nextOffset;
-            if (next != null) setOffset(next);
-          }}
-        >
-          Next
-        </Button>
-      </div>
-      <form
-        className="grid gap-sm"
-        aria-label="Create Computer"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const requestedName = name === "" ? undefined : name;
-          if (intent.current === null || intent.current.name !== requestedName)
-            intent.current = {
-              kind: "create",
-              name: requestedName,
-              requestId: requestIds.request.generate(),
-            };
-          action.mutate(intent.current);
-        }}
-      >
-        <label>
-          Computer name (optional)
-          <Input
-            name="computerName"
-            maxLength={256}
-            value={name}
-            disabled={unavailable}
-            placeholder="Leave blank for a generated name"
-            onChange={(event) => {
-              setName(event.currentTarget.value);
+      {computers.map((computer) => {
+        const isDefault =
+          selection !== undefined &&
+          selected.isSuccess &&
+          selected.data === computer.computerId;
+        return (
+          <section
+            key={computer.computerId}
+            className="tourtois-computer"
+            aria-label={computer.name}
+          >
+            <SettingsItem
+              icon={<Sigil name="computer" />}
+              title={computer.name}
+              actions={
+                <>
+                  <KeycapButton
+                    density="compact"
+                    label="Start"
+                    icon={<Sigil name="run" />}
+                    aria-label={`Start ${computer.name}`}
+                    disabled={unavailable}
+                    onClick={() => {
+                      action.mutate({
+                        kind: "start",
+                        computerId: computer.computerId,
+                      });
+                    }}
+                  />
+                  {isDefault ? (
+                    <Status
+                      size="compact"
+                      tone="success"
+                      label="Default for new Apps"
+                    />
+                  ) : selection !== undefined ? (
+                    <KeycapButton
+                      density="compact"
+                      label="Use for new Apps"
+                      icon={<Sigil name="allApps" />}
+                      aria-label={`Use ${computer.name} for new Apps`}
+                      disabled={unavailable}
+                      onClick={() => {
+                        action.mutate({
+                          kind: "select",
+                          computerId: computer.computerId,
+                        });
+                      }}
+                    />
+                  ) : null}
+                </>
+              }
+            />
+            <DataList
+              density="compact"
+              aria-label={`${computer.name} settings`}
+            >
+              <InternetAccess
+                teamId={teamId}
+                computer={computer}
+                port={port}
+                policy={policyStatus}
+              />
+              <KeepAwake teamId={teamId} computer={computer} port={port} />
+            </DataList>
+          </section>
+        );
+      })}
+      {paged ? (
+        <div className="tourtois-settings-notice" aria-label="Computer pages">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={unavailable || offset === 0}
+            onClick={() => {
+              setOffset(Math.max(0, offset - 100));
             }}
-          />
-        </label>
-        <Button type="submit" disabled={unavailable}>
-          Create Computer
-        </Button>
-      </form>
-      {action.isError ? <p role="alert">{action.error.message}</p> : null}
+          >
+            Previous
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={unavailable || inventory.data?.nextOffset == null}
+            onClick={() => {
+              const next = inventory.data?.nextOffset;
+              if (next != null) setOffset(next);
+            }}
+          >
+            Next
+          </Button>
+        </div>
+      ) : null}
+      <SchemaForm
+        model={create}
+        layout="columns"
+        aria-label="Create Computer"
+        disabled={unavailable}
+        footer={
+          <FormFooter divider={false} error={create.error}>
+            <Button type="submit" disabled={unavailable}>
+              Create Computer
+            </Button>
+          </FormFooter>
+        }
+      />
+      {action.isError && action.variables.kind !== "create" ? (
+        <p role="alert">{action.error.message}</p>
+      ) : null}
       {action.isSuccess ? (
         <p role="status">Computer request completed.</p>
       ) : null}

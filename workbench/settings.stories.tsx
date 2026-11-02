@@ -12,6 +12,10 @@ import { SystemSettings } from "../src/SystemSettings.js";
 import type { SettingsLocation } from "../src/settings-routes.js";
 import { workbenchPorts } from "./host-ports.js";
 import type { KeysPort } from "../src/Keys.js";
+import type {
+  AgentMcpServersPort,
+  AgentMcpServersView,
+} from "../src/AgentMcpServers.js";
 import type { KeySummary } from "@fungi.computer/ear-tag/keys";
 import { createDesktopFixture } from "./fixtures.js";
 import { settingsApps, settingsIconApps } from "./settings-fixtures.js";
@@ -202,10 +206,27 @@ function keysFixture(initial: readonly KeySummary<string>[]) {
         name: app.displayName,
       }));
       return Promise.resolve([
-        { capability: "apps.read", label: "Read Apps", targets },
-        { capability: "apps.use", label: "Use Apps", targets },
-        { capability: "computer.use", label: "Use the Computer" },
-      ]);
+        {
+          capability: "apps.read",
+          label: "Read Apps",
+          icon: "read",
+          hint: "See Apps and their data",
+          targets,
+        },
+        {
+          capability: "apps.use",
+          label: "Use Apps",
+          icon: "allApps",
+          hint: "Act through Apps",
+          targets,
+        },
+        {
+          capability: "computer.use",
+          label: "Use the Computer",
+          icon: "computer",
+          hint: "Files and commands",
+        },
+      ] as const);
     },
     list: () => Promise.resolve({ keys: structuredClone(keys) }),
     issue: (draft) => {
@@ -337,3 +358,65 @@ function keysStory(state: "full" | "empty" = "full"): Story {
 
 export const KeysFull = keysStory();
 export const KeysEmpty = keysStory("empty");
+
+// Standalone Connectors: an in-memory Agent MCP server custody.
+function connectorsStory(): Story {
+  const Story: Story = () => {
+    const [client] = useState(
+      () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+    );
+    const [location, setLocation] = useState<SettingsLocation | null>({
+      category: "connectors",
+      target: { kind: "list" },
+    });
+    const [port] = useState((): AgentMcpServersPort => {
+      const view: AgentMcpServersView = {
+        agents: [
+          {
+            agentId: "gardener",
+            name: "Gardener",
+            servers: [
+              {
+                serverId: "linear",
+                name: "linear",
+                url: "https://mcp.linear.app/mcp",
+                hasBearer: true,
+              },
+            ],
+          },
+          { agentId: "librarian", name: "Librarian", servers: [] },
+        ],
+      };
+      return {
+        list: () => Promise.resolve(view),
+        add: () => Promise.resolve(),
+        remove: () => Promise.resolve(),
+      };
+    });
+    return (
+      <QueryClientProvider client={client}>
+        <SystemSettings
+          location={location}
+          onNavigate={setLocation}
+          desktopConsentReadyAt={0}
+          desktopSettings={{
+            readGill: () => Promise.reject(new Error("not used")),
+            addGill: () => Promise.reject(new Error("not used")),
+            removeGill: () => Promise.reject(new Error("not used")),
+          }}
+          apps={[]}
+          appCount={0}
+          onAccepted={() => Promise.resolve()}
+          onClosed={() => {
+            setLocation(null);
+          }}
+          restoreFocus={false}
+          ports={{ agentMcpServers: port }}
+        />
+      </QueryClientProvider>
+    );
+  };
+  return Story;
+}
+
+export const ConnectorsStandalone = connectorsStory();
