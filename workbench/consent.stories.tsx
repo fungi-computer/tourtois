@@ -53,10 +53,14 @@ function consent(
         resource === "agents"
           ? []
           : ["computer.list", "computer.readFile", "computer.writeFile"],
+      // A refused save resolves false and declines; only a rejected save keeps
+      // the dialog open with its "could not be saved" notice.
       allow: () =>
         outcome === "saving"
           ? new Promise<boolean>(() => undefined)
-          : Promise.resolve(outcome !== "failed"),
+          : outcome === "failed"
+            ? Promise.reject(new Error("Access could not be saved"))
+            : Promise.resolve(true),
       settle: () => {
         setOpen(false);
       },

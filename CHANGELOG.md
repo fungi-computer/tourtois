@@ -1,5 +1,28 @@
 # @fungi.computer/tourtois
 
+## 0.7.0
+
+### Minor Changes
+
+- Changes since 0.6.0:
+
+  - feat(oyster): serve agent servers through veil connections
+  - fix(workbench): repair the root browser proofs the nightly first ran
+  - feat(oyster): bring your own model key on standalone Oyster
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/caps@0.7.1
+  - @fungi.computer/gills@0.2.1
+  - @fungi.computer/parakeet@0.7.2
+  - @fungi.computer/agar@0.7.1
+  - @fungi.computer/nacre@0.1.4
+  - @fungi.computer/puffball@0.5.1
+  - @fungi.computer/shiitake@0.9.2
+
 ## 0.6.0
 
 ### Minor Changes

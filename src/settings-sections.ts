@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import type { AgentMcpServersPort } from "./AgentMcpServers.js";
 import type { KeysPort } from "./Keys.js";
+import type { ModelKeysPort } from "./ModelKeys.js";
 import type { MemberAvatarReader, MemberAvatarSave } from "./member-avatar.js";
 import {
   settingsLocationSchema,
@@ -41,6 +42,8 @@ export type SettingsSectionPorts = Readonly<{
   computers?: ComponentType;
   /** Keys settings: the host's owner-direct Keys custody. */
   keys?: KeysPort;
+  /** Model keys beside Keys: the host's sealed provider keys and per-Agent models. */
+  modelKeys?: ModelKeysPort;
   /** The Team's role defaults. */
   defaults?: ComponentType<{ onAccepted: Accepted }>;
   /** Channels and website assistants. */
@@ -82,7 +85,7 @@ export function offeredSettings(
     connectors:
       ports.agentMcpServers !== undefined || ports.connectors !== undefined,
     computers: ports.computers !== undefined,
-    keys: ports.keys !== undefined,
+    keys: ports.keys !== undefined || ports.modelKeys !== undefined,
     defaults: ports.defaults !== undefined,
     channels: ports.channels !== undefined,
     selling: ports.selling !== undefined,

@@ -12,6 +12,7 @@ import type { WorkbenchDesktopSettings } from "@fungi.computer/nacre/workbench";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AgentMcpServers } from "./AgentMcpServers.js";
 import { Keys, type KeyAppOption } from "./Keys.js";
+import { ModelKeys } from "./ModelKeys.js";
 import { AppIcon } from "./app-icon.js";
 import { AvatarSettings } from "./member-avatar.js";
 import { SettingsNavigation } from "./SettingsNavigation.js";
@@ -270,6 +271,9 @@ export function SystemSettings({
             ) : null}
             {keysSection && keys !== undefined ? (
               <Keys port={keys} apps={keyableApps} />
+            ) : null}
+            {keysSection && ports.modelKeys !== undefined ? (
+              <ModelKeys port={ports.modelKeys} />
             ) : null}
             {location?.category === "channels" &&
             ports.channels !== undefined ? (

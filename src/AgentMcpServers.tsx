@@ -71,8 +71,8 @@ export function AgentMcpServers({ port }: { port: AgentMcpServersPort }) {
       <SectionHeading>Connectors</SectionHeading>
       <p className="tourtois-settings-lede">
         Connect a remote MCP server to an Agent. Its tools become{" "}
-        <code>env.mcp.&lt;name&gt;</code> in that Agent&apos;s code. A token
-        stays with the Agent and is never shown again.
+        <code>env.mcp.&lt;name&gt;</code> in that Agent&apos;s code. A token is
+        sealed by this Oyster, never given to the Agent, and never shown again.
       </p>
       {view.isPending ? <p>Loading MCP servers…</p> : null}
       {view.isError ? (

@@ -21,6 +21,7 @@ import {
   type AgentMcpServersPort,
   type KeysPort,
 } from "./platform-controls.js";
+import { modelKeysViewSchema, type ModelKeysPort } from "./ModelKeys.js";
 import { settingsLocationSchema } from "./settings-routes.js";
 import type { PlatformControlsData } from "./platform-controls.js";
 import {
@@ -91,6 +92,94 @@ const agentMcpServers: AgentMcpServersPort = {
       `/api/agent-mcp-servers/${encodeURIComponent(agentId)}/${encodeURIComponent(serverId)}`,
       { method: "DELETE" },
       "The MCP server change was refused",
+    );
+  },
+};
+
+const modelKeyMessages = {
+  key_rejected: "The provider rejected this key",
+  provider_unavailable: "The provider could not be reached. Try again",
+  custody_unavailable:
+    "This instance has no credential key. Set OYSTER_CREDENTIAL_KEY and redeploy",
+  limit: "Remove a model key before adding another",
+  invalid_key: "Choose a provider, name the key and paste it",
+  key_removed: "That key was removed",
+  key_source_mismatch: "That model does not belong to the key's provider",
+  model_unavailable: "That provider has no such model",
+  invalid_model_choice: "That model choice is not valid",
+} as const;
+const modelKeyMessage = (code: string): string =>
+  new Map<string, string>(Object.entries(modelKeyMessages)).get(code) ?? code;
+
+/** A model-key request whose host refusal code reads as a sentence. */
+async function modelKeyRequest(
+  path: string,
+  init: RequestInit,
+  refused: string,
+) {
+  try {
+    return await ownerRequest(path, init, refused);
+  } catch (cause) {
+    if (cause instanceof AppError)
+      throw new Error(modelKeyMessage(cause.message), { cause });
+    throw cause;
+  }
+}
+
+const jsonInit = (method: string, body: string): RequestInit => ({
+  method,
+  headers: { "Content-Type": "application/json" },
+  body,
+});
+
+/** Owner-direct model-key custody: a key goes in once and never comes back. */
+const modelKeys: ModelKeysPort = {
+  read: async () => {
+    const [keys, agents] = await Promise.all([
+      json("/api/model-keys"),
+      json("/api/agent-models"),
+    ]);
+    return modelKeysViewSchema.parse({
+      keys: z.object({ keys: z.unknown() }).parse(keys).keys,
+      agents: z.object({ agents: z.unknown() }).parse(agents).agents,
+    });
+  },
+  addKey: async (draft) => {
+    await modelKeyRequest(
+      "/api/model-keys",
+      jsonInit("POST", JSON.stringify(draft)),
+      "The model key was refused",
+    );
+  },
+  removeKey: async (keyId) => {
+    await modelKeyRequest(
+      `/api/model-keys/${encodeURIComponent(keyId)}`,
+      { method: "DELETE" },
+      "The model key could not be removed",
+    );
+  },
+  chooseModel: async (agentId, draft) => {
+    await modelKeyRequest(
+      `/api/agent-models/${encodeURIComponent(agentId)}`,
+      jsonInit(
+        "PUT",
+        JSON.stringify(
+          draft.keyId === null
+            ? {
+                keySource: "workers-ai",
+                model: {
+                  providerId: "cloudflare-workers-ai",
+                  modelId: "@cf/moonshotai/kimi-k2.6",
+                },
+              }
+            : {
+                keySource: "byok",
+                keyId: draft.keyId,
+                model: { providerId: draft.provider, modelId: draft.modelId },
+              },
+        ),
+      ),
+      "The model could not be saved",
     );
   },
 };
@@ -311,6 +400,7 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
           agentMcpServers,
           computers,
           keys,
+          modelKeys,
           requestAppAccess,
           appPermissions: OysterAppPermissions,
         }}
