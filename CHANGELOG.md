@@ -1,5 +1,38 @@
 # @fungi.computer/tourtois
 
+## 0.8.0
+
+### Minor Changes
+
+- Changes since 0.7.0:
+
+  - feat(connections): sign in to MCP and REST connections on the hub
+  - fix(connections): end each row with its keys and set the redirect URL as a
+    fact
+  - fix(connections): satisfy the lint, dead-export and suppression gates
+  - fix(connections): stack each connection's access under it and drop the
+    nested columns
+  - feat(connections): bring MCP connections and the one connections port to the
+    hub
+  - feat(connections): one connections panel and port on the standalone host
+  - fix(oyster): classify the sign-in callback route and update the settings
+    fixtures
+  - fix(tourtois): export the added-server schema with its port
+  - feat(oyster): sign in to agent servers with oauth
+  - fix(oyster): satisfy the lint and suppression budgets for the website
+    channel
+  - fix(tourtois): lay out the website facts without inventing styles
+  - feat(oyster): serve website chat from a self-hosted Oyster
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/nacre@0.2.0
+  - @fungi.computer/parakeet@0.8.0
+  - @fungi.computer/shiitake@0.10.0
+
 ## 0.7.0
 
 ### Minor Changes

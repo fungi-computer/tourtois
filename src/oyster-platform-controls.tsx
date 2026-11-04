@@ -1,6 +1,6 @@
 // Standalone Oyster Settings chrome, loaded from the chosen shell Release.
 // App Permissions frame Oyster's own grants page, never its implementation.
-// Connectors, Keys and Computers retain their existing host-backed ports.
+// Connections, Keys and Computers retain their existing host-backed ports.
 // A host with its own Settings (the Hub) never calls this entrypoint.
 import "@fungi.computer/parakeet/styles.css";
 import "./shell.css";
@@ -15,10 +15,12 @@ import { z } from "zod";
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
-  agentMcpServersViewSchema,
+  connectionAddedSchema,
+  connectionsViewSchema,
+  connectionToolsSchema,
   createPlatformControls,
   PlatformControlsView,
-  type AgentMcpServersPort,
+  type ConnectionsPort,
   type KeysPort,
 } from "./platform-controls.js";
 import { modelKeysViewSchema, type ModelKeysPort } from "./ModelKeys.js";
@@ -28,6 +30,11 @@ import {
   OysterComputers,
   createOysterComputersPort,
 } from "./OysterComputers.js";
+import {
+  WebsiteChannels,
+  createOysterWebsiteChannelsPort,
+  type WebsiteChannelsCopy,
+} from "./WebsiteChannels.js";
 import {
   useSettingsLeaveGuard,
   type SettingsLeaveState,
@@ -72,28 +79,52 @@ async function ownerRequest(path: string, init: RequestInit, refused: string) {
   });
 }
 
-/** Owner-direct Agent MCP server custody; the host never returns a token. */
-const agentMcpServers: AgentMcpServersPort = {
-  list: async () =>
-    agentMcpServersViewSchema.parse(await json("/api/agent-mcp-servers")),
-  add: async (agentId, draft) => {
+/** Owner-direct connections; the host never returns a token. */
+const connections: ConnectionsPort = {
+  list: async () => connectionsViewSchema.parse(await json("/api/connections")),
+  add: async (draft) =>
+    connectionAddedSchema.parse(
+      await (
+        await ownerRequest(
+          "/api/connections",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(draft),
+          },
+          "The connection change was refused",
+        )
+      ).json(),
+    ),
+  grant: async ({ connectionId, agentId, access }) => {
     await ownerRequest(
-      `/api/agent-mcp-servers/${encodeURIComponent(agentId)}`,
+      `/api/connections/${encodeURIComponent(connectionId)}/agents/${encodeURIComponent(agentId)}`,
       {
-        method: "POST",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(draft),
+        body: JSON.stringify({ access }),
       },
-      "The MCP server change was refused",
+      "The connection change was refused",
     );
   },
-  remove: async (agentId, serverId) => {
+  ungrant: async (connectionId, agentId) => {
     await ownerRequest(
-      `/api/agent-mcp-servers/${encodeURIComponent(agentId)}/${encodeURIComponent(serverId)}`,
+      `/api/connections/${encodeURIComponent(connectionId)}/agents/${encodeURIComponent(agentId)}`,
       { method: "DELETE" },
-      "The MCP server change was refused",
+      "The connection change was refused",
     );
   },
+  remove: async (connectionId) => {
+    await ownerRequest(
+      `/api/connections/${encodeURIComponent(connectionId)}`,
+      { method: "DELETE" },
+      "The connection change was refused",
+    );
+  },
+  tools: async (connectionId) =>
+    connectionToolsSchema.parse(
+      await json(`/api/connections/${encodeURIComponent(connectionId)}/tools`),
+    ).tools,
 };
 
 const modelKeyMessages = {
@@ -360,6 +391,20 @@ function OysterAppPermissions({
   );
 }
 
+/** What a visitor can and cannot reach on a self-hosted Oyster. */
+const oysterWebsiteCopy: WebsiteChannelsCopy = {
+  intro: (
+    <p className="text-sm">
+      Put a chat with one of your Agents on a website you run. Visitors open it
+      from a button in the corner of the page; only you sign in to this Oyster.
+    </p>
+  ),
+  visitors: (agentName) =>
+    `A chat with ${agentName}. Visitors don’t sign in, and they see its replies. Message limits apply to each visitor.`,
+  reach: (agentName) =>
+    `Visitors talk to ${agentName} itself, with ${agentName}’s own tools and permissions. They cannot sign in to this Oyster or reach your account. The address list limits where the chat appears, not who can call it directly.`,
+};
+
 export const mountPlatformControls: MountPlatformControls = (root, input) => {
   const keys = createOysterKeysPort(input.keysWire);
   const requestAppAccess: NonNullable<
@@ -376,7 +421,7 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
         }),
     });
   const controls = createPlatformControls({
-    sections: ["home", "apps", "connectors", "computers", "keys"],
+    sections: ["home", "apps", "connectors", "computers", "keys", "channels"],
   });
   const computersPort = createOysterComputersPort(
     new URL(window.location.origin),
@@ -388,6 +433,12 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
       onChanged={controls.changed}
     />
   );
+  const websitesPort = createOysterWebsiteChannelsPort(
+    new URL(window.location.origin),
+  );
+  const channels = () => (
+    <WebsiteChannels port={websitesPort} copy={oysterWebsiteCopy} />
+  );
   const client = createQueryClient();
   const settings = createRoot(root);
   settings.render(
@@ -397,8 +448,9 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
         controls={controls}
         data={{
           directory,
-          agentMcpServers,
+          connections,
           computers,
+          channels,
           keys,
           modelKeys,
           requestAppAccess,

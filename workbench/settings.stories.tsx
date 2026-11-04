@@ -12,10 +12,7 @@ import { SystemSettings } from "../src/SystemSettings.js";
 import type { SettingsLocation } from "../src/settings-routes.js";
 import { workbenchPorts } from "./host-ports.js";
 import type { KeysPort } from "../src/Keys.js";
-import type {
-  AgentMcpServersPort,
-  AgentMcpServersView,
-} from "../src/AgentMcpServers.js";
+import type { ConnectionsPort, ConnectionsView } from "../src/Connections.js";
 import type { KeySummary } from "@fungi.computer/ear-tag/keys";
 import { createDesktopFixture } from "./fixtures.js";
 import { settingsApps, settingsIconApps } from "./settings-fixtures.js";
@@ -359,7 +356,7 @@ function keysStory(state: "full" | "empty" = "full"): Story {
 export const KeysFull = keysStory();
 export const KeysEmpty = keysStory("empty");
 
-// Standalone Connectors: an in-memory Agent MCP server custody.
+// Standalone Connectors: in-memory connections.
 function connectorsStory(): Story {
   const Story: Story = () => {
     const [client] = useState(
@@ -369,28 +366,33 @@ function connectorsStory(): Story {
       category: "connectors",
       target: { kind: "list" },
     });
-    const [port] = useState((): AgentMcpServersPort => {
-      const view: AgentMcpServersView = {
+    const [port] = useState((): ConnectionsPort => {
+      const view: ConnectionsView = {
+        callbackUrl: "https://oyster.example/api/connections/callback",
         agents: [
+          { agentId: "gardener", name: "Gardener" },
+          { agentId: "librarian", name: "Librarian" },
+        ],
+        connections: [
           {
-            agentId: "gardener",
-            name: "Gardener",
-            servers: [
-              {
-                serverId: "linear",
-                name: "linear",
-                url: "https://mcp.linear.app/mcp",
-                hasBearer: true,
-              },
-            ],
+            connectionId: "linear",
+            name: "linear",
+            label: "linear",
+            kind: "mcp",
+            url: "https://mcp.linear.app/mcp",
+            auth: "token",
+            state: "connected",
+            grants: [{ agentId: "gardener", access: ["list_issues"] }],
           },
-          { agentId: "librarian", name: "Librarian", servers: [] },
         ],
       };
       return {
-        list: () => Promise.resolve(view),
-        add: () => Promise.resolve(),
+        list: () => Promise.resolve(structuredClone(view)),
+        add: () => Promise.resolve({ authorizeUrl: null }),
+        grant: () => Promise.resolve(),
+        ungrant: () => Promise.resolve(),
         remove: () => Promise.resolve(),
+        tools: () => Promise.resolve(["list_issues", "create_issue"]),
       };
     });
     return (
@@ -411,7 +413,7 @@ function connectorsStory(): Story {
             setLocation(null);
           }}
           restoreFocus={false}
-          ports={{ agentMcpServers: port }}
+          ports={{ connections: port }}
         />
       </QueryClientProvider>
     );

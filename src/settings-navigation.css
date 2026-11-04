@@ -121,6 +121,13 @@
 .tourtois-website-note {
   color: var(--stipe-fg-muted);
 }
+/* A fact's value: its sentence, then a key that keeps its own width. */
+.tourtois-website-fact {
+  display: grid;
+  justify-items: start;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
 
 /* The Settings panel owns scrolling; its GitHub contents retain their natural
    height rather than shrinking the form and feedback inside the flex column. */

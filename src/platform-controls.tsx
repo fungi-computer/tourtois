@@ -45,11 +45,14 @@ export type {
   TeamAdministrationPort,
 } from "./settings-sections.js";
 export {
-  agentMcpServersViewSchema,
-  type AgentMcpServerDraft,
-  type AgentMcpServersPort,
-  type AgentMcpServersView,
-} from "./AgentMcpServers.js";
+  connectionAddedSchema,
+  connectionToolsSchema,
+  connectionsViewSchema,
+  type ConnectionAccess,
+  type ConnectionDraft,
+  type ConnectionsPort,
+  type ConnectionsView,
+} from "./Connections.js";
 export {
   type KeyAppOption,
   type KeyGrantOption,

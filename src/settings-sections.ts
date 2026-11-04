@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import type { AgentMcpServersPort } from "./AgentMcpServers.js";
+import type { ConnectionsPort } from "./Connections.js";
 import type { KeysPort } from "./Keys.js";
 import type { ModelKeysPort } from "./ModelKeys.js";
 import type { MemberAvatarReader, MemberAvatarSave } from "./member-avatar.js";
@@ -31,13 +31,8 @@ export type TeamAdministrationPort = Readonly<{
 export type SettingsSectionPorts = Readonly<{
   /** The person's avatar, read and saved through the host's account. */
   avatar?: Readonly<{ read: MemberAvatarReader; save: MemberAvatarSave }>;
-  /** Connectors settings: the host's Agent MCP server custody. */
-  agentMcpServers?: AgentMcpServersPort;
-  /** A host's own Connectors editor, used when it has no Agent MCP port. */
-  connectors?: ComponentType<{
-    target: ConnectorsTarget;
-    onNavigate: Navigate;
-  }>;
+  /** Connections settings: the host's connections, who may use them, and its own editors beside. */
+  connections?: ConnectionsPort;
   /** Each Computer's outside access. */
   computers?: ComponentType;
   /** Keys settings: the host's owner-direct Keys custody. */
@@ -82,8 +77,7 @@ export function offeredSettings(
     home: true,
     apps: true,
     avatar: ports.avatar !== undefined,
-    connectors:
-      ports.agentMcpServers !== undefined || ports.connectors !== undefined,
+    connectors: ports.connections !== undefined,
     computers: ports.computers !== undefined,
     keys: ports.keys !== undefined || ports.modelKeys !== undefined,
     defaults: ports.defaults !== undefined,

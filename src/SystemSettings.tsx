@@ -10,7 +10,7 @@ import {
 } from "@fungi.computer/nacre/app-directory";
 import type { WorkbenchDesktopSettings } from "@fungi.computer/nacre/workbench";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AgentMcpServers } from "./AgentMcpServers.js";
+import { Connections } from "./Connections.js";
 import { Keys, type KeyAppOption } from "./Keys.js";
 import { ModelKeys } from "./ModelKeys.js";
 import { AppIcon } from "./app-icon.js";
@@ -92,7 +92,7 @@ export function SystemSettings({
       ? requestedLocation
       : null;
   const {
-    agentMcpServers,
+    connections,
     keys,
     appPermissions: AppPermissions,
     appAdvanced: AppAdvanced,
@@ -250,16 +250,19 @@ export function SystemSettings({
                 <AvatarSettings save={ports.avatar.save} />
               </div>
             ) : null}
-            {connectors && agentMcpServers !== undefined ? (
-              <AgentMcpServers port={agentMcpServers} />
-            ) : null}
-            {connectors &&
-            agentMcpServers === undefined &&
-            ports.connectors !== undefined ? (
-              <ports.connectors
-                target={location.target}
-                onNavigate={onNavigate}
-              />
+            {connectors && connections !== undefined ? (
+              location.target.kind === "list" ? (
+                <Connections
+                  port={connections}
+                  target={location.target}
+                  onNavigate={onNavigate}
+                />
+              ) : connections.hostSections ? (
+                <connections.hostSections
+                  target={location.target}
+                  onNavigate={onNavigate}
+                />
+              ) : null
             ) : null}
             {location?.category === "selling" && ports.selling !== undefined ? (
               <ports.selling appId={location.appId} onNavigate={onNavigate} />
