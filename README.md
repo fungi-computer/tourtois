@@ -34,7 +34,7 @@ host.
 
 Tourtois installs with the other starter Apps, first of all. On a deployed
 Oyster (see the
-[Oyster quick start](https://github.com/fungi-computer/oyster#quick-start-deploy-your-own-oyster)),
+[Oyster quick start](https://github.com/fungi-computer/oyster#deploy-to-cloudflare)),
 run:
 
 ```sh
