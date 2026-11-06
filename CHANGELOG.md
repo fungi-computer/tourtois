@@ -1,5 +1,25 @@
 # @fungi.computer/tourtois
 
+## 0.9.1
+
+### Patch Changes
+
+- Changes since 0.9.0:
+
+  - fix(tourtois): keep local overlays usable when the browser reports offline
+  - fix(hub): defer closed hosted Settings editors on Team entry
+  - fix(tourtois): compose offline notices with Caps
+  - fix(oyster): keep consent and recovery pages usable
+  - fix(tourtois): keep windows inside resized workspaces
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/maosaico@0.1.1
+  - @fungi.computer/parakeet@0.8.2
+  - @fungi.computer/shiitake@0.11.1
+  - @fungi.computer/caps@0.7.1
+
 ## 0.9.0
 
 ### Minor Changes

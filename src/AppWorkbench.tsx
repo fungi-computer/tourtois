@@ -200,6 +200,8 @@ export function AppWorkbench({
         selectionRefreshes.current.delete(window.windowId);
   }, [appProjection]);
   const [appStatus, setAppStatus] = useState<string | Error | null>(null);
+  // Browser network state cannot establish host reachability (notably local
+  // Oyster on loopback). Show recovery only for an observed App failure.
   useEffect(() => {
     if (!appStatus) return;
     const disconnected =
@@ -811,6 +813,7 @@ export function AppWorkbench({
               position="bottom-right"
               offset={24}
               mobileOffset={24}
+              style={{ fontFamily: "var(--font-sans)" }}
               closeButton
             />,
             noticeContainer,

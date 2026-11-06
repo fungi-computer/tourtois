@@ -1,3 +1,5 @@
+import { Alert } from "@fungi.computer/caps/components/alert";
+import { Button } from "@fungi.computer/caps/components/button";
 import { IconButton } from "@fungi.computer/caps/components/icon-button";
 import {
   AppStatusBar,
@@ -174,7 +176,7 @@ export function AppPane({
     { participating: projection.status !== "minimized" },
   );
   const layout = useMaosaicoLayout();
-  const element = useWindowMotion(binding, layout.interacting);
+  const element = useWindowMotion(binding, layout.interacting, layout.bounds);
   const zoomed = layout.zoomedId === projection.windowId;
   const zoom = () => {
     layout.zoom(zoomed ? null : projection.windowId);
@@ -317,14 +319,31 @@ export function AppPane({
           </div>
         </div>
       ) : null}
-      {projection.status === "error" &&
-      !(
-        projection.error instanceof AppError &&
-        projection.error.code === "DISCONNECTED"
-      ) ? (
-        <p className="tourtois-window-status" role="status">
-          {windowStatusLabel(projection)}
-        </p>
+      {projection.status === "error" ? (
+        <div className="tourtois-window-status">
+          <Alert
+            tone="warning"
+            title={
+              projection.error instanceof AppError &&
+              projection.error.code === "DISCONNECTED"
+                ? "This App lost its connection."
+                : windowStatusLabel(projection)
+            }
+            description="Check your connection and the host before reloading. A request may have completed even if its reply did not arrive; check its result before repeating it."
+          >
+            <div style={{ marginTop: "var(--spacing-md)" }}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  window.location.reload();
+                }}
+              >
+                Reload workspace
+              </Button>
+            </div>
+          </Alert>
+        </div>
       ) : null}
       {/* The App's sandboxed frame lives in this body for the window's whole
           life: it moves, clips and stacks with the window. A click into it
