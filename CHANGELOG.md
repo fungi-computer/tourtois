@@ -1,5 +1,25 @@
 # @fungi.computer/tourtois
 
+## 0.9.2
+
+### Patch Changes
+
+- Changes since 0.9.1:
+
+  - fix(tests): settle approval and key views before assertions
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.7.2
+  - @fungi.computer/gills@0.2.2
+  - @fungi.computer/nacre@0.2.1
+  - @fungi.computer/parakeet@0.9.0
+  - @fungi.computer/shiitake@0.12.0
+  - @fungi.computer/puffball@0.5.2
+
 ## 0.9.1
 
 ### Patch Changes
