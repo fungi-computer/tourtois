@@ -4,6 +4,7 @@ import { AppError, type FileNavigationInput } from "@fungi.computer/agar";
 import type { AppOpenInput } from "@fungi.computer/agar/apps";
 import { type AppBarItem } from "@fungi.computer/caps/blocks/app-bar";
 import { ResizeHandle } from "@fungi.computer/caps/components/resize-handle";
+import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
 import { toast, Toaster } from "@fungi.computer/caps/components/toaster";
 import { WindowSnapPreview } from "@fungi.computer/caps/components/window";
 import {
@@ -74,11 +75,49 @@ type AppDirectoryReconciliationFailure = {
   action: "close" | "replace" | null;
 };
 
-const emptyAppBarLabel = (loading: boolean, failed: boolean): string => {
-  if (loading) return "Loading Apps…";
+const emptyAppBarLabel = (loading: boolean, failed: boolean): ReactNode => {
+  if (loading) return <LoadingState message="Loading Apps…" />;
   if (failed) return "Apps unavailable";
   return "Apps will appear here when available.";
 };
+
+/** "Edit avatar…" exists only where the host backs avatar Settings. */
+const avatarMenuAction = (
+  platform: PlatformControls,
+  open: () => void,
+): (() => void) | undefined =>
+  platform.sections === undefined || platform.sections.includes("avatar")
+    ? open
+    : undefined;
+
+/** Choosing Floating with nothing open would otherwise show no change. */
+function announceFloating(
+  tiled: boolean,
+  projection: Parameters<typeof hasVisibleAppWindows>[0],
+): void {
+  if (!tiled && !hasVisibleAppWindows(projection))
+    toast("New windows will float", {
+      id: "workbench-layout",
+      toasterId: "workbench-notices",
+    });
+}
+
+/** Windows cover the desktop, so Show desktop runs before arranging it. */
+function arrangeDesktop(
+  hide: () => Promise<void> | null,
+  arrange: () => void,
+  onFailure: (message: string) => void,
+): void {
+  const hiding = hide();
+  if (!hiding) {
+    arrange();
+    return;
+  }
+  void hiding.then(arrange).catch((cause: unknown) => {
+    console.error("Arrange desktop could not show the desktop", cause);
+    onFailure("The desktop could not be shown. Try again.");
+  });
+}
 
 export type AppWorkbenchProps = Readonly<{
   teamId: string;
@@ -231,6 +270,29 @@ export function AppWorkbench({
       });
     } else toast(message, notice);
   }, [appStatus]);
+  const editAvatar = avatarMenuAction(platform, () => {
+    menuAction(() => {
+      setSettingsLocation({ category: "avatar" });
+    });
+  });
+  const hideVisibleWindows = () => {
+    if (!hasVisibleAppWindows(appWindows.read())) return null;
+    layout.zoom(null);
+    const hiding = appWindows.hideAll();
+    afterHide("");
+    return hiding;
+  };
+  /** A menu command's failure is a notice, never only a console line. */
+  const menuAction = (run: () => void) => {
+    try {
+      run();
+    } catch (cause) {
+      console.error("Menu action failed", cause);
+      setAppStatus(
+        cause instanceof Error ? cause : "That could not be completed.",
+      );
+    }
+  };
   const reconciledDirectoryRef = useRef<readonly AppDirectoryApp[] | null>(
     null,
   );
@@ -754,11 +816,11 @@ export function AppWorkbench({
           />
         }
         onOpenSettings={() => {
-          setSettingsLocation({ category: "home" });
+          menuAction(() => {
+            setSettingsLocation({ category: "home" });
+          });
         }}
-        onEditAvatar={() => {
-          setSettingsLocation({ category: "avatar" });
-        }}
+        onEditAvatar={editAvatar}
         focusedId={activeWindow?.windowId ?? null}
         title={activeWindow?.launch.title ?? "Apps"}
         tiled={mode === "tiled"}
@@ -767,6 +829,7 @@ export function AppWorkbench({
             ? (tiled) => {
                 layout.zoom(null);
                 onLayoutChange(tiled);
+                announceFloating(tiled, appProjection);
               }
             : undefined
         }
@@ -778,7 +841,13 @@ export function AppWorkbench({
             : undefined
         }
         onArrangeDesktop={() => {
-          setDesktopEditing(true);
+          arrangeDesktop(
+            hideVisibleWindows,
+            () => {
+              setDesktopEditing(true);
+            },
+            setAppStatus,
+          );
         }}
         focusedControls={
           activeWindow ? (

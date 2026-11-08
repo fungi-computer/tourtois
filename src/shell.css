@@ -1,6 +1,7 @@
 @import "./chrome.css";
 @import "./spa.css";
 @import "./settings-navigation.css";
+@import "./desktop/arrange.css";
 
 /* SH-1: a 32px desktop menu bar on desktop widths, matching the window
    title bar and footer so the three chrome bars read as one system.
@@ -734,24 +735,14 @@
   overflow: auto;
   padding: 16px;
 }
-.tourtois-desktop-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
+/* The recovery card sits mid-desktop, bounded like any panel EmptyState. */
+.tourtois-desktop-empty {
+  display: grid;
+  place-items: center;
+  min-height: 60%;
 }
-.tourtois-desktop-controls {
-  margin-bottom: 16px;
-}
-.tourtois-desktop-add-gill {
-  width: 11rem;
-  flex: 0 0 auto;
-}
-.tourtois-gill-controls {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 4px;
+.tourtois-desktop-empty > .empty-state {
+  width: min(100%, 32rem);
 }
 .tourtois-gill-sizes {
   display: inline-flex;
@@ -806,9 +797,6 @@
 }
 
 @media (max-width: 640px), (any-pointer: coarse) {
-  .tourtois-gill-sizes {
-    gap: 20px;
-  }
   /* Reset Caps join composition when its expanded touch targets apply. */
   .tourtois-gill-sizes > .join-item {
     --join-ss: initial;

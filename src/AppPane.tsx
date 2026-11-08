@@ -38,6 +38,7 @@ import {
   type AppWindowProjection,
   type AppLaunchDescriptor,
 } from "./app-windows.js";
+import { useDismissOverlays } from "./layers.js";
 import { launchComputerId, type AppDirectoryApp } from "./app-launch.js";
 
 /**
@@ -147,6 +148,7 @@ export function AppPane({
   const containerRef = useRef<HTMLDivElement>(null);
   const popover = useLayer("popover");
   const [computerPickerOpen, setComputerPickerOpen] = useState(false);
+  const dismissOthers = useDismissOverlays();
   useEffect(() => {
     if (projection.launch.computers === undefined) return;
     return manager.registerComputerChoice(projection.windowId, () => {
@@ -368,7 +370,10 @@ export function AppPane({
             : undefined
         }
         computerPickerOpen={computerPickerOpen}
-        onComputerPickerOpenChange={setComputerPickerOpen}
+        onComputerPickerOpenChange={(open) => {
+          if (open) dismissOthers();
+          setComputerPickerOpen(open);
+        }}
         onSelectComputer={(computerId) => {
           onSelectComputer(projection.windowId, computerId);
         }}
@@ -467,7 +472,8 @@ export function WindowStatusBar({
       className="tourtois-window-status-bar"
       aria-label={`${title} status`}
       attachment={
-        computers === undefined ? undefined : (
+        // One Computer is not a choice: the picker appears from two.
+        computers === undefined || computers.length === 1 ? undefined : (
           <StatusBarPicker
             {...(computerPickerOpen === undefined
               ? {}

@@ -74,6 +74,8 @@ export {
  */
 export type PlatformControls = Readonly<{
   openSettings: (location: SettingsLocation) => void;
+  /** Settings the host backs with real data; undefined means all of them. */
+  sections?: readonly SettingsLocation["category"][] | undefined;
   registerDesktopSettings: (
     handler: WorkbenchDesktopSettings,
   ) => Promise<WorkbenchDesktopRegistration>;

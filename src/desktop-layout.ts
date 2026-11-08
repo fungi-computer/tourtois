@@ -110,6 +110,7 @@ export const desktopArrangeResultSchema = z.discriminatedUnion("kind", [
       "unknown_app",
       "size_not_allowed",
       "unknown_item",
+      "last_launcher",
       "too_many",
       "conflict",
       "too_large",
@@ -279,6 +280,19 @@ export function applyDesktopOps(
     const item = layout.items.find((entry) => entry.id === op.id);
     if (!item) return { kind: "rejected", code: "unknown_item" };
     if (op.kind === "remove") {
+      // The Launcher is the desktop's one route to every App.
+      const isLauncher = (entry: DesktopLayout["items"][number]) =>
+        catalog.some(
+          (gill) =>
+            gill.kind === "launcher" &&
+            gill.surfaceId === entry.surfaceId &&
+            gill.gillId === entry.gillId,
+        );
+      if (
+        isLauncher(item) &&
+        !layout.items.some((entry) => entry.id !== item.id && isLauncher(entry))
+      )
+        return { kind: "rejected", code: "last_launcher" };
       layout = compactDesktopLayout({
         ...layout,
         items: layout.items.filter((entry) => entry.id !== op.id),

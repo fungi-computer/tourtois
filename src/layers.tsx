@@ -1,6 +1,6 @@
 import { OverlayRoot } from "@fungi.computer/caps/components/overlay-root";
 import { MaosaicoLayers, useLayer } from "@fungi.computer/maosaico";
-import { useMemo, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
 
 function OverlayContainers({
   children,
@@ -24,6 +24,16 @@ function OverlayContainers({
   );
 }
 
+const DismissContext = createContext<() => void>(() => undefined);
+
+/**
+ * Close every transient popover through the overlay dismiss channel. A window
+ * bar calls this as one of its popovers opens, so two never stack.
+ */
+export function useDismissOverlays(): () => void {
+  return useContext(DismissContext);
+}
+
 /** Tourtois composes Caps portal destinations with Maosaico's ordered roots. */
 export function TourtoisLayers({ children }: { children?: ReactNode }) {
   const dismissal = useMemo(() => {
@@ -42,9 +52,11 @@ export function TourtoisLayers({ children }: { children?: ReactNode }) {
   }, []);
   return (
     <MaosaicoLayers onDismiss={dismissal.dismiss}>
-      <OverlayContainers subscribeDismiss={dismissal.subscribe}>
-        {children}
-      </OverlayContainers>
+      <DismissContext.Provider value={dismissal.dismiss}>
+        <OverlayContainers subscribeDismiss={dismissal.subscribe}>
+          {children}
+        </OverlayContainers>
+      </DismissContext.Provider>
     </MaosaicoLayers>
   );
 }

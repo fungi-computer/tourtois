@@ -1,0 +1,145 @@
+/* Arrange mode edits in place: nothing here changes a tile's frame or the
+   flow around it. Visuals come from Caps; this file only places things. */
+.tourtois-desktop-tile-body {
+  height: 100%;
+  min-width: 0;
+}
+
+/* The tile's own dashed ring, at the card's radius, drawn over its edge. */
+.tourtois-desktop-stage[data-arranging] .tourtois-desktop-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px dashed var(--stipe-linework);
+  border-radius: var(--radius-box);
+  pointer-events: none;
+}
+/* Room for the overlay beside the title; only truncation changes. */
+.tourtois-desktop-stage[data-arranging] .tourtois-gill-frame .caps-card-title {
+  padding-inline-end: 9rem;
+}
+
+.tourtois-arrange-controls {
+  position: absolute;
+  inset-block-start: var(--spacing-lg);
+  inset-inline-end: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2xs);
+}
+
+.tourtois-arrange {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  inline-size: max-content;
+  max-inline-size: calc(100vw - 32px);
+  margin-inline: auto;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  pointer-events: auto;
+}
+.tourtois-arrange-add {
+  display: inline-flex;
+}
+.tourtois-arrange-state {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: auto;
+  font-size: var(--text-xs);
+}
+.tourtois-arrange-state[data-empty] {
+  display: none;
+}
+/* Scroll room so the bar never hides the last widget; frames are untouched. */
+.tourtois-desktop-stage[data-arranging] {
+  margin-block-end: 6rem;
+}
+
+.tourtois-widget-picker {
+  inline-size: min(22rem, calc(100vw - 32px));
+  inset-inline: 0 auto;
+  gap: var(--spacing-xs);
+}
+.tourtois-widget-list {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+}
+.tourtois-widget-picker .caps-popover-option {
+  align-items: center;
+}
+.tourtois-widget-icon {
+  display: inline-flex;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  flex: none;
+}
+.tourtois-widget-icon > * {
+  inline-size: 100%;
+  block-size: 100%;
+}
+.tourtois-widget-text {
+  display: grid;
+  min-inline-size: 0;
+  flex: 1;
+}
+.tourtois-widget-text small,
+.tourtois-widget-picker small {
+  color: var(--stipe-fg-muted);
+  font-size: var(--text-xs);
+}
+.tourtois-widget-none {
+  padding: var(--spacing-sm);
+  color: var(--stipe-fg-muted);
+  font-size: var(--text-sm);
+}
+
+/* Phone: a full-width bottom bar, with the picker rising from it. */
+@media (max-width: 640px) {
+  .tourtois-arrange {
+    inset-block-end: 0;
+    inline-size: auto;
+    max-inline-size: none;
+    margin-inline: 0;
+    padding-block-end: calc(
+      env(safe-area-inset-bottom, 0px) + var(--spacing-xs)
+    );
+  }
+  .tourtois-arrange-add {
+    position: static;
+  }
+  .tourtois-widget-picker {
+    inline-size: auto;
+    inset-inline: 0;
+    max-block-size: 60vh;
+    inset-block-end: 100%;
+    margin-block-end: var(--spacing-xs);
+  }
+  /* Five touch targets and the title share one row: keep them tight. */
+  .tourtois-arrange-controls {
+    inset-block-start: var(--spacing-xl);
+  }
+  .tourtois-desktop-stage[data-arranging]
+    .tourtois-gill-frame
+    .caps-card-title {
+    padding-inline-end: 15rem;
+  }
+}
+
+.tourtois-widget-picker .caps-popover-option > small:last-child {
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+/* Each button's touch hit area reaches 7px past its face, so neighbours
+   need 14px between faces or one steals the other's edge. */
+@media (max-width: 640px), (any-pointer: coarse) {
+  .tourtois-arrange-controls,
+  .tourtois-arrange-controls .tourtois-gill-sizes {
+    gap: var(--spacing-lg);
+  }
+}

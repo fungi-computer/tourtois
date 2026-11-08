@@ -41,7 +41,8 @@ export function DesktopMenuBar({
   onArrangeDesktop?: (() => void) | undefined;
   focusedControls?: ReactNode;
   onOpenSettings: () => void;
-  onEditAvatar: () => void;
+  /** Absent when the host offers no avatar Settings. */
+  onEditAvatar?: (() => void) | undefined;
   systemMenuItems?: ReactNode;
   onShowDesktop?: (() => void) | undefined;
 }) {
@@ -76,9 +77,11 @@ export function DesktopMenuBar({
           <DropdownMenuItem onSelect={onOpenSettings}>
             System Settings…
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={onEditAvatar}>
-            Edit avatar…
-          </DropdownMenuItem>
+          {onEditAvatar ? (
+            <DropdownMenuItem onSelect={onEditAvatar}>
+              Edit avatar…
+            </DropdownMenuItem>
+          ) : null}
           {systemMenuItems}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -102,6 +105,7 @@ export function DesktopMenuBar({
           onOpenChange={setLayoutOpen}
         >
           <DropdownMenuTrigger
+            data-layout-menu
             render={<Button size="menubar" variant="ghost" />}
           >
             Layout
@@ -119,6 +123,7 @@ export function DesktopMenuBar({
                   checked={tiled}
                   onCheckedChange={() => {
                     onLayoutChange(true);
+                    setLayoutOpen(false);
                   }}
                 >
                   Tiled
@@ -127,6 +132,7 @@ export function DesktopMenuBar({
                   checked={!tiled}
                   onCheckedChange={() => {
                     onLayoutChange(false);
+                    setLayoutOpen(false);
                   }}
                 >
                   Floating

@@ -131,23 +131,9 @@
   }
 }
 
-/* App status actions: flat chips on the picker's surface that keep their
-   size, show a pressed or open state, and go icon-only on a phone. */
-.tourtois-status-chip {
-  flex: none;
-  max-width: none;
-}
-.tourtois-status-chip[aria-pressed="true"],
-.tourtois-status-chip[aria-expanded="true"] {
-  background: var(--color-base-300);
-}
-@media (max-width: 640px) {
-  .tourtois-status-chip:has(> svg) .tourtois-status-chip-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+/* On the narrowest phones the bar keeps its icons; the tab's name is its tooltip. */
+@media (max-width: 420px) {
+  .tourtois-windows-label {
+    display: none;
   }
 }

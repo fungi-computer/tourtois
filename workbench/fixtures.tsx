@@ -932,7 +932,7 @@ function createFixtureHost(
             <ShedDataContext.Provider
               value={{
                 ports: { status: "loaded", items: [] },
-                processes: { items: [], loading: false, error: false },
+                processes: { items: [], loading: false, error: null },
               }}
             >
               <ShedWorkspaceView app={shed.app} computerId="Workbench" />

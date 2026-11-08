@@ -1,9 +1,9 @@
-import { forwardRef, type ReactNode } from "react";
-import { AppStatusItem } from "@fungi.computer/caps/blocks/app-status-bar";
+import type { ReactNode } from "react";
+import { useDismissOverlays } from "./layers.js";
 import {
-  Button,
-  type ButtonProps,
-} from "@fungi.computer/caps/components/button";
+  AppStatusItem,
+  StatusBarChip,
+} from "@fungi.computer/caps/blocks/app-status-bar";
 import { CountBadge } from "@fungi.computer/caps/components/count-badge";
 import { Status } from "@fungi.computer/caps/components/status";
 import {
@@ -25,46 +25,6 @@ const statusIcons = {
   processes: <Activity aria-hidden="true" />,
   access: <ShieldCheck aria-hidden="true" />,
 } satisfies Record<AppStatusIcon, React.JSX.Element>;
-
-/**
- * The one control every App status action draws with: a flat chip beside
- * the Computer picker, never a raised key. Caps' status-bar chip replaces
- * this composition when it ships.
- */
-const StatusBarButton = forwardRef<
-  HTMLButtonElement,
-  Omit<ButtonProps, "children" | "size" | "variant"> & {
-    label: string;
-    icon?: ReactNode;
-    count?: ReactNode;
-    /** A status light before the label. */
-    light?: ReactNode;
-    pressed?: boolean;
-    expanded?: boolean;
-  }
->(function StatusBarButton(
-  { label, icon, count, light, pressed, expanded, ...props },
-  ref,
-) {
-  return (
-    <Button
-      {...props}
-      ref={ref}
-      variant="ghost"
-      size="xs"
-      className="caps-status-bar-picker tourtois-status-chip"
-      {...(pressed === undefined ? {} : { "aria-pressed": pressed })}
-      {...(expanded === undefined ? {} : { "aria-expanded": expanded })}
-    >
-      {icon}
-      {light}
-      <span className="caps-status-bar-picker-label tourtois-status-chip-label">
-        {label}
-      </span>
-      {count}
-    </Button>
-  );
-});
 
 /** One App-declared status item, drawn by the shell as a flat status chip. */
 export function WindowStatusItem({
@@ -104,11 +64,17 @@ export function WindowStatusItem({
       );
     case "button":
       return (
-        <StatusBarButton
+        <StatusBarChip
           label={item.text}
-          icon={item.icon === undefined ? undefined : statusIcons[item.icon]}
-          count={count}
-          light={light}
+          icon={
+            item.icon === undefined && light === undefined ? undefined : (
+              <>
+                {item.icon === undefined ? null : statusIcons[item.icon]}
+                {light}
+              </>
+            )
+          }
+          readout={count}
           title={item.title ?? item.text}
           disabled={item.disabled}
           aria-haspopup={item.opens}
@@ -125,7 +91,7 @@ export function WindowStatusItem({
       );
     case "toggle":
       return (
-        <StatusBarButton
+        <StatusBarChip
           label={item.text}
           pressed={item.pressed}
           onClick={() => {
@@ -137,36 +103,66 @@ export function WindowStatusItem({
       // An App's menu is a plain chip: only the host's picker wears the
       // up-down mark, so an App can't pass a menu off as the Computer.
       return (
-        <DropdownMenu modal={false}>
-          <DropdownMenuTrigger
-            render={
-              <StatusBarButton
-                label={item.text}
-                count={count}
-                title={item.title}
-              />
-            }
-          />
-          <DropdownMenuContent container={container} align="start">
-            {item.options.map((option) => (
-              <DropdownMenuItem
-                key={option.id}
-                disabled={option.disabled}
-                {...(option.checked === undefined
-                  ? {}
-                  : { role: "menuitemradio", "aria-checked": option.checked })}
-                onSelect={() => {
-                  onAction({ itemId: item.id, optionId: option.id });
-                }}
-              >
-                <span className="flex-1">{option.text}</span>
-                {option.checked === true ? (
-                  <Check aria-hidden="true" size={16} />
-                ) : null}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <StatusMenu
+          label={item.text}
+          readout={count}
+          title={item.title}
+          container={container}
+          options={item.options}
+          onSelect={(optionId) => {
+            onAction({ itemId: item.id, optionId });
+          }}
+        />
       );
   }
+}
+
+/** An App's menu chip; it shares the bar's one-open-popover rule. */
+function StatusMenu({
+  label,
+  readout,
+  title,
+  container,
+  options,
+  onSelect,
+}: {
+  label: string;
+  readout: ReactNode;
+  title: string | undefined;
+  container: HTMLElement | null;
+  options: Extract<AppStatusItemData, { kind: "menu" }>["options"];
+  onSelect: (optionId: string) => void;
+}) {
+  const dismissOthers = useDismissOverlays();
+  return (
+    <DropdownMenu
+      modal={false}
+      onOpenChange={(open) => {
+        if (open) dismissOthers();
+      }}
+    >
+      <DropdownMenuTrigger
+        render={<StatusBarChip label={label} readout={readout} title={title} />}
+      />
+      <DropdownMenuContent container={container} align="start">
+        {options.map((option) => (
+          <DropdownMenuItem
+            key={option.id}
+            disabled={option.disabled}
+            {...(option.checked === undefined
+              ? {}
+              : { role: "menuitemradio", "aria-checked": option.checked })}
+            onSelect={() => {
+              onSelect(option.id);
+            }}
+          >
+            <span className="flex-1">{option.text}</span>
+            {option.checked === true ? (
+              <Check aria-hidden="true" size={16} />
+            ) : null}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }

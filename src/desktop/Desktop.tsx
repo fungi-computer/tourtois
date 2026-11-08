@@ -1,6 +1,6 @@
 import type { AppOpenInput } from "@fungi.computer/agar/apps";
 import { GillParamPicker } from "./gill-param-picker.js";
-import type { DesktopGill } from "../desktop-layout.js";
+import type { DesktopGill, DesktopLayout } from "../desktop-layout.js";
 import type { DesktopMethods, DesktopMutation } from "../desktop-api.js";
 import type { WhistleJsonValue } from "@fungi.computer/whistle";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -8,10 +8,13 @@ import { arrangeBento, useMaosaicoBento } from "@fungi.computer/maosaico";
 import type { AppStorage } from "@fungi.computer/agar/storage";
 import type { AppBarItem } from "@fungi.computer/caps/blocks/app-bar";
 import type { AppGridItem } from "@fungi.computer/caps/blocks/launcher-grid";
+import { Alert } from "@fungi.computer/caps/components/alert";
+import { EmptyState } from "@fungi.computer/caps/blocks/empty-state";
+import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
 import { Button } from "@fungi.computer/caps/components/button";
 import { IconButton } from "@fungi.computer/caps/components/icon-button";
 import { GripVertical, Trash2 } from "lucide-react";
-import { Select } from "@fungi.computer/caps/components/select";
+import { toast } from "@fungi.computer/caps/components/toaster";
 import { Badge } from "@fungi.computer/caps/components/badge";
 import { Sigil } from "@fungi.computer/sigils";
 import type { WorkbenchDirectory } from "@fungi.computer/nacre/workbench-directory";
@@ -25,7 +28,9 @@ import {
   desktopPlacements,
   desktopBentoIntent,
 } from "../desktop-layout.js";
+import { ArrangeToolbar } from "./arrange-toolbar.js";
 import { LauncherGill } from "./launcher-gill.js";
+import type { WidgetChoice } from "./widget-picker.js";
 import { RowGill, type DesktopGillTransport } from "./row-gill.js";
 
 export type DesktopProps = {
@@ -102,23 +107,44 @@ export function Desktop(props: DesktopProps) {
   return (
     <div className="tourtois-desktop" data-desktop-bento>
       {error ? (
-        <p role="alert">
-          {error}{" "}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setRetry((value) => value + 1);
-            }}
-          >
-            Retry
-          </Button>
-        </p>
+        <Alert
+          tone="error"
+          description={error}
+          action={
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setRetry((value) => value + 1);
+              }}
+            >
+              Retry
+            </Button>
+          }
+        />
       ) : null}
-      {!owner && !error ? <p role="status">Loading desktop…</p> : null}
+      {!owner && !error ? (
+        <LoadingState message="Loading your desktop…" />
+      ) : null}
       {owner ? <ArrangedDesktop {...props} owner={owner} /> : null}
     </div>
   );
+}
+
+/** One plain line per refusal; the raw code goes to the console only. */
+function refusalMessage(code: string): string {
+  switch (code) {
+    case "conflict":
+      return "The desktop changed elsewhere. Try your change again.";
+    case "too_large":
+      return "This desktop arrangement is too large to save. Remove some widgets or Launcher preferences and try again.";
+    case "last_launcher":
+      return "Your desktop needs one Launcher.";
+    case "quota_exceeded":
+      return "The App's storage quota is full. Free some storage before saving again.";
+    default:
+      return "Couldn't save that change. Try again.";
+  }
 }
 
 function ArrangedDesktop({
@@ -137,6 +163,7 @@ function ArrangedDesktop({
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [contentHeights, setContentHeights] = useState<
@@ -154,6 +181,15 @@ function ArrangedDesktop({
     };
   }, []);
   const columns = props.phone ? 1 : 4;
+  const isLauncher = (item: DesktopLayout["items"][number]) =>
+    catalog.some(
+      (gill) =>
+        gill.kind === "launcher" &&
+        gill.surfaceId === item.surfaceId &&
+        gill.gillId === item.gillId,
+    );
+  const onlyLauncher = visibleItems.filter(isLauncher).length <= 1;
+  const launcherGill = catalog.find((gill) => gill.kind === "launcher");
   useEffect(() => {
     setContentHeights((previous) => {
       const current = new Map(
@@ -192,17 +228,10 @@ function ArrangedDesktop({
           scope === "team" ? snapshot.teamRevision : snapshot.memberRevision,
         ...input,
       });
-      setError(
-        result.kind === "accepted"
-          ? null
-          : result.code === "conflict"
-            ? "The desktop changed elsewhere. Try your change again."
-            : result.code === "too_large"
-              ? "This desktop arrangement is too large to save. Remove some widgets or Launcher preferences and try again."
-              : result.code === "quota_exceeded"
-                ? "The App's storage quota is full. Free some storage before saving again."
-                : `Desktop change refused: ${result.code}.`,
-      );
+      if (result.kind !== "accepted")
+        console.error("Desktop change refused", result.code);
+      setError(result.kind === "accepted" ? null : refusalMessage(result.code));
+      if (result.kind === "accepted") setSaved(true);
       return result.kind === "accepted";
     } catch (cause) {
       console.error("Desktop arrangement update failed", cause);
@@ -303,72 +332,66 @@ function ArrangedDesktop({
       onSelect: () => undefined,
     })),
   ];
+  const choices: readonly WidgetChoice[] = catalog.map((gill) => {
+    const app = props.apps.find((entry) => entry.surfaceId === gill.surfaceId);
+    return {
+      gill,
+      placed: visibleItems.some(
+        (item) =>
+          item.surfaceId === gill.surfaceId && item.gillId === gill.gillId,
+      ),
+      appName: app?.displayName ?? "Desktop",
+      icon: app ? (
+        <DeclaredAppIcon icon={app.icon} />
+      ) : (
+        <Sigil name="allApps" />
+      ),
+    };
+  });
+  const addWidget = (gill: DesktopGill) => {
+    const size = gill.sizes[0];
+    if (!size) return;
+    if ((gill.params?.length ?? 0) > 0) setConfiguration({ gill });
+    else
+      void save("layout.place", {
+        surfaceId: gill.surfaceId,
+        gillId: gill.gillId,
+        size,
+      });
+  };
+  const finishArranging = () => {
+    if (saved)
+      toast("Desktop saved", {
+        id: "desktop-saved",
+        toasterId: "workbench-notices",
+      });
+    setSaved(false);
+    onEditingChange(false);
+  };
+  const longPress = useRef<number | undefined>(undefined);
   return (
     <>
       {snapshot.refreshFailure ? (
-        <p role="alert">{snapshot.refreshFailure.message}</p>
+        <Alert tone="warning" description={snapshot.refreshFailure.message} />
       ) : null}
       {editing ? (
-        <div className="tourtois-desktop-controls">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              onEditingChange(false);
-            }}
-          >
-            Done arranging
-          </Button>
-          <div className="tourtois-desktop-add-gill">
-            <Select
-              aria-label="Add widget"
-              className="select-sm"
-              value=""
-              disabled={saving}
-              onChange={(event) => {
-                const gill = catalog[Number(event.currentTarget.value)];
-                const size = gill?.sizes[0];
-                if (gill && size && (gill.params?.length ?? 0) > 0)
-                  setConfiguration({ gill });
-                else if (gill && size)
-                  void save("layout.place", {
-                    surfaceId: gill.surfaceId,
-                    gillId: gill.gillId,
-                    size,
-                  });
-              }}
-            >
-              <option value="">Add widget…</option>
-              {catalog.map((gill, index) => (
-                <option key={`${gill.surfaceId}:${gill.gillId}`} value={index}>
-                  {gill.title}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={saving}
-            onClick={() => {
-              void save("layout.reset", {});
-            }}
-          >
-            Reset to Team default
-          </Button>
-          {snapshot.canWriteTeam ? (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={saving}
-              onClick={() => {
-                void save("layout.set", { layout: snapshot.layout }, "team");
-              }}
-            >
-              Save as Team default
-            </Button>
-          ) : null}
-        </div>
+        <ArrangeToolbar
+          phone={props.phone}
+          status={saving ? "saving" : saved ? "saved" : "idle"}
+          error={error}
+          canWriteTeam={snapshot.canWriteTeam}
+          choices={choices}
+          saving={saving}
+          onChoose={addWidget}
+          onReset={async () => {
+            if (!(await save("layout.reset", {})))
+              throw new Error("The layout was not reset");
+          }}
+          onSaveTeam={() => {
+            void save("layout.set", { layout: snapshot.layout }, "team");
+          }}
+          onDone={finishArranging}
+        />
       ) : null}
       {configuration ? (
         <GillParamPicker
@@ -414,14 +437,45 @@ function ArrangedDesktop({
           }}
         />
       ) : null}
-      {snapshot.notice ? <p role="alert">{snapshot.notice}</p> : null}
-      {error ? <p role="alert">{error}</p> : null}
+      {snapshot.notice ? (
+        <Alert tone="info" description={snapshot.notice} />
+      ) : null}
+      {visibleItems.length === 0 ? (
+        <div className="tourtois-desktop-empty">
+          <EmptyState
+            variant="panel"
+            title="Your desktop is empty"
+            description="Restore the Launcher to get back to your Apps."
+            actions={
+              <Button
+                disabled={saving}
+                onClick={() => {
+                  const size = launcherGill?.sizes.includes("M")
+                    ? "M"
+                    : launcherGill?.sizes[0];
+                  if (launcherGill && size)
+                    void save("layout.place", {
+                      surfaceId: launcherGill.surfaceId,
+                      gillId: launcherGill.gillId,
+                      size,
+                    });
+                  else void save("layout.reset", {});
+                }}
+              >
+                Restore Launcher
+              </Button>
+            }
+          />
+        </div>
+      ) : null}
+      {error && !editing ? <Alert tone="error" description={error} /> : null}
       <div
         ref={stage}
         className="tourtois-desktop-stage"
         style={{ height }}
         data-desktop-columns={columns}
         data-preview={binding.preview}
+        data-arranging={editing ? "" : undefined}
       >
         {visibleItems.map((item) => {
           const frame = binding.frames.get(item.id);
@@ -431,7 +485,7 @@ function ArrangedDesktop({
           );
           if (!frame || !gill) return null;
           const controls = editing ? (
-            <div className="tourtois-gill-controls">
+            <div className="tourtois-arrange-controls">
               <IconButton
                 size="responsive"
                 aria-label={`Move ${gill.title}`}
@@ -448,7 +502,7 @@ function ArrangedDesktop({
                   <IconButton
                     key={size}
                     className="join-item"
-                    size="xs"
+                    size="sm"
                     icon={size}
                     aria-label={`Size ${size === "S" ? "small" : size === "M" ? "medium" : "large"}`}
                     title={`${gill.title}: ${size}`}
@@ -461,16 +515,25 @@ function ArrangedDesktop({
                   />
                 ))}
               </div>
-              <IconButton
-                size="responsive"
-                aria-label={`Remove ${gill.title}`}
-                title={`Remove ${gill.title}`}
-                icon={<Trash2 />}
-                disabled={saving}
-                onClick={() => {
-                  void save("layout.remove", { id: item.id });
-                }}
-              />
+              {/* A disabled button fires no pointer events, so the reason sits on its wrapper. */}
+              <span
+                title={
+                  onlyLauncher && isLauncher(item)
+                    ? "Your desktop needs one Launcher"
+                    : undefined
+                }
+              >
+                <IconButton
+                  size="responsive"
+                  aria-label={`Remove ${gill.title}`}
+                  title={`Remove ${gill.title}`}
+                  icon={<Trash2 />}
+                  disabled={saving || (onlyLauncher && isLauncher(item))}
+                  onClick={() => {
+                    void save("layout.remove", { id: item.id });
+                  }}
+                />
+              </span>
             </div>
           ) : undefined;
           const onContentHeight = (height: number) => {
@@ -497,52 +560,81 @@ function ArrangedDesktop({
                 width: frame.width,
                 height: frame.height,
               }}
+              onPointerDown={(event) => {
+                // Touch has no menu to reach Arrange from: a long press enters it.
+                if (editing || event.pointerType !== "touch") return;
+                window.clearTimeout(longPress.current);
+                longPress.current = window.setTimeout(() => {
+                  onEditingChange(true);
+                }, 600);
+              }}
+              onPointerUp={() => {
+                window.clearTimeout(longPress.current);
+              }}
+              onPointerMove={() => {
+                window.clearTimeout(longPress.current);
+              }}
+              onPointerCancel={() => {
+                window.clearTimeout(longPress.current);
+              }}
             >
-              {gill.kind === "launcher" ? (
-                <LauncherGill
-                  items={props.launcherItems}
-                  size={item.size}
-                  onAllApps={props.onAllApps}
-                  loading={props.loading}
-                  unavailable={props.unavailable}
-                  onRetry={props.onRetryApps}
-                  warnings={warnings}
-                  preferences={snapshot.layout.launcher}
-                  onPreference={(id, state) => {
-                    void save("layout.launcher", { appId: id, state });
-                  }}
-                  editHandle={controls}
-                  onContentHeight={onContentHeight}
-                />
-              ) : declaration && app ? (
-                <RowGill
-                  key={JSON.stringify(item.params ?? {})}
-                  surfaceId={item.surfaceId}
-                  appHeader={{
-                    name: app.displayName ?? "App",
-                    icon: <DeclaredAppIcon icon={app.icon} />,
-                  }}
-                  declaration={declaration}
-                  params={item.params}
-                  size={item.size}
-                  paused={props.paused}
-                  transport={props.transport}
-                  onOpen={(target) => {
-                    props.onOpen({
-                      appId: app.appId,
-                      intent: { kind: "navigate", params: target.params },
-                    });
-                  }}
-                  onConfigure={() => {
-                    setConfiguration({ gill, itemId: item.id });
-                  }}
-                  launch={props.launcherItems.find(
-                    (app) => app.id === `app:${item.surfaceId}`,
-                  )}
-                  editHandle={controls}
-                  onContentHeight={onContentHeight}
-                />
-              ) : null}
+              <div
+                className="tourtois-desktop-tile-body"
+                ref={(node) => {
+                  if (node) node.inert = editing;
+                }}
+              >
+                {gill.kind === "launcher" ? (
+                  <LauncherGill
+                    items={props.launcherItems}
+                    size={item.size}
+                    onAllApps={props.onAllApps}
+                    loading={props.loading}
+                    unavailable={props.unavailable}
+                    onRetry={props.onRetryApps}
+                    warnings={warnings}
+                    preferences={snapshot.layout.launcher}
+                    onPreference={(id, state) => {
+                      void save("layout.launcher", { appId: id, state });
+                    }}
+                    editHandle={
+                      editing ? <span aria-hidden="true" /> : undefined
+                    }
+                    onContentHeight={onContentHeight}
+                  />
+                ) : declaration && app ? (
+                  <RowGill
+                    key={JSON.stringify(item.params ?? {})}
+                    surfaceId={item.surfaceId}
+                    appHeader={{
+                      name: app.displayName ?? "App",
+                      icon: <DeclaredAppIcon icon={app.icon} />,
+                    }}
+                    declaration={declaration}
+                    params={item.params}
+                    size={item.size}
+                    paused={props.paused}
+                    transport={props.transport}
+                    onOpen={(target) => {
+                      props.onOpen({
+                        appId: app.appId,
+                        intent: { kind: "navigate", params: target.params },
+                      });
+                    }}
+                    onConfigure={() => {
+                      setConfiguration({ gill, itemId: item.id });
+                    }}
+                    launch={props.launcherItems.find(
+                      (app) => app.id === `app:${item.surfaceId}`,
+                    )}
+                    editHandle={
+                      editing ? <span aria-hidden="true" /> : undefined
+                    }
+                    onContentHeight={onContentHeight}
+                  />
+                ) : null}
+              </div>
+              {controls}
             </div>
           );
         })}

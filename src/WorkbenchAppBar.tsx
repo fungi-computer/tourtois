@@ -1,5 +1,5 @@
 import { AppBar, type AppBarProps } from "@fungi.computer/caps/blocks/app-bar";
-import { IconButton } from "@fungi.computer/caps/components/icon-button";
+import { Button } from "@fungi.computer/caps/components/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -22,20 +22,20 @@ export function WorkbenchAppBar({
       {collapsed ? (
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger
-            render={
-              <IconButton
-                size="responsive"
-                icon={
-                  props.windows.find((item) => item.active)?.icon ?? (
-                    <PanelsTopLeft />
-                  )
-                }
-                aria-label="Switch open Apps"
-              />
-            }
+            render={<Button size="menubar" variant="ghost" />}
             aria-label="Switch open Apps"
             title="Switch open Apps"
-          />
+          >
+            <span
+              aria-hidden="true"
+              className="grid size-5 place-items-center [&_svg]:size-full"
+            >
+              {props.windows.find((item) => item.active)?.icon ?? (
+                <PanelsTopLeft />
+              )}
+            </span>
+            <span className="tourtois-windows-label">Windows</span>
+          </DropdownMenuTrigger>
           <DropdownMenuContent container={popover} align="start">
             {props.windows.map((item) => (
               <DropdownMenuItem
@@ -66,7 +66,11 @@ export function WorkbenchAppBar({
           </DropdownMenuContent>
         </DropdownMenu>
       ) : null}
-      <AppBar {...props} windows={collapsed ? [] : props.windows} />
+      <AppBar
+        appsLabel="Team Apps"
+        {...props}
+        windows={collapsed ? [] : props.windows}
+      />
     </>
   );
 }
