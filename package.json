@@ -1,28 +1,28 @@
 {
   "name": "@fungi.computer/tourtois",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "scripts": {
     "clean": "node --input-type=module --eval \"import { rm } from 'node:fs/promises'; await rm('dist', { recursive: true, force: true });\"",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.workbench.json && tsc -p backend/tsconfig.json && tsc -p test/workerd/tsconfig.json",
-    "build": "pnpm run clean && tsc -p tsconfig.build.json && cp src/shell.css src/chrome.css src/spa.css src/settings-navigation.css dist/ && mkdir -p dist/desktop && cp src/desktop/arrange.css dist/desktop/",
+    "build": "pnpm run clean && tsc -p tsconfig.build.json && cp src/shell.css src/chrome.css src/spa.css src/settings-navigation.css dist/ && mkdir -p dist/desktop && cp src/desktop/arrange.css src/desktop/welcome.css dist/desktop/",
     "build:spa": "vite build",
     "dev": "vite",
     "workbench": "ladle serve --host 127.0.0.1 --port 61001",
     "build:workbench": "pnpm run workbench:build"
   },
   "dependencies": {
-    "@fungi.computer/agar": "0.8.0",
+    "@fungi.computer/agar": "0.9.0",
     "@fungi.computer/cairn": "0.1.0",
-    "@fungi.computer/caps": "0.8.0",
+    "@fungi.computer/caps": "0.9.0",
     "@fungi.computer/ear-tag": "0.1.0",
-    "@fungi.computer/gills": "0.2.2",
+    "@fungi.computer/gills": "0.3.0",
     "@fungi.computer/maosaico": "0.1.1",
-    "@fungi.computer/parakeet": "0.9.2",
-    "@fungi.computer/puffball": "0.5.4",
-    "@fungi.computer/shiitake": "0.12.2",
+    "@fungi.computer/parakeet": "0.10.0",
+    "@fungi.computer/puffball": "0.5.5",
+    "@fungi.computer/shiitake": "0.12.3",
     "@fungi.computer/sigils": "0.3.0",
-    "@fungi.computer/sprite": "0.2.1",
-    "@fungi.computer/sprite-zdog": "0.3.1",
+    "@fungi.computer/sprite": "0.2.2",
+    "@fungi.computer/sprite-zdog": "0.3.2",
     "@fungi.computer/whistle": "0.3.0",
     "@tanstack/history": "1.162.1",
     "@tanstack/react-form": "1.33.2",
@@ -34,13 +34,13 @@
     "lucide-react": "0.460.0",
     "react-dom": "18.3.1",
     "zod": "4.4.3",
-    "@fungi.computer/nacre": "0.2.3"
+    "@fungi.computer/nacre": "0.3.0"
   },
   "devDependencies": {
-    "@fungi.computer/oyster": "0.15.0",
+    "@fungi.computer/oyster": "0.16.0",
     "@cloudflare/workers-types": "5.20260828.1",
-    "@fungi.computer/forage": "0.3.4",
-    "@fungi.computer/mycelium": "0.3.7",
+    "@fungi.computer/forage": "0.3.5",
+    "@fungi.computer/mycelium": "0.3.8",
     "@ladle/react": "5.1.1",
     "@types/react": "18.3.3",
     "@vitejs/plugin-react": "6.1.1",
@@ -107,6 +107,13 @@
             "member"
           ],
           "maxBytes": 16384
+        },
+        {
+          "key": "welcome",
+          "scopes": [
+            "member"
+          ],
+          "maxBytes": 256
         }
       ],
       "backend": {

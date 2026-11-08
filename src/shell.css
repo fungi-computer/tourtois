@@ -2,6 +2,7 @@
 @import "./spa.css";
 @import "./settings-navigation.css";
 @import "./desktop/arrange.css";
+@import "./desktop/welcome.css";
 
 /* SH-1: a 32px desktop menu bar on desktop widths, matching the window
    title bar and footer so the three chrome bars read as one system.
@@ -100,6 +101,26 @@
   flex-direction: column;
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
+}
+
+.tourtois-app-consent-rights {
+  margin: 0;
+  padding-inline-start: var(--spacing-lg);
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.tourtois-app-consent-footer {
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--spacing-sm);
+}
+
+.tourtois-app-consent-decision {
+  display: flex;
+  gap: var(--spacing-sm);
 }
 
 .tourtois-settings-layout {

@@ -6,6 +6,7 @@ import { MaosaicoRoot } from "@fungi.computer/maosaico";
 import { useEffect, useRef, useState } from "react";
 import type { ComputerOption } from "./app-launch.js";
 import { AppWorkbench } from "./AppWorkbench.js";
+import { WelcomeProvider } from "./desktop/welcome.js";
 import type { SettingsLocation } from "./settings-routes.js";
 import type { ReactNode } from "react";
 import type { AppBarItem } from "@fungi.computer/caps/blocks/app-bar";
@@ -96,25 +97,27 @@ export function TeamTourtois({
                 : undefined
             }
           >
-            <AppWorkbench
-              paneLayerRef={paneLayerRef}
-              phone={phone}
-              teamId={teamId}
-              teamName={teamName ?? teamId}
-              initialComputerId={data?.[0]?.computerId ?? null}
-              computers={data ?? []}
-              computersUnavailable={isLoading || isError}
-              onLayoutChange={phone ? undefined : setTiled}
-              platform={platform}
-              desktopStorage={desktopStorage}
-              desktopMethods={desktopMethods}
-              gills={gills}
-              {...(extraLaunchers ? { extraLaunchers } : {})}
-              {...(settingsLaunchers ? { settingsLaunchers } : {})}
-              {...(systemMenuItems ? { systemMenuItems } : {})}
-              directoryReader={directoryReader}
-              {...(takeAppOpenRequest ? { takeAppOpenRequest } : {})}
-            />
+            <WelcomeProvider teamId={teamId} storage={desktopStorage}>
+              <AppWorkbench
+                paneLayerRef={paneLayerRef}
+                phone={phone}
+                teamId={teamId}
+                teamName={teamName ?? teamId}
+                initialComputerId={data?.[0]?.computerId ?? null}
+                computers={data ?? []}
+                computersUnavailable={isLoading || isError}
+                onLayoutChange={phone ? undefined : setTiled}
+                platform={platform}
+                desktopStorage={desktopStorage}
+                desktopMethods={desktopMethods}
+                gills={gills}
+                {...(extraLaunchers ? { extraLaunchers } : {})}
+                {...(settingsLaunchers ? { settingsLaunchers } : {})}
+                {...(systemMenuItems ? { systemMenuItems } : {})}
+                directoryReader={directoryReader}
+                {...(takeAppOpenRequest ? { takeAppOpenRequest } : {})}
+              />
+            </WelcomeProvider>
           </MaosaicoRoot>
         </div>
         {children}

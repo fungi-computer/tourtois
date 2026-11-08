@@ -220,9 +220,24 @@ export function RowGill({
       ) : null}
       {response?.state === "empty" ? (
         <EmptyState
-          variant="hint"
-          title={`No ${response.title} items yet`}
-          description={`${response.title} items appear here when available.`}
+          variant="quiet"
+          title={response.emptyText ?? "Nothing here yet."}
+          description={null}
+          actions={
+            launch &&
+            (response.action?.kind === "open" ||
+              response.emptyText === undefined) ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  launch.onSelect();
+                }}
+              >
+                Open {launch.label}
+              </Button>
+            ) : null
+          }
         />
       ) : null}
       {response?.state === "full" ? (

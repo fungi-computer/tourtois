@@ -23,6 +23,7 @@ import {
   type ConnectionsPort,
   type KeysPort,
 } from "./platform-controls.js";
+import { createOysterSetupPort, oysterSetupSchema } from "./oyster-setup.js";
 import { modelKeysViewSchema, type ModelKeysPort } from "./ModelKeys.js";
 import { settingsLocationSchema } from "./settings-routes.js";
 import type { PlatformControlsData } from "./platform-controls.js";
@@ -439,6 +440,25 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
   const channels = () => (
     <WebsiteChannels port={websitesPort} copy={oysterWebsiteCopy} />
   );
+  const setup = createOysterSetupPort({
+    readFacts: async () => oysterSetupSchema.parse(await json("/api/setup")),
+    openSettings: (location) => {
+      controls.openSettings(location, { restoreFocus: false });
+    },
+    subscribeSettingsClosed: controls.subscribeSettingsClosed,
+  });
+  // A key added or removed changes what is ready before Settings closes.
+  const trackedModelKeys: ModelKeysPort = {
+    ...modelKeys,
+    addKey: async (draft) => {
+      await modelKeys.addKey(draft);
+      setup.changed();
+    },
+    removeKey: async (keyId) => {
+      await modelKeys.removeKey(keyId);
+      setup.changed();
+    },
+  };
   const client = createQueryClient();
   const settings = createRoot(root);
   settings.render(
@@ -452,7 +472,7 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
           computers,
           channels,
           keys,
-          modelKeys,
+          modelKeys: trackedModelKeys,
           requestAppAccess,
           appPermissions: OysterAppPermissions,
         }}
@@ -462,6 +482,7 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
   return Promise.resolve({
     controls: {
       ...controls,
+      setup,
       parseSettings: (value) =>
         S.decodeUnknownSync(S.Json)(settingsLocationSchema.parse(value)),
       openSettings: (value, options) => {

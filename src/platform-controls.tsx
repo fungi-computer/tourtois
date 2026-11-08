@@ -406,7 +406,15 @@ export function PlatformControlsView({
       },
     };
     const requestAppAccess = data.requestAppAccess;
-    return controls.attach(
+    const refreshAfterGrant = async (
+      outcome: Promise<AppPermissionOutcome>,
+    ): Promise<AppPermissionOutcome> => {
+      const settled = await outcome;
+      // The admitted App re-reads its grants and context without a reload.
+      if (settled === "granted") controls.changed();
+      return settled;
+    };
+    const ask: PlatformControlsHost["requestAppAccess"] =
       requestAppAccess === undefined
         ? async (target, input) => {
             const current = await data.directory();
@@ -441,8 +449,11 @@ export function PlatformControlsView({
             });
             return outcome === "customize" ? openSettings() : outcome;
           }
-        : (target, input) => requestAppAccess(target, input, dialog),
+        : (target, input) => requestAppAccess(target, input, dialog);
+    const attached = controls.attach((target, input) =>
+      refreshAfterGrant(ask(target, input)),
     );
+    return attached;
   }, [controls, data]);
   const settings = (
     <>

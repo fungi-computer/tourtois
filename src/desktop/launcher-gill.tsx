@@ -8,7 +8,12 @@ import { Select } from "@fungi.computer/caps/components/select";
 import { EmptyState } from "@fungi.computer/caps/blocks/empty-state";
 import { Sigil } from "@fungi.computer/sigils";
 import type { AppGillDesktopSize } from "@fungi.computer/gills";
+import { ExternalLink } from "lucide-react";
 import { GillFrame } from "./gill-frame.js";
+import { FirstRunWelcome, useWelcome } from "./welcome.js";
+import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
+
+const installDocs = "https://docs.fungi.computer/oyster-quickstart/";
 
 /** Trusted shell Gill. Defaults to the same complete launchable set/order as the AppBar. */
 export function LauncherGill({
@@ -40,6 +45,7 @@ export function LauncherGill({
   editHandle?: React.ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
+  const welcome = useWelcome();
   const stateFor = (id: string) =>
     preferences.hidden.includes(id)
       ? "Hidden"
@@ -78,7 +84,7 @@ export function LauncherGill({
         )
       }
     >
-      {loading ? <p role="status">Loading Apps…</p> : null}
+      {loading ? <LoadingState message="Loading Apps…" /> : null}
       {unavailable ? (
         <p role="alert">
           App directory unavailable.{" "}
@@ -91,6 +97,9 @@ export function LauncherGill({
       ) : null}
       {ready ? (
         <>
+          {welcome.visible ? (
+            <FirstRunWelcome items={items} onDismiss={welcome.dismiss} />
+          ) : null}
           {items.length === 0 ? (
             <EmptyState
               variant="hint"
@@ -102,7 +111,7 @@ export function LauncherGill({
             <p>No Apps shown. Edit the launcher to show them again.</p>
           ) : null}
           <AppGrid
-            aria-label="Team Apps"
+            aria-label="Apps"
             items={[
               ...tiles,
               ...warnings,
@@ -115,6 +124,18 @@ export function LauncherGill({
             ]}
             size="lg"
           />
+          <div className="tourtois-launcher-more">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                window.open(installDocs, "_blank", "noopener,noreferrer");
+              }}
+            >
+              More Apps
+              <ExternalLink aria-hidden="true" size={14} />
+            </Button>
+          </div>
           {editing ? (
             <DataList aria-label="Launcher preferences">
               {items.map((item) => (

@@ -1,7 +1,12 @@
 import type {
   AgentAccessOperation,
   AppPermissionOutcome,
+  AppPermissionRequest,
   ComputerAccessOperation,
+  EventAccessOperation,
+  GenerationAccessOperation,
+  GitAccessOperation,
+  WorkflowAccessOperation,
 } from "@fungi.computer/agar";
 import { Button } from "@fungi.computer/caps/components/button";
 import {
@@ -11,11 +16,8 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@fungi.computer/caps/components/dialog";
-import {
-  WindowFrame,
-  WindowHeader,
-} from "@fungi.computer/caps/components/window";
-import { useState } from "react";
+import { WindowFrame } from "@fungi.computer/caps/components/window";
+import { useRef, useState } from "react";
 import type {
   AppAgentPermission,
   AppComputerPermission,
@@ -120,22 +122,55 @@ const rightNames = {
   string
 >;
 
-const describe = (
-  offered: readonly (AgentAccessOperation | ComputerAccessOperation)[],
-) => {
-  const rights = [...agentOperations, ...computerOperations]
-    .filter((operation) => offered.includes(operation))
+/** Plain words for the Git, Workflow, event and generation rights. */
+const otherRightNames = {
+  "git.repository": "save its work in Git repositories",
+  "workflow.publish": "publish workflows",
+  "workflow.arm": "let workflows start on their own",
+  "workflow.run": "run workflows",
+  "app.events.emit": "send events to your other Apps",
+  "llm.generation": "write with an AI model",
+  "media.generation": "make images and videos",
+  "media.share": "share what it makes",
+} as const satisfies Record<
+  | GitAccessOperation
+  | WorkflowAccessOperation
+  | EventAccessOperation
+  | GenerationAccessOperation,
+  string
+>;
+
+/** Every right the request names, in plain words, in a stable order. */
+export function plainRights(request: {
+  agents: readonly AgentAccessOperation[];
+  computers: readonly ComputerAccessOperation[];
+  others?: AppPermissionRequest | undefined;
+}): readonly string[] {
+  const others = request.others;
+  const named: readonly string[] = [
+    ...(others?.git ?? []),
+    ...(others?.workflows ?? []),
+    ...(others?.events ?? []),
+    ...(others?.generation ?? []),
+  ];
+  const agentRights = agentOperations
+    .filter((operation) => request.agents.includes(operation))
     .map((operation) => rightNames[operation]);
-  const last = rights.at(-1) ?? "";
-  return rights.length < 2
-    ? last
-    : `${rights.slice(0, -1).join(", ")} and ${last}`;
-};
+  const computerRights = computerOperations
+    .filter((operation) => request.computers.includes(operation))
+    .map((operation) => rightNames[operation]);
+  const otherRights = Object.entries(otherRightNames)
+    .filter(([operation]) => named.includes(operation))
+    .map(([, words]) => words);
+  return [...agentRights, ...computerRights, ...otherRights];
+}
 
 export type AppAccessRequest = Readonly<{
   appName: string;
   agents: readonly AgentAccessOperation[];
   computers: readonly ComputerAccessOperation[];
+  /** Git, Workflow, event and generation rights asked for in the same request. */
+  others?: AppPermissionRequest | undefined;
   /** A host refusal is visible and cannot be converted into an Allow. */
   refusal?: Readonly<{ code: string; message: string }>;
   /** Save the grant through the owner's own authority; resolves false when it failed. */
@@ -143,19 +178,7 @@ export type AppAccessRequest = Readonly<{
   settle: (outcome: AppPermissionOutcome) => void;
 }>;
 
-const resources = (
-  request: AppAccessRequest,
-  agent: string,
-  computer: string,
-) =>
-  [
-    request.agents.length > 0 ? agent : null,
-    request.computers.length > 0 ? computer : null,
-  ]
-    .filter((resource) => resource !== null)
-    .join(" and ");
-
-/** One-click host consent for the rights a default App declared. */
+/** One-click host consent: one sheet listing every right in plain words. */
 export function AppAccessConsent({
   request,
 }: {
@@ -163,6 +186,7 @@ export function AppAccessConsent({
 }) {
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  const approve = useRef<HTMLButtonElement>(null);
   const settle = (outcome: AppPermissionOutcome) => {
     setSaving(false);
     setFailed(false);
@@ -179,19 +203,25 @@ export function AppAccessConsent({
         render={<WindowFrame floating />}
         keepMounted={false}
         className="tourtois-app-consent"
+        initialFocus={approve}
       >
-        <WindowHeader title="App access" />
         <div className="tourtois-app-consent-body">
           <DialogTitle>
-            {request
-              ? `Let ${request.appName} work with your ${resources(request, "Agents", "Computers")}?`
-              : ""}
+            {request ? `Approve ${request.appName}'s permissions?` : ""}
           </DialogTitle>
           <DialogDescription>
-            {request
-              ? `${request.appName} can ${describe([...request.agents, ...request.computers])} for every ${resources(request, "Agent", "Computer")} in this Oyster. You can change this later in System Settings.`
-              : ""}
+            {request ? `${request.appName} would like to:` : ""}
           </DialogDescription>
+          {request !== null ? (
+            <ul className="tourtois-app-consent-rights text-sm">
+              {plainRights(request).map((right) => (
+                <li key={right}>{right}</li>
+              ))}
+            </ul>
+          ) : null}
+          <p className="text-sm">
+            You can change this later in System Settings.
+          </p>
           {request?.refusal !== undefined ? (
             <p role="alert" data-refusal-code={request.refusal.code}>
               {request.refusal.message}
@@ -200,9 +230,10 @@ export function AppAccessConsent({
           {failed ? (
             <p role="alert">Access could not be saved. Try again.</p>
           ) : null}
-          <DialogFooter>
+          <DialogFooter className="tourtois-app-consent-footer">
             <Button
               variant="ghost"
+              size="sm"
               disabled={saving}
               onClick={() => {
                 settle("customize");
@@ -210,39 +241,39 @@ export function AppAccessConsent({
             >
               Customize…
             </Button>
-            <Button
-              variant="ghost"
-              disabled={saving}
-              onClick={() => {
-                settle("declined");
-              }}
-            >
-              Not now
-            </Button>
-            <Button
-              disabled={
-                saving || request === null || request.refusal !== undefined
-              }
-              onClick={() => {
-                if (request === null || request.refusal !== undefined) return;
-                setSaving(true);
-                setFailed(false);
-                void request.allow().then(
-                  (saved) => {
-                    if (saved) settle("granted");
-                    else {
-                      settle("declined");
-                    }
-                  },
-                  () => {
-                    setSaving(false);
-                    setFailed(true);
-                  },
-                );
-              }}
-            >
-              {saving ? "Allowing…" : "Allow"}
-            </Button>
+            <div className="tourtois-app-consent-decision">
+              <Button
+                variant="ghost"
+                disabled={saving}
+                onClick={() => {
+                  settle("declined");
+                }}
+              >
+                Not now
+              </Button>
+              <Button
+                ref={approve}
+                disabled={
+                  saving || request === null || request.refusal !== undefined
+                }
+                onClick={() => {
+                  if (request === null || request.refusal !== undefined) return;
+                  setSaving(true);
+                  setFailed(false);
+                  void request.allow().then(
+                    (saved) => {
+                      settle(saved ? "granted" : "declined");
+                    },
+                    () => {
+                      setSaving(false);
+                      setFailed(true);
+                    },
+                  );
+                }}
+              >
+                {saving ? "Approving…" : "Approve"}
+              </Button>
+            </div>
           </DialogFooter>
         </div>
       </DialogContent>

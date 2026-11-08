@@ -67,7 +67,7 @@ export function WorkbenchAppBar({
         </DropdownMenu>
       ) : null}
       <AppBar
-        appsLabel="Team Apps"
+        appsLabel="Apps"
         {...props}
         windows={collapsed ? [] : props.windows}
       />

@@ -13,59 +13,72 @@ export function createDesktopStorageFixture({
 }: Partial<
   Pick<ResolvedAppStorage, "canWriteTeam" | "team" | "member">
 > = {}): AppStorage {
-  let teamLayer = team;
-  let memberLayer = member;
+  type Layer = ResolvedAppStorage["team"];
+  const layers = new Map<string, { team: Layer; member: Layer }>([
+    ["desktop", { team, member }],
+  ]);
   let revision = Math.max(team?.revision ?? 0, member?.revision ?? 0);
-  const listeners = new Set<(value: ResolvedAppStorage) => void>();
-  const snapshot = (): ResolvedAppStorage => ({
-    value: memberLayer?.value ?? teamLayer?.value ?? null,
-    source: memberLayer ? "member" : teamLayer ? "team" : "none",
-    team: teamLayer,
-    member: memberLayer,
-    canWriteTeam,
-  });
-  const admit = (scope: "member" | "team", basedOn: number | null) => {
+  const listeners = new Map<string, Set<(value: ResolvedAppStorage) => void>>();
+  const layersOf = (key: string) => {
+    const found = layers.get(key) ?? { team: null, member: null };
+    layers.set(key, found);
+    return found;
+  };
+  const snapshot = (key: string): ResolvedAppStorage => {
+    const { team: teamLayer, member: memberLayer } = layersOf(key);
+    return {
+      value: memberLayer?.value ?? teamLayer?.value ?? null,
+      source: memberLayer ? "member" : teamLayer ? "team" : "none",
+      team: teamLayer,
+      member: memberLayer,
+      canWriteTeam,
+    };
+  };
+  const notify = (key: string) => {
+    for (const listener of listeners.get(key) ?? []) listener(snapshot(key));
+  };
+  const admit = (
+    key: string,
+    scope: "member" | "team",
+    basedOn: number | null,
+  ) => {
     if (scope === "team" && !canWriteTeam)
       throw new AppStorageError("owner_required");
-    if (
-      (scope === "team" ? teamLayer : memberLayer)?.revision !==
-      (basedOn ?? undefined)
-    )
+    if (layersOf(key)[scope]?.revision !== (basedOn ?? undefined))
       throw new AppStorageError("conflict");
   };
   return {
-    read: () => Promise.resolve(snapshot()),
-    write: ({ scope, basedOn, value }) =>
+    read: (key) => Promise.resolve(snapshot(key)),
+    write: ({ key, scope, basedOn, value }) =>
       Promise.resolve().then(() => {
-        admit(scope, basedOn);
-        const layer = { value, revision: ++revision };
-        if (scope === "team") teamLayer = layer;
-        else memberLayer = layer;
-        for (const notify of listeners) notify(snapshot());
+        admit(key, scope, basedOn);
+        layersOf(key)[scope] = { value, revision: ++revision };
+        notify(key);
         return { revision };
       }),
-    reset: ({ scope, basedOn }) =>
+    reset: ({ key, scope, basedOn }) =>
       Promise.resolve().then(() => {
-        admit(scope, basedOn);
-        if (scope === "team") teamLayer = null;
-        else memberLayer = null;
-        for (const notify of listeners) notify(snapshot());
+        admit(key, scope, basedOn);
+        layersOf(key)[scope] = null;
+        notify(key);
         return { revision: ++revision };
       }),
-    watch: (): Promise<AppStorageWatch> => {
+    watch: (key): Promise<AppStorageWatch> => {
       const subscriptions = new Set<(value: ResolvedAppStorage) => void>();
+      const keyListeners = listeners.get(key) ?? new Set();
+      listeners.set(key, keyListeners);
       const close = () => {
-        for (const notify of subscriptions) listeners.delete(notify);
+        for (const listener of subscriptions) keyListeners.delete(listener);
         subscriptions.clear();
       };
       return Promise.resolve({
-        get: snapshot,
-        subscribe: (notify) => {
-          subscriptions.add(notify);
-          listeners.add(notify);
+        get: () => snapshot(key),
+        subscribe: (listener) => {
+          subscriptions.add(listener);
+          keyListeners.add(listener);
           return () => {
-            subscriptions.delete(notify);
-            listeners.delete(notify);
+            subscriptions.delete(listener);
+            keyListeners.delete(listener);
           };
         },
         close,

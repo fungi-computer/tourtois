@@ -1,5 +1,45 @@
 # @fungi.computer/tourtois
 
+## 0.11.0
+
+### Minor Changes
+
+- Changes since 0.10.0:
+
+  - feat(oyster): tell every App up front whether a model and media are
+    connected
+  - fix(tourtois): consent opens on Approve with one list form and a quiet
+    Customize link
+  - feat(tourtois): one consent sheet lists git, workflow, event and generation
+    rights
+  - fix(tourtois): align the welcome card with the App tiles
+  - feat(tourtois): a compact first-run welcome card
+  - fix(tourtois): export the welcome state type its hook returns
+  - fix(tourtois): label the All Apps dial Apps and size the hint keycap
+  - fix(tourtois): align More Apps to the grid edge
+  - fix(tourtois): welcome polish: mascot, Not now, hint, More Apps footer
+  - feat(tourtois): first-run welcome and Get more Apps
+  - fix(tourtois): quiet, App-worded empty widget
+  - feat(gills): empty widgets name the first action
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.9.0
+  - @fungi.computer/caps@0.9.0
+  - @fungi.computer/gills@0.3.0
+  - @fungi.computer/nacre@0.3.0
+  - @fungi.computer/parakeet@0.10.0
+  - @fungi.computer/sprite@0.2.2
+  - @fungi.computer/shiitake@0.12.3
+  - @fungi.computer/puffball@0.5.5
+  - @fungi.computer/sprite-zdog@0.3.2
+
 ## 0.10.0
 
 ### Minor Changes

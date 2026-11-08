@@ -207,8 +207,9 @@ export function initialDesktopLayout(
         id: "launcher",
         surfaceId: "tourtois",
         gillId: "launcher",
-        size: "M",
-        col: inbox ? 2 : 0,
+        // Alone, the Launcher is the desktop: wide and centred in four columns.
+        size: inbox ? "M" : "L",
+        col: inbox ? 2 : 1,
         row: 0,
       },
     ],
