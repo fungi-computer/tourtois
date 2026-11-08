@@ -243,6 +243,7 @@ export function createTourtoisShell(
       onSelectionChanged,
       onNavigationState,
       onStatusItems,
+      onToast,
       onFocus,
     },
   ): Promise<AppWindowHost> => {
@@ -300,6 +301,12 @@ export function createTourtoisShell(
           Promise.resolve(state).then((relayed) => {
             onNavigationState(parseNavigationRelay(relayed));
           }),
+      }),
+      ...(onToast && {
+        onToast: (toast) => {
+          onToast(toast);
+          return Promise.resolve();
+        },
       }),
       ...(onStatusItems && {
         onStatusItems: (items) =>

@@ -89,9 +89,9 @@ export function FirstRunWelcome({
   onDismiss: () => void;
 }) {
   const hello = starter(items, "hello");
-  const first = starter(items, "grove") ?? items.find((item) => item !== hello);
-  if (!first && !hello) return null;
-  const lead = first ?? hello;
+  // Grove is the first thing to try; until it is installed, Hello is. Never
+  // whichever App sorts first among the rest.
+  const lead = starter(items, "grove") ?? hello;
   if (!lead) return null;
   return (
     <section

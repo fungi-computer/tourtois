@@ -3,6 +3,7 @@ import type {
   TourtoisAppMountEvents,
   TourtoisAppSurfaceHost,
 } from "./app-surface.js";
+import { showAppToast } from "./app-toast.js";
 import {
   createAppWindowManager,
   type AppLaunchDescriptor,
@@ -56,6 +57,7 @@ export function useAppWindowManager(
             },
             onNavigationState: projectionEvents.onNavigationState,
             onStatusItems: projectionEvents.onStatusItems,
+            onToast: showAppToast,
             onComputerChoice: projectionEvents.onComputerChoice,
           });
         },

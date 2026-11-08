@@ -12,6 +12,7 @@ import type {
   AppNavigationState,
   AppStatusItem,
   FileNavigationInput,
+  ToastInput,
 } from "@fungi.computer/agar";
 import type { AppOpenInput, AppRoleChoice } from "@fungi.computer/agar/apps";
 import type { AppDeclaredCommand } from "@fungi.computer/puffball/app";
@@ -36,6 +37,8 @@ export type TourtoisAppMountEvents = Pick<WindowEvents, "onDeliveryPending"> &
     onNavigationState?: (state: AppNavigationState | null) => void;
     /** The App's parsed status readouts for its window's status bar. */
     onStatusItems?: (items: readonly AppStatusItem[]) => void;
+    /** A transient notice the App asks the shell to show. */
+    onToast?: (toast: ToastInput) => void;
     /**
      * The App's own document took focus, as when the person clicks into it.
      * Its sandboxed frame keeps that pointer from this document, so the App's

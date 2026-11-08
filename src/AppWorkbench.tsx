@@ -6,6 +6,7 @@ import { type AppBarItem } from "@fungi.computer/caps/blocks/app-bar";
 import { ResizeHandle } from "@fungi.computer/caps/components/resize-handle";
 import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
 import { toast, Toaster } from "@fungi.computer/caps/components/toaster";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
 import { WindowSnapPreview } from "@fungi.computer/caps/components/window";
 import {
   MaosaicoRegion,
@@ -98,7 +99,7 @@ function announceFloating(
   if (!tiled && !hasVisibleAppWindows(projection))
     toast("New windows will float", {
       id: "workbench-layout",
-      toasterId: "workbench-notices",
+      toasterId: WORKBENCH_NOTICES,
     });
 }
 
@@ -257,7 +258,7 @@ export function AppWorkbench({
     if (disconnected) message = "This App lost its connection.";
     const notice = {
       id: "workbench-status",
-      toasterId: "workbench-notices",
+      toasterId: WORKBENCH_NOTICES,
       closeButton: true,
       dismissible: true,
     };
@@ -883,7 +884,7 @@ export function AppWorkbench({
       {noticeContainer
         ? createPortal(
             <Toaster
-              id="workbench-notices"
+              id={WORKBENCH_NOTICES}
               position="bottom-right"
               offset={24}
               mobileOffset={24}

@@ -1,5 +1,21 @@
 # @fungi.computer/tourtois
 
+## 0.12.1
+
+### Patch Changes
+
+- Changes since 0.12.0:
+
+  - fix(hosts): an App's toast shows as a Caps notice in Oyster, Tourtois and
+    Hub (#351)
+  - fix(tourtois): the welcome button leads with Grove, then Hello
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/caps@0.10.1
+  - @fungi.computer/nacre@0.4.1
+  - @fungi.computer/parakeet@0.11.1
+
 ## 0.12.0
 
 ### Minor Changes
