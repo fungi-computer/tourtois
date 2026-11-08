@@ -102,6 +102,11 @@ function announceFloating(
     });
 }
 
+/** The trial's starter Apps that are still being set up, if the host says so. */
+const installingApps = (
+  directory: WorkbenchDirectory | undefined,
+): WorkbenchDirectory["installing"] => directory?.installing;
+
 /** Windows cover the desktop, so Show desktop runs before arranging it. */
 function arrangeDesktop(
   hide: () => Promise<void> | null,
@@ -905,6 +910,8 @@ export function AppWorkbench({
             onAllApps={() => {
               setAppDialOpen(true);
             }}
+            installing={installingApps(appsQuery.data)}
+            onRetryInstall={platform.retryInstall}
             paused={covered}
             apps={windowApps}
             needsUpdate={needsUpdate}
@@ -961,6 +968,7 @@ export function AppWorkbench({
                 onSelectComputer={(windowId, computerId) => {
                   void selectWindowComputer(windowId, computerId);
                 }}
+                onChooseComputer={openAppPermissions}
               />
             );
           })}

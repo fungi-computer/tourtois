@@ -1,3 +1,4 @@
+import { AppError } from "@fungi.computer/agar";
 import {
   createDesktopMethodsFixture,
   desktopCatalogFixture,
@@ -780,7 +781,21 @@ function createFixtureHost(
   return {
     mount: async (container, initialLaunch, signal, events) => {
       if (signal.aborted) throw new DOMException("Aborted", "AbortError");
-      if (failMount) throw new Error("Fixture App could not be mounted");
+      // `?hold=opening` keeps the App opening so the loading state can be reviewed.
+      if (
+        new URLSearchParams(globalThis.location.search).get("hold") ===
+        "opening"
+      )
+        await new Promise<never>((_resolve, reject) => {
+          signal.addEventListener("abort", () => {
+            reject(new DOMException("Aborted", "AbortError"));
+          });
+        });
+      if (failMount)
+        throw new AppError("Fixture App could not be mounted", {
+          code: "HOST_FAILURE",
+          retryable: true,
+        });
       const commandMount = await mountLocalCommands(
         commands,
         initialLaunch.surfaceId,

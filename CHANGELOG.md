@@ -1,5 +1,29 @@
 # @fungi.computer/tourtois
 
+## 0.12.0
+
+### Minor Changes
+
+- Changes since 0.11.0:
+
+  - fix(tourtois): pass onChooseComputer in the workbench story
+  - fix(tourtois): centre the install failure's Retry on its text
+  - fix(tourtois): mark a needs-runtime App on its own tile and use Caps notices
+  - feat(tourtois): launcher tiles and cards for a trial's starter Apps
+  - fix(tourtois): keep the window header and footer while an App opens
+  - fix(tourtois): keep the footer at the window bottom when an App fails
+  - feat(tourtois): window loading, failure card, priority and Choose Computer
+    chip
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/caps@0.10.0
+  - @fungi.computer/nacre@0.4.0
+  - @fungi.computer/parakeet@0.11.0
+
 ## 0.11.0
 
 ### Minor Changes

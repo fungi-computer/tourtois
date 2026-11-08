@@ -1,4 +1,6 @@
-import { Alert } from "@fungi.computer/caps/components/alert";
+import type { ReactNode } from "react";
+import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
+import { ResultState } from "@fungi.computer/caps/blocks/result-state";
 import { Button } from "@fungi.computer/caps/components/button";
 import { IconButton } from "@fungi.computer/caps/components/icon-button";
 import {
@@ -75,15 +77,6 @@ function headerContent(
   return content;
 }
 
-const windowStatusLabel = (projection: AppWindowProjection): string => {
-  if (projection.status === "error")
-    return describeAppError(projection.error).message;
-  if (projection.status === "loading")
-    return `${projection.launch.title} opening…`;
-  if (projection.status === "getting-ready") return "Getting ready…";
-  return projection.launch.title;
-};
-
 /** The focused window's App-level settings; its Computer lives in its status bar. */
 export function FocusedWindowControls({
   app,
@@ -121,6 +114,54 @@ export function FocusedWindowControls({
   );
 }
 
+/** The window's failure card: what happened, what to try, one primary way out. */
+function WindowFailure({
+  projection,
+  onReopen,
+}: {
+  projection: AppWindowProjection;
+  onReopen: () => void;
+}) {
+  const { title: appTitle } = projection.launch;
+  const lost =
+    projection.error instanceof AppError &&
+    projection.error.code === "DISCONNECTED";
+  const described = describeAppError(projection.error);
+  return (
+    <ResultState
+      className="tourtois-window-failure"
+      tone="failed"
+      headingLevel={3}
+      title={lost ? "This App lost its connection" : described.title}
+      description={
+        <>
+          {lost ? `${appTitle} stopped answering.` : described.message}
+          <span className="tourtois-window-failure-note">
+            A request may have finished even if its reply did not arrive, so
+            check before repeating it.
+          </span>
+        </>
+      }
+      actions={
+        <>
+          <Button type="button" variant="primary" onClick={onReopen}>
+            Reopen {appTitle}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              window.location.reload();
+            }}
+          >
+            Reload workspace
+          </Button>
+        </>
+      }
+    />
+  );
+}
+
 export function AppPane({
   projection,
   nextLaunch,
@@ -132,6 +173,7 @@ export function AppPane({
   afterHide,
   onBack,
   onSelectComputer,
+  onChooseComputer,
 }: {
   projection: AppWindowProjection;
   nextLaunch?: AppLaunchDescriptor | null;
@@ -144,6 +186,8 @@ export function AppPane({
   onBack: (id: string) => void;
   /** The person chose another of this window's offered Computers. */
   onSelectComputer: (windowId: string, computerId: string) => void;
+  /** No Computer is granted: open the App's permissions to grant one. */
+  onChooseComputer: (surfaceId: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const popover = useLayer("popover");
@@ -309,42 +353,32 @@ export function AppPane({
       />
       {projection.status === "loading" ||
       projection.status === "getting-ready" ? (
-        <div className="tourtois-app-loading" role="status">
-          <AppIcon roles={projection.launch.roles} icon={icon} />
-          <div>
-            <strong>
-              {projection.status === "getting-ready"
-                ? "Getting ready…"
-                : `Opening ${projection.launch.title}…`}
-            </strong>
-            <span>Preparing this App for your workspace.</span>
-          </div>
-        </div>
+        <LoadingState
+          className="tourtois-app-loading"
+          framed={false}
+          icon={<AppIcon roles={projection.launch.roles} icon={icon} />}
+          variant={projection.status === "getting-ready" ? "square" : "line"}
+          message={
+            projection.status === "getting-ready"
+              ? `Getting ${projection.launch.title} ready…`
+              : `Opening ${projection.launch.title}…`
+          }
+          detail="Preparing this App for your workspace."
+        />
       ) : null}
       {projection.status === "error" ? (
         <div className="tourtois-window-status">
-          <Alert
-            tone="warning"
-            title={
-              projection.error instanceof AppError &&
-              projection.error.code === "DISCONNECTED"
-                ? "This App lost its connection."
-                : windowStatusLabel(projection)
-            }
-            description="Check your connection and the host before reloading. A request may have completed even if its reply did not arrive; check its result before repeating it."
-          >
-            <div style={{ marginTop: "var(--spacing-md)" }}>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  window.location.reload();
-                }}
-              >
-                Reload workspace
-              </Button>
-            </div>
-          </Alert>
+          <WindowFailure
+            projection={projection}
+            onReopen={() => {
+              void manager
+                .replace(projection.windowId, projection.launch)
+                .catch((cause: unknown) => {
+                  console.error("App reopen failed", cause);
+                  onError("App could not be reopened.");
+                });
+            }}
+          />
         </div>
       ) : null}
       {/* The App's sandboxed frame lives in this body for the window's whole
@@ -369,6 +403,9 @@ export function AppPane({
               }
             : undefined
         }
+        onChooseComputer={() => {
+          onChooseComputer(projection.launch.surfaceId);
+        }}
         computerPickerOpen={computerPickerOpen}
         onComputerPickerOpenChange={(open) => {
           if (open) dismissOthers();
@@ -409,6 +446,7 @@ export function WindowStatusBar({
   computerPickerOpen,
   onComputerPickerOpenChange,
   onReload,
+  onChooseComputer,
 }: {
   projection: AppWindowProjection;
   onSelectComputer: (computerId: string) => void;
@@ -419,6 +457,8 @@ export function WindowStatusBar({
   onComputerPickerOpenChange?: (open: boolean) => void;
   /** Uses the window manager's ordinary, veto-respecting replacement. */
   onReload?: (() => void) | undefined;
+  /** With no Computer granted, the chip that opens the App's permissions. */
+  onChooseComputer?: (() => void) | undefined;
 }) {
   const popover = useLayer("popover");
   const [phone, setPhone] = useState(false);
@@ -436,7 +476,13 @@ export function WindowStatusBar({
   }, []);
   const { computers, title } = projection.launch;
   const items = projection.statusItems;
-  if (computers === undefined && items.length === 0 && !onReload) return null;
+  if (computers === undefined && items.length === 0 && !onReload)
+    // While the App opens, an empty bar holds the footer's height so the
+    // window does not jump when the readouts arrive.
+    return projection.status === "loading" ||
+      projection.status === "getting-ready" ? (
+      <AppStatusBar aria-hidden="true" className="tourtois-window-status-bar" />
+    ) : null;
   const anchorFor = (key: HTMLElement): AppStatusAction["anchor"] => {
     const origin = surface?.()?.getBoundingClientRect();
     if (!origin) return undefined;
@@ -459,46 +505,48 @@ export function WindowStatusBar({
   const start = items.filter(
     (item) =>
       item.end !== true &&
-      !(
-        phone &&
-        projection.launch.appId === "inkcap" &&
-        item.kind === "text" &&
-        item.id === "documents"
-      ),
+      !(phone && item.kind === "text" && item.priority === "low"),
   );
   const appReadouts = end.length === 0 ? undefined : end.map(render);
+  // Zero Computers: a chip to grant one. One is not a choice, so the picker
+  // appears from two.
+  let attachment: ReactNode;
+  if (computers === undefined || computers.length === 1) attachment = undefined;
+  else if (computers.length === 0)
+    attachment = (
+      <StatusBarChip label="Choose Computer" onClick={onChooseComputer} />
+    );
+  else
+    attachment = (
+      <StatusBarPicker
+        {...(computerPickerOpen === undefined
+          ? {}
+          : { open: computerPickerOpen })}
+        {...(onComputerPickerOpenChange === undefined
+          ? {}
+          : { onOpenChange: onComputerPickerOpenChange })}
+        noun="Computer"
+        pluralNoun="Computers"
+        accessibleLabel={`Choose Computer for ${title}`}
+        icon={<Sigil name="computer" size={16} />}
+        options={computers.map((computer) => ({
+          id: computer.computerId,
+          label: computer.name,
+        }))}
+        value={launchComputerId(projection.launch.href)}
+        emptyMessage="No Computers are granted to this App"
+        disabled={
+          projection.status === "loading" ||
+          projection.status === "getting-ready"
+        }
+        onSelect={onSelectComputer}
+      />
+    );
   return (
     <AppStatusBar
       className="tourtois-window-status-bar"
       aria-label={`${title} status`}
-      attachment={
-        // One Computer is not a choice: the picker appears from two.
-        computers === undefined || computers.length === 1 ? undefined : (
-          <StatusBarPicker
-            {...(computerPickerOpen === undefined
-              ? {}
-              : { open: computerPickerOpen })}
-            {...(onComputerPickerOpenChange === undefined
-              ? {}
-              : { onOpenChange: onComputerPickerOpenChange })}
-            noun="Computer"
-            pluralNoun="Computers"
-            accessibleLabel={`Choose Computer for ${title}`}
-            icon={<Sigil name="computer" size={16} />}
-            options={computers.map((computer) => ({
-              id: computer.computerId,
-              label: computer.name,
-            }))}
-            value={launchComputerId(projection.launch.href)}
-            emptyMessage="No Computers are granted to this App"
-            disabled={
-              projection.status === "loading" ||
-              projection.status === "getting-ready"
-            }
-            onSelect={onSelectComputer}
-          />
-        )
-      }
+      attachment={attachment}
       end={
         onReload ? (
           <span

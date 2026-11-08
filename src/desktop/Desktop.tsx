@@ -29,6 +29,7 @@ import {
   desktopBentoIntent,
 } from "../desktop-layout.js";
 import { ArrangeToolbar } from "./arrange-toolbar.js";
+import type { InstallingApp } from "@fungi.computer/nacre/workbench-directory";
 import { LauncherGill } from "./launcher-gill.js";
 import type { WidgetChoice } from "./widget-picker.js";
 import { RowGill, type DesktopGillTransport } from "./row-gill.js";
@@ -47,6 +48,9 @@ export type DesktopProps = {
   unavailable: boolean;
   onRetryApps: () => void;
   onAllApps: () => void;
+  /** Starter Apps a trial is still setting up, or could not set up. */
+  installing?: readonly InstallingApp[] | undefined;
+  onRetryInstall?: ((installationId: string) => Promise<void>) | undefined;
   onOpen: (target: AppOpenInput) => void;
   computersForGill?:
     | ((surfaceId: string) => readonly { computerId: string; name: string }[])
@@ -589,6 +593,8 @@ function ArrangedDesktop({
                     items={props.launcherItems}
                     size={item.size}
                     onAllApps={props.onAllApps}
+                    installing={props.installing ?? []}
+                    onRetryInstall={props.onRetryInstall}
                     loading={props.loading}
                     unavailable={props.unavailable}
                     onRetry={props.onRetryApps}

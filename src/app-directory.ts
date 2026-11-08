@@ -25,7 +25,13 @@ export function useAppDirectory(
     // is refused. Every directory read costs the host a Registry read, and
     // explicit mutations already invalidate this query, so the poll is a slow
     // backstop. React Query pauses it while the page is hidden.
-    refetchInterval: 60_000,
+    // While a trial installs its starter Apps the list changes, so poll quickly.
+    refetchInterval: (current) =>
+      current.state.data?.installing?.some(
+        (entry) => entry.state === "installing",
+      )
+        ? 3_000
+        : 60_000,
   });
   return {
     query,

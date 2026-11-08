@@ -68,3 +68,20 @@
   margin-inline-end: calc(-1 * (var(--spacing-md) + 1px));
   margin-block-start: var(--spacing-sm);
 }
+
+/* Trial starter Apps that failed or need a runtime stack under the grid. */
+.tourtois-install-notes {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin-block-start: var(--spacing-md);
+}
+.tourtois-install-notes:empty {
+  display: none;
+}
+/* One-line failures centre the Retry button on the text. */
+.tourtois-install-notes .caps-failure-line {
+  align-items: center;
+}
+.tourtois-install-notes .caps-failure-line > .caps-status {
+  margin-block-start: 0;
+}

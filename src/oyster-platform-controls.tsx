@@ -485,6 +485,17 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
       setup,
       parseSettings: (value) =>
         S.decodeUnknownSync(S.Json)(settingsLocationSchema.parse(value)),
+      retryInstall: async (installationId: string) => {
+        const response = await fetch(
+          `/api/trial/starters/${encodeURIComponent(installationId)}/retry`,
+          { method: "POST", credentials: "same-origin" },
+        );
+        if (!response.ok)
+          throw new AppError("The retry was not accepted", {
+            code: "HOST_FAILURE",
+            retryable: true,
+          });
+      },
       openSettings: (value, options) => {
         controls.openSettings(settingsLocationSchema.parse(value), options);
       },

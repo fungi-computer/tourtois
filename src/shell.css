@@ -588,35 +588,35 @@
   min-width: 0;
   width: 100%;
 }
+/* The failure fills the body so the footer stays at the window's bottom. */
 .tourtois-window-status {
-  padding: var(--spacing-xs) var(--spacing-md);
-  font-size: 12px;
-  color: var(--stipe-fg-muted);
-}
-.tourtois-app-loading {
-  align-items: center;
-  background: var(--color-base-100);
-  color: var(--color-base-content);
-  display: flex;
-  gap: var(--spacing-md);
-  inset: 0;
-  justify-content: center;
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: var(--spacing-lg);
+  place-items: center;
+}
+.tourtois-window-failure {
+  inline-size: min(100%, 36rem);
+}
+.tourtois-window-failure-note {
+  color: var(--stipe-fg-muted);
+  display: block;
+  font-size: var(--text-xs);
+  margin-block-start: var(--spacing-xs);
+}
+/* The loader covers the App's body but sits beneath the window's header and
+   footer, which stay in place so the window can be closed or minimised. */
+.tourtois-app-loading {
+  background: var(--color-base-100);
+  inset: 0;
   position: absolute;
   z-index: 1;
 }
-.tourtois-app-loading > :is(svg, .caps-monogram) {
-  flex: none;
-  height: 2rem;
-  width: 2rem;
-}
-.tourtois-app-loading > div {
-  display: grid;
-  gap: var(--spacing-xs);
-}
-.tourtois-app-loading span {
-  color: var(--stipe-fg-muted);
-  font-size: var(--text-sm);
+.tourtois-pane .caps-window-header,
+.tourtois-pane .tourtois-window-status-bar {
+  position: relative;
+  z-index: 2;
 }
 
 .tourtois-team-git {

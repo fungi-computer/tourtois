@@ -9,6 +9,11 @@ import { EmptyState } from "@fungi.computer/caps/blocks/empty-state";
 import { Sigil } from "@fungi.computer/sigils";
 import type { AppGillDesktopSize } from "@fungi.computer/gills";
 import { ExternalLink } from "lucide-react";
+import type { InstallingApp } from "@fungi.computer/nacre/workbench-directory";
+import { SetupNotice } from "@fungi.computer/caps/blocks/setup-notice";
+import { FailureLine } from "@fungi.computer/caps/components/failure-line";
+import { Badge } from "@fungi.computer/caps/components/badge";
+import { Loader } from "@fungi.computer/caps/components/loader";
 import { GillFrame } from "./gill-frame.js";
 import { FirstRunWelcome, useWelcome } from "./welcome.js";
 import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
@@ -28,6 +33,8 @@ export function LauncherGill({
   onPreference,
   editHandle,
   onContentHeight,
+  installing = [],
+  onRetryInstall,
 }: {
   items: readonly AppBarItem[];
   size?: AppGillDesktopSize;
@@ -43,6 +50,10 @@ export function LauncherGill({
   onPreference: (id: string, state: "Pinned" | "Shown" | "Hidden") => void;
   onContentHeight?: ((height: number) => void) | undefined;
   editHandle?: React.ReactNode;
+  /** Starter Apps a trial is still setting up, or could not set up. */
+  installing?: readonly InstallingApp[];
+  /** Ask the trial to try one failed App again. */
+  onRetryInstall?: ((installationId: string) => Promise<void>) | undefined;
 }) {
   const [editing, setEditing] = useState(false);
   const welcome = useWelcome();
@@ -57,12 +68,57 @@ export function LauncherGill({
     ...shown.filter((item) => stateFor(item.id) === "Pinned"),
     ...shown.filter((item) => stateFor(item.id) !== "Pinned"),
   ];
-  const tiles: AppGridItem[] = ordered.map((item) => ({
-    id: item.id,
-    label: item.label,
-    icon: item.icon,
-    onSelect: item.onSelect,
-  }));
+  const needsRuntime = new Set(
+    installing
+      .filter((entry) => entry.state === "needs-runtime")
+      .map((entry) => `app:${entry.installationId}`),
+  );
+  const tiles: AppGridItem[] = ordered.map((item) => {
+    const tile: AppGridItem = {
+      id: item.id,
+      label: item.label,
+      icon: item.icon,
+      onSelect: item.onSelect,
+    };
+    return needsRuntime.has(item.id)
+      ? {
+          ...tile,
+          muted: true,
+          status: (
+            <Badge
+              tone="warning"
+              variant="quiet"
+              size="sm"
+              className="whitespace-nowrap"
+              title={`${item.label} needs a Computer runtime this trial doesn't have`}
+            >
+              Needs Computer
+            </Badge>
+          ),
+        }
+      : tile;
+  });
+  const pendingTiles: AppGridItem[] = installing
+    .filter((entry) => entry.state === "installing")
+    .map((entry) => ({
+      id: `installing:${entry.installationId}`,
+      label: entry.displayName,
+      icon: <Loader decorative variant="square" size="md" />,
+      muted: true,
+      disabled: true,
+      status: (
+        <Badge
+          tone="neutral"
+          variant="quiet"
+          size="sm"
+          className="whitespace-nowrap"
+          title={`Getting ${entry.displayName} ready…`}
+        >
+          Getting ready
+        </Badge>
+      ),
+      onSelect: () => undefined,
+    }));
   const ready = !loading && !unavailable;
   return (
     <GillFrame
@@ -114,6 +170,7 @@ export function LauncherGill({
             aria-label="Apps"
             items={[
               ...tiles,
+              ...pendingTiles,
               ...warnings,
               {
                 id: "all-apps",
@@ -124,6 +181,22 @@ export function LauncherGill({
             ]}
             size="lg"
           />
+          <div className="tourtois-install-notes">
+            {installing.map((entry) =>
+              entry.state === "installing" ? null : (
+                <InstallNote
+                  key={entry.installationId}
+                  entry={entry}
+                  onRetry={onRetryInstall}
+                  onOpen={
+                    items.find(
+                      (item) => item.id === `app:${entry.installationId}`,
+                    )?.onSelect
+                  }
+                />
+              ),
+            )}
+          </div>
           <div className="tourtois-launcher-more">
             <Button
               size="sm"
@@ -176,5 +249,49 @@ export function LauncherGill({
         </>
       ) : null}
     </GillFrame>
+  );
+}
+
+/** A starter App the trial could not set up, or that needs what the trial lacks. */
+function InstallNote({
+  entry,
+  onRetry,
+  onOpen,
+}: {
+  entry: InstallingApp;
+  onRetry: ((installationId: string) => Promise<void>) | undefined;
+  onOpen: (() => void) | undefined;
+}) {
+  const [asked, setAsked] = useState(false);
+  if (entry.state === "needs-runtime")
+    return onOpen ? (
+      <SetupNotice
+        variant="inline"
+        need={`${entry.displayName} needs a Computer`}
+        cause={
+          entry.reason?.message ??
+          `${entry.displayName} is installed, but it needs a Computer runtime this trial doesn't have.`
+        }
+        fix={{ label: `Open ${entry.displayName}`, onSelect: onOpen }}
+      />
+    ) : null;
+  return (
+    <FailureLine
+      message={`${entry.displayName} couldn't be installed${
+        entry.reason ? `: ${entry.reason.message}` : "."
+      }`}
+      retryLabel={asked ? "Retrying…" : "Retry"}
+      {...(onRetry && !asked
+        ? {
+            onRetry: () => {
+              setAsked(true);
+              void onRetry(entry.installationId).catch((cause: unknown) => {
+                console.error("Retry was not accepted", cause);
+                setAsked(false);
+              });
+            },
+          }
+        : {})}
+    />
   );
 }
