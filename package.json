@@ -37,7 +37,7 @@
     "@fungi.computer/nacre": "0.4.0"
   },
   "devDependencies": {
-    "@fungi.computer/oyster": "0.17.0",
+    "@fungi.computer/oyster": "0.18.0",
     "@cloudflare/workers-types": "5.20260828.1",
     "@fungi.computer/forage": "0.3.5",
     "@fungi.computer/mycelium": "0.3.8",
@@ -49,7 +49,7 @@
     "typescript": "5.9.3",
     "vite": "8.2.2",
     "vitest": "4.1.11",
-    "wrangler": "4.135.0",
+    "wrangler": "4.156.2",
     "eslint": "10.9.1",
     "oxlint": "1.78.0",
     "tsx": "4.23.12",
