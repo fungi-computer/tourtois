@@ -1,5 +1,12 @@
 # @fungi.computer/tourtois
 
+## 0.12.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @fungi.computer/parakeet@0.11.2
+
 ## 0.12.1
 
 ### Patch Changes
