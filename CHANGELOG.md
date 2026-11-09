@@ -1,5 +1,13 @@
 # @fungi.computer/tourtois
 
+## 0.12.4
+
+### Patch Changes
+
+- Changes since 0.12.3:
+
+  - fix(tourtois): keep key sections in one settings content column
+
 ## 0.12.3
 
 ### Patch Changes

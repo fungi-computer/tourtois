@@ -152,7 +152,7 @@ function KeysContent({
   );
   return (
     <section
-      className="tourtois-settings-content tourtois-settings-stack tourtois-keys"
+      className="tourtois-settings-stack tourtois-keys"
       aria-label="Keys"
     >
       <SectionHeading>Keys</SectionHeading>

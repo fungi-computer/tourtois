@@ -91,7 +91,7 @@ export function ModelKeys({ port }: { port: ModelKeysPort }) {
   const [formKey, setFormKey] = useState(0);
   return (
     <section
-      className="tourtois-settings-content tourtois-model-keys"
+      className="tourtois-settings-stack tourtois-model-keys"
       aria-label="Model keys"
     >
       <SectionHeading>Model keys</SectionHeading>

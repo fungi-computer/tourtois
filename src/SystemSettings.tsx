@@ -272,11 +272,15 @@ export function SystemSettings({
                 <ports.computers />
               </div>
             ) : null}
-            {keysSection && keys !== undefined ? (
-              <Keys port={keys} apps={keyableApps} />
-            ) : null}
-            {keysSection && ports.modelKeys !== undefined ? (
-              <ModelKeys port={ports.modelKeys} />
+            {keysSection ? (
+              <div className="tourtois-settings-content tourtois-settings-stack">
+                {keys !== undefined ? (
+                  <Keys port={keys} apps={keyableApps} />
+                ) : null}
+                {ports.modelKeys !== undefined ? (
+                  <ModelKeys port={ports.modelKeys} />
+                ) : null}
+              </div>
             ) : null}
             {location?.category === "channels" &&
             ports.channels !== undefined ? (

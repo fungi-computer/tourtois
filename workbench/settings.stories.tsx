@@ -345,7 +345,15 @@ function keysStory(state: "full" | "empty" = "full"): Story {
             setLocation(null);
           }}
           restoreFocus={false}
-          ports={{ keys: port }}
+          ports={{
+            keys: port,
+            modelKeys: {
+              read: () => Promise.resolve({ keys: [], agents: [] }),
+              addKey: () => Promise.resolve(),
+              removeKey: () => Promise.resolve(),
+              chooseModel: () => Promise.resolve(),
+            },
+          }}
         />
       </QueryClientProvider>
     );
