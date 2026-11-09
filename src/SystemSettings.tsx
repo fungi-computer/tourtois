@@ -1,5 +1,7 @@
 import { AppCallPermissions } from "./AppCallPermissions.js";
 import { SectionHeading } from "@fungi.computer/caps/blocks/section-heading";
+import { FormFooter } from "@fungi.computer/caps/components/field";
+import { Prose } from "@fungi.computer/caps/components/prose";
 import {
   AppDesktopSettings,
   type AppDesktopSettingsApp,
@@ -309,30 +311,34 @@ export function SystemSettings({
                     focus={keysTarget === "model"}
                   />
                 ) : null}
-                {keysTarget === "media" ? (
+                {keysTarget !== "model" && ports.modelKeys !== undefined ? (
                   <section
                     className="tourtois-settings-stack"
                     aria-label="Image models"
                   >
                     <SectionHeading>Image models</SectionHeading>
                     <p className="tourtois-settings-lede">
-                      Prints creates images with Cloudflare Workers AI. Local
-                      Oyster trials have no Cloudflare account for image
-                      generation.
+                      Flux images use Cloudflare Workers AI.
                     </p>
-                    <p>
-                      Deploy this Oyster to your Cloudflare account with Workers
-                      AI enabled, then open Prints there.
-                    </p>
-                    <Button asChild className="w-fit">
-                      <a
-                        href="https://github.com/fungi-computer/oyster#deploy-to-cloudflare"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Set up image generation
-                      </a>
-                    </Button>
+                    <Prose>
+                      <p>Local trials can upload images. To generate:</p>
+                      <ol>
+                        <li>Enable Workers AI in your Cloudflare account.</li>
+                        <li>Deploy this Oyster using the setup guide.</li>
+                        <li>Open Prints at the deployed Oyster address.</li>
+                      </ol>
+                    </Prose>
+                    <FormFooter divider={false}>
+                      <Button asChild>
+                        <a
+                          href="https://docs.fungi.computer/guides/run-your-own-oyster/#image-models"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Set up Cloudflare Workers AI
+                        </a>
+                      </Button>
+                    </FormFooter>
                   </section>
                 ) : null}
               </div>

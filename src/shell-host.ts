@@ -377,6 +377,7 @@ export function createTourtoisShell(
   const changeListeners = new Set<() => void>();
   let watching: Promise<void> | undefined;
   const platform: PlatformControls = {
+    retryInstall: workbench.retryInstall?.bind(workbench),
     registerDesktopSettings: (handler) =>
       workbench.registerDesktopSettings(handler),
     openSettings: (location) => {

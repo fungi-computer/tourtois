@@ -481,7 +481,11 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
   );
   return Promise.resolve({
     controls: {
-      ...controls,
+      sections: controls.sections,
+      subscribeSettingsClosed: controls.subscribeSettingsClosed,
+      subscribeChanges: controls.subscribeChanges,
+      attachDesktopSettings: controls.attachDesktopSettings,
+      requestAppAccess: controls.requestAppAccess,
       setup,
       parseSettings: (value) =>
         S.decodeUnknownSync(S.Json)(settingsLocationSchema.parse(value)),

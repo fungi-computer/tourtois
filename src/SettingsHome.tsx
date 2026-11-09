@@ -154,9 +154,9 @@ export function SettingsHome({
         {offers("computers") ? (
           <DataRow className="p-0">
             <ActionRow
-              aria-label="Internet access"
+              aria-label="Computers"
               icon={<Sigil name="internet" />}
-              label="Internet access"
+              label="Computers"
               description="Each Computer’s outside access."
               trailing={
                 summary.computerCount === null ? null : (

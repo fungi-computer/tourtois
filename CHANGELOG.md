@@ -1,5 +1,23 @@
 # @fungi.computer/tourtois
 
+## 0.12.6
+
+### Patch Changes
+
+- Changes since 0.12.5:
+
+  - fix(tourtois): present image setup with Caps steps and form actions
+  - fix(tourtois): offer the image provider from the Keys page too
+  - fix(tourtois): name and explain the Cloudflare image provider path
+  - fix(nacre): preserve and forward trial installation retry controls
+  - fix(tourtois): name Computers consistently in settings navigation
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/maosaico@0.1.2
+  - @fungi.computer/nacre@0.4.3
+  - @fungi.computer/caps@0.10.1
+
 ## 0.12.5
 
 ### Patch Changes

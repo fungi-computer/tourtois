@@ -208,7 +208,7 @@ function navigationGroups(
         },
         {
           value: "computers",
-          label: "Internet access",
+          label: "Computers",
           location: { category: "computers" },
         },
         {
