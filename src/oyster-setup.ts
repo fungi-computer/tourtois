@@ -11,6 +11,7 @@ export const oysterSetupSchema = z.strictObject({
   media: state,
   git: state,
   terminal: z.enum(["ready", "exec-only", "missing", "unknown"]),
+  terminalReason: z.string().optional(),
 });
 
 /** Where each need is fixed in this host's Settings. */

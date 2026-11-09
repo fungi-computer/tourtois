@@ -52,6 +52,7 @@ export type OysterComputersPort = Readonly<{
 
 /** The durable per-Computer switches an owner manages. */
 export type ComputerSwitchSetting = "internet-access" | "keep-awake";
+const missingRuntime = z.strictObject({ error: z.literal("no_runtime") });
 const computerSwitchSchema = z.strictObject({ enabled: z.boolean() });
 
 async function request(url: URL, init?: RequestInit): Promise<Response> {
@@ -62,6 +63,14 @@ async function request(url: URL, init?: RequestInit): Promise<Response> {
     cache: "no-store",
     redirect: "error",
   });
+  if (
+    response.status === 503 &&
+    missingRuntime.safeParse(await response.json()).success
+  )
+    throw new AppError(
+      "This Computer has no runtime. Use the workspace Computer supplied by oyster try, or attach a runtime.",
+      { code: "HOST_FAILURE", retryable: false },
+    );
   if (!response.ok)
     throw new AppError(
       `Computer request refused (${String(response.status)}).`,

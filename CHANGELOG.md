@@ -1,5 +1,20 @@
 # @fungi.computer/tourtois
 
+## 0.12.7
+
+### Patch Changes
+
+- Changes since 0.12.6:
+
+  - fix(oyster): run trial Computers in a workspace sandbox
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.9.1
+  - @fungi.computer/nacre@0.4.4
+  - @fungi.computer/parakeet@0.11.4
+  - @fungi.computer/shiitake@0.12.4
+
 ## 0.12.6
 
 ### Patch Changes
