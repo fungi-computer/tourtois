@@ -1,16 +1,12 @@
-/* The first-run welcome: one compact card across the Launcher. */
+/* The first-run welcome shares the Launcher surface. */
 .tourtois-welcome {
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
   padding: var(--spacing-md) var(--spacing-lg);
   margin-block-end: var(--spacing-lg);
-  /* The App tiles sit 9px inside the Launcher; the card shares their left edge. */
+  /* Align the invitation with the App tiles inside the Launcher. */
   margin-inline: calc(var(--spacing-sm) + 1px);
-  border: var(--border) solid
-    color-mix(in oklab, var(--color-base-content) 12%, transparent);
-  border-radius: var(--radius-box);
-  background: color-mix(in oklab, var(--color-base-100) 70%, transparent);
 }
 .tourtois-welcome-mascot {
   display: block;

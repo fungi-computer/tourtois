@@ -186,32 +186,31 @@ export function initialDesktopLayout(
     (gill) =>
       gill.kind === "app" &&
       gill.surfaceId === inboxSurfaceId &&
-      gill.sizes.includes("L"),
+      (gill.sizes.includes("M") || gill.sizes.includes("L")),
   );
   return {
     version: 1,
     items: [
+      {
+        id: "launcher",
+        surfaceId: "tourtois",
+        gillId: "launcher",
+        size: "L",
+        col: inbox ? 0 : 1,
+        row: 0,
+      },
       ...(inbox
         ? [
             {
               id: "inbox",
               surfaceId: inbox.surfaceId,
               gillId: inbox.gillId,
-              size: "L",
-              col: 0,
+              size: inbox.sizes.includes("M") ? "M" : "L",
+              col: 2,
               row: 0,
             } satisfies DesktopLayout["items"][number],
           ]
         : []),
-      {
-        id: "launcher",
-        surfaceId: "tourtois",
-        gillId: "launcher",
-        // Alone, the Launcher is the desktop: wide and centred in four columns.
-        size: inbox ? "M" : "L",
-        col: inbox ? 2 : 1,
-        row: 0,
-      },
     ],
     launcher: { pinned: [], hidden: [] },
   };

@@ -1,5 +1,13 @@
 # @fungi.computer/tourtois
 
+## 0.12.11
+
+### Patch Changes
+
+- Changes since 0.12.10:
+
+  - fix(tourtois): lead with the launcher and compact actionable inbox
+
 ## 0.12.10
 
 ### Patch Changes
