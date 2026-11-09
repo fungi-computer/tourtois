@@ -486,7 +486,8 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
       subscribeChanges: controls.subscribeChanges,
       attachDesktopSettings: controls.attachDesktopSettings,
       requestAppAccess: controls.requestAppAccess,
-      setup,
+      // The notification trigger stays private; Apps receive the live subscription.
+      setup: { read: setup.read, subscribe: setup.subscribe, open: setup.open },
       parseSettings: (value) =>
         S.decodeUnknownSync(S.Json)(settingsLocationSchema.parse(value)),
       retryInstall: async (installationId: string) => {

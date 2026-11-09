@@ -1,5 +1,13 @@
 # @fungi.computer/tourtois
 
+## 0.12.10
+
+### Patch Changes
+
+- Changes since 0.12.9:
+
+  - fix(oyster): mount the trial desktop and supply its local runtime
+
 ## 0.12.9
 
 ### Patch Changes
