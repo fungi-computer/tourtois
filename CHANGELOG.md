@@ -1,5 +1,17 @@
 # @fungi.computer/tourtois
 
+## 0.12.14
+
+### Patch Changes
+
+- Changes since 0.12.13:
+
+  - fix(tourtois): pulse pending loaders with reduced motion
+
+- Updated dependencies
+  - @fungi.computer/caps@0.10.3
+  - @fungi.computer/parakeet@0.11.7
+
 ## 0.12.13
 
 ### Patch Changes

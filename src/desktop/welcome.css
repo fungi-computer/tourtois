@@ -65,8 +65,8 @@
 .tourtois-launcher-more {
   display: flex;
   justify-content: flex-end;
-  /* The ghost button's own padding would pull its text off the grid's edge. */
-  margin-inline-end: 0;
+  /* Keep the keyboard outline inside the Gill body's scroll boundary. */
+  padding: var(--spacing-sm);
   margin-block-start: var(--spacing-sm);
 }
 

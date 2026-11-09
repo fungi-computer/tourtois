@@ -87,3 +87,31 @@ export function Empty() {
     />
   );
 }
+
+/** Pending starter App tiles, held here to inspect loading feedback. */
+export function PreparingApps() {
+  return (
+    <div className="h-[36rem] max-w-3xl">
+      <LauncherGill
+        preferences={{ pinned: [], hidden: [] }}
+        onPreference={() => undefined}
+        items={[
+          {
+            id: "hello",
+            label: "Hello",
+            icon: <Sigil name="installApps" />,
+            onSelect: () => undefined,
+          },
+        ]}
+        installing={[
+          {
+            installationId: "grove",
+            displayName: "Grove",
+            state: "installing",
+          },
+        ]}
+        onAllApps={() => undefined}
+      />
+    </div>
+  );
+}
