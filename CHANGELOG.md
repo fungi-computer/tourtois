@@ -1,5 +1,20 @@
 # @fungi.computer/tourtois
 
+## 0.12.3
+
+### Patch Changes
+
+- Changes since 0.12.2:
+
+  - fix(tourtois): remove temporary avatar capture script
+  - fix(tourtois): hide Edit avatar where the host backs no avatar Settings
+  - fix(tourtois): match starter Apps by the launcher's real item ids
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/nacre@0.4.2
+  - @fungi.computer/parakeet@0.11.3
+
 ## 0.12.2
 
 ### Patch Changes

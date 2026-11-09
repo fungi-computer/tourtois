@@ -74,8 +74,6 @@ export {
  */
 export type PlatformControls = Readonly<{
   openSettings: (location: SettingsLocation) => void;
-  /** Settings the host backs with real data; undefined means all of them. */
-  sections?: readonly SettingsLocation["category"][] | undefined;
   /** Ask a trial Oyster to retry one starter App that failed to install. */
   retryInstall?: ((installationId: string) => Promise<void>) | undefined;
   registerDesktopSettings: (

@@ -91,6 +91,7 @@ function MountedTourtois({
           desktopStorage={shell.storage}
           desktopMethods={shell.methods}
           gills={connection.workbench}
+          settingsSections={connection.sections ?? undefined}
           settingsLaunchers={settingsLaunchers.filter(
             (launcher) =>
               connection.sections === null ||

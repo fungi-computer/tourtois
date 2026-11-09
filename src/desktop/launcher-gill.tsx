@@ -14,6 +14,7 @@ import { SetupNotice } from "@fungi.computer/caps/blocks/setup-notice";
 import { FailureLine } from "@fungi.computer/caps/components/failure-line";
 import { Badge } from "@fungi.computer/caps/components/badge";
 import { Loader } from "@fungi.computer/caps/components/loader";
+import { starterItem } from "./starter-item.js";
 import { GillFrame } from "./gill-frame.js";
 import { FirstRunWelcome, useWelcome } from "./welcome.js";
 import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
@@ -69,9 +70,13 @@ export function LauncherGill({
     ...shown.filter((item) => stateFor(item.id) !== "Pinned"),
   ];
   const needsRuntime = new Set(
-    installing
-      .filter((entry) => entry.state === "needs-runtime")
-      .map((entry) => `app:${entry.installationId}`),
+    installing.flatMap((entry) => {
+      const found =
+        entry.state === "needs-runtime"
+          ? starterItem(items, entry.installationId)
+          : undefined;
+      return found ? [found.id] : [];
+    }),
   );
   const tiles: AppGridItem[] = ordered.map((item) => {
     const tile: AppGridItem = {
@@ -188,11 +193,7 @@ export function LauncherGill({
                   key={entry.installationId}
                   entry={entry}
                   onRetry={onRetryInstall}
-                  onOpen={
-                    items.find(
-                      (item) => item.id === `app:${entry.installationId}`,
-                    )?.onSelect
-                  }
+                  onOpen={starterItem(items, entry.installationId)?.onSelect}
                 />
               ),
             )}

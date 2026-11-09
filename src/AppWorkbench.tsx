@@ -84,12 +84,10 @@ const emptyAppBarLabel = (loading: boolean, failed: boolean): ReactNode => {
 
 /** "Edit avatar…" exists only where the host backs avatar Settings. */
 const avatarMenuAction = (
-  platform: PlatformControls,
+  sections: readonly string[] | undefined,
   open: () => void,
 ): (() => void) | undefined =>
-  platform.sections === undefined || platform.sections.includes("avatar")
-    ? open
-    : undefined;
+  sections === undefined || sections.includes("avatar") ? open : undefined;
 
 /** Choosing Floating with nothing open would otherwise show no change. */
 function announceFloating(
@@ -141,6 +139,8 @@ export type AppWorkbenchProps = Readonly<{
   initialFocusId?: string;
   onLayoutChange?: ((tiled: boolean) => void) | undefined;
   extraLaunchers?: readonly AppBarItem[];
+  /** The Settings sections the host backs; absent means every section. */
+  settingsSections?: readonly string[] | undefined;
   settingsLaunchers?: readonly Readonly<{
     id: string;
     label: string;
@@ -196,6 +196,7 @@ export function AppWorkbench({
   onLayoutChange,
   extraLaunchers = [],
   settingsLaunchers = [],
+  settingsSections,
   systemMenuItems,
   directoryReader,
   takeAppOpenRequest,
@@ -276,7 +277,7 @@ export function AppWorkbench({
       });
     } else toast(message, notice);
   }, [appStatus]);
-  const editAvatar = avatarMenuAction(platform, () => {
+  const editAvatar = avatarMenuAction(settingsSections, () => {
     menuAction(() => {
       setSettingsLocation({ category: "avatar" });
     });

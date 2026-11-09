@@ -22,6 +22,8 @@ export type TeamTourtoisProps = Readonly<{
   children?: ReactNode;
   teamName?: string;
   extraLaunchers?: readonly AppBarItem[];
+  /** The Settings sections the host backs; absent means every section. */
+  settingsSections?: readonly string[] | undefined;
   settingsLaunchers?: readonly Readonly<{
     id: string;
     label: string;
@@ -68,6 +70,7 @@ export function TeamTourtois({
   teamName,
   extraLaunchers,
   settingsLaunchers,
+  settingsSections,
   systemMenuItems,
   computersReader,
   directoryReader,
@@ -113,6 +116,7 @@ export function TeamTourtois({
                 gills={gills}
                 {...(extraLaunchers ? { extraLaunchers } : {})}
                 {...(settingsLaunchers ? { settingsLaunchers } : {})}
+                settingsSections={settingsSections}
                 {...(systemMenuItems ? { systemMenuItems } : {})}
                 directoryReader={directoryReader}
                 {...(takeAppOpenRequest ? { takeAppOpenRequest } : {})}

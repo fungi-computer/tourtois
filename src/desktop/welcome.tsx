@@ -11,6 +11,7 @@ import type { AppStorage } from "@fungi.computer/agar/storage";
 import type { AppBarItem } from "@fungi.computer/caps/blocks/app-bar";
 import { Button } from "@fungi.computer/caps/components/button";
 import { Keycap } from "@fungi.computer/caps/components/keycap";
+import { starterItem } from "./starter-item.js";
 import { ShiitakeAvatar } from "@fungi.computer/parakeet/agent-head";
 
 const welcomeKey = "welcome";
@@ -76,10 +77,6 @@ export const useWelcome = (): WelcomeState => useContext(WelcomeContext);
 
 const isMac = () => /Mac|iPhone|iPad/u.test(navigator.userAgent);
 
-/** Starters are matched by their App id in the launcher's `app:<surface>` ids. */
-const starter = (items: readonly AppBarItem[], appId: string) =>
-  items.find((item) => item.id === `app:${appId}`);
-
 /** Says what this place is and points at the one thing to do next. */
 export function FirstRunWelcome({
   items,
@@ -88,10 +85,10 @@ export function FirstRunWelcome({
   items: readonly AppBarItem[];
   onDismiss: () => void;
 }) {
-  const hello = starter(items, "hello");
+  const hello = starterItem(items, "hello");
   // Grove is the first thing to try; until it is installed, Hello is. Never
   // whichever App sorts first among the rest.
-  const lead = starter(items, "grove") ?? hello;
+  const lead = starterItem(items, "grove") ?? hello;
   if (!lead) return null;
   return (
     <section
