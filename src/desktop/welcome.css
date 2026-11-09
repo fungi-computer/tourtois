@@ -3,8 +3,8 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
-  padding: var(--spacing-md) var(--spacing-lg);
-  margin-block-end: var(--spacing-lg);
+  padding: var(--spacing-sm) 0;
+  margin-block-end: var(--spacing-md);
   /* Align the invitation with the App tiles inside the Launcher. */
   margin-inline: calc(var(--spacing-sm) + 1px);
 }
@@ -28,7 +28,7 @@
   margin: 0;
   color: var(--stipe-fg-muted);
   font-size: var(--text-sm);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 .tourtois-welcome-text .tourtois-welcome-hint {
   margin-block-start: var(--spacing-2xs);
@@ -66,7 +66,7 @@
   display: flex;
   justify-content: flex-end;
   /* The ghost button's own padding would pull its text off the grid's edge. */
-  margin-inline-end: calc(-1 * (var(--spacing-md) + 1px));
+  margin-inline-end: 0;
   margin-block-start: var(--spacing-sm);
 }
 

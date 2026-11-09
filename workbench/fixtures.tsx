@@ -284,6 +284,7 @@ export function createDesktopFixture(
     | "mount-error"
     | "missing-session"
     | "fresh"
+    | "fresh-no-model"
     | "no-agents"
     | "games"
     | "pages"
@@ -294,6 +295,7 @@ export function createDesktopFixture(
   const noSessions =
     scenario === "empty" ||
     scenario === "fresh" ||
+    scenario === "fresh-no-model" ||
     scenario === "no-agents" ||
     scenario === "games";
   let apps = appDirectory(
@@ -403,6 +405,7 @@ export function createDesktopFixture(
         scenario === "missing-session",
         scenario === "computer-choice",
         scenario === "hero",
+        scenario === "fresh-no-model",
       ),
     handlers: [
       msw.http.get("/api/account", () =>
@@ -776,6 +779,7 @@ function createFixtureHost(
   missingSession: boolean,
   computerChoice = false,
   hero = false,
+  noModel = false,
 ): TourtoisAppSurfaceHost {
   const commands = createAppSurfaceCommandHost();
   return {
@@ -900,12 +904,19 @@ function createFixtureHost(
       const grove =
         initialLaunch.appId === "grove"
           ? createGroveFixture(
-              hero ? "timeline" : "inbox",
+              hero ? "timeline" : noModel ? "empty" : "inbox",
               // The hero shot opens Grove's own richer conversation.
               hero ? heroGroveOpenRequest : initialLaunch.openRequest,
               missingSession ? ["gone-session"] : [],
+              noModel ? "missing" : undefined,
             )
           : null;
+      const groveConnection = grove?.connection
+        ? {
+            ...grove.connection,
+            ui: { ...grove.connection.ui, ...status },
+          }
+        : null;
       const queryClient =
         inkcap || prints
           ? createQueryClient()
@@ -937,7 +948,7 @@ function createFixtureHost(
             <PagesDemo navigation={pages} />
           ) : grove && queryClient ? (
             <QueryClientProvider client={queryClient}>
-              <InboxApp {...grove} />
+              <InboxApp {...grove} connection={groveConnection} />
             </QueryClientProvider>
           ) : prints && queryClient ? (
             <QueryClientProvider client={queryClient}>

@@ -147,45 +147,57 @@ export function LauncherGill({
     >
       {loading ? <LoadingState message="Loading Apps…" /> : null}
       {unavailable ? (
-        <p role="alert">
-          App directory unavailable.{" "}
-          {onRetry ? (
-            <Button size="sm" variant="ghost" onClick={onRetry}>
-              Retry
-            </Button>
-          ) : null}
-        </p>
+        <FailureLine
+          role="alert"
+          message="App directory unavailable."
+          {...(onRetry ? { onRetry } : {})}
+        />
       ) : null}
       {ready ? (
         <>
-          {welcome.visible ? (
+          {welcome.visible && shown.length > 0 ? (
             <FirstRunWelcome items={items} onDismiss={welcome.dismiss} />
           ) : null}
           {items.length === 0 ? (
             <EmptyState
               variant="hint"
               title="No Apps available"
-              description="Installed launchable Apps appear here."
+              description="Open All Apps to find what you can use."
+              primaryAction={{ label: "Open All Apps", onSelect: onAllApps }}
             />
           ) : null}
-          {items.length > 0 && shown.length === 0 ? (
-            <p>No Apps shown. Edit the launcher to show them again.</p>
+          {items.length > 0 && shown.length === 0 && !editing ? (
+            <EmptyState
+              variant="quiet"
+              title="Choose the Apps you want here"
+              description="Your Apps are hidden from the launcher."
+              primaryAction={{
+                label: "Show Apps",
+                onSelect: () => {
+                  setEditing(true);
+                },
+              }}
+            />
           ) : null}
-          <AppGrid
-            aria-label="Apps"
-            items={[
-              ...tiles,
-              ...pendingTiles,
-              ...warnings,
-              {
-                id: "all-apps",
-                label: "All Apps ›",
-                icon: <Sigil name="allApps" />,
-                onSelect: onAllApps,
-              },
-            ]}
-            size="lg"
-          />
+          {items.length > 0 ||
+          pendingTiles.length > 0 ||
+          warnings.length > 0 ? (
+            <AppGrid
+              aria-label="Apps"
+              items={[
+                ...tiles,
+                ...pendingTiles,
+                ...warnings,
+                {
+                  id: "all-apps",
+                  label: "All Apps",
+                  icon: <Sigil name="allApps" />,
+                  onSelect: onAllApps,
+                },
+              ]}
+              size="lg"
+            />
+          ) : null}
           <div className="tourtois-install-notes">
             {installing.map((entry) =>
               entry.state === "installing" ? null : (

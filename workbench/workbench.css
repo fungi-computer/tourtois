@@ -26,3 +26,8 @@ body {
   min-width: 0;
   width: 100%;
 }
+
+/* Inline Grove uses the same body height as its production App iframe. */
+.tourtois-study [data-workbench-app] .inbox-app {
+  height: 100%;
+}

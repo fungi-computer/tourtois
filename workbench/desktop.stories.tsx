@@ -297,6 +297,11 @@ const fresh = createDesktopFixture("fresh");
 export const FreshTeam: Story = () => <Desktop fixture={fresh} />;
 FreshTeam.msw = fresh.handlers;
 
+const freshNoModel = createDesktopFixture("fresh-no-model");
+/** A new local trial: the real Inbox projection and Grove's missing-model setup. */
+export const FirstRunNoModel: Story = () => <Desktop fixture={freshNoModel} />;
+FirstRunNoModel.msw = freshNoModel.handlers;
+
 const noAgents = createDesktopFixture("no-agents");
 export const NoAgentsYet: Story = () => <Desktop fixture={noAgents} />;
 NoAgentsYet.msw = noAgents.handlers;

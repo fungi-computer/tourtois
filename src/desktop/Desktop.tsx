@@ -259,6 +259,8 @@ function ArrangedDesktop({
             const declaration = snapshot.layout.items.find(
               (entry) => entry.id === item.id,
             );
+            const canonical = item.h * rowHeight + (item.h - 1) * gap;
+            const natural = contentHeights.get(item.id) ?? canonical;
             const isLauncher =
               declaration !== undefined &&
               catalog.some(
@@ -267,15 +269,9 @@ function ArrangedDesktop({
                   gill.surfaceId === declaration.surfaceId &&
                   gill.gillId === declaration.gillId,
               );
-            const canonical = item.h * rowHeight + (item.h - 1) * gap;
-            const natural = contentHeights.get(item.id) ?? canonical;
-            const height = isLauncher
-              ? props.phone
-                ? natural
-                : Math.max(canonical, natural)
-              : props.phone
-                ? Math.min(natural, canonical)
-                : canonical;
+            // Launchers grow to show their Apps; row Gills stay bounded and
+            // scroll once populated. Both fit their content when it is short.
+            const height = isLauncher ? natural : Math.min(natural, canonical);
             return Math.max(0, height - (item.h - 1) * gap) / item.h;
           }),
       ),

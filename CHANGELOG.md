@@ -1,5 +1,16 @@
 # @fungi.computer/tourtois
 
+## 0.12.12
+
+### Patch Changes
+
+- Changes since 0.12.11:
+
+  - fix(tourtois): use a statement callback for widget retry
+  - fix(apps): pass typed checks and record the next release notes
+  - fix(tourtois): keep one first action when the launcher is empty
+  - fix(apps): complete Tourtois and Grove first-run guidance
+
 ## 0.12.11
 
 ### Patch Changes

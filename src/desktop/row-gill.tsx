@@ -16,6 +16,8 @@ import { ActionRow } from "@fungi.computer/caps/components/action-row";
 import { Button } from "@fungi.computer/caps/components/button";
 import { EmptyState } from "@fungi.computer/caps/blocks/empty-state";
 import { Status } from "@fungi.computer/caps/components/status";
+import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
+import { FailureLine } from "@fungi.computer/caps/components/failure-line";
 import { GillFrame } from "./gill-frame.js";
 
 export type DesktopGillTransport = Pick<
@@ -177,29 +179,34 @@ export function RowGill({
       editHandle={editHandle}
     >
       {error ? (
-        <p role="alert">
-          {error}{" "}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              setRetry((value) => value + 1);
-            }}
-          >
-            Retry
-          </Button>
-        </p>
+        <FailureLine
+          role="alert"
+          message={error}
+          onRetry={() => {
+            setRetry((value) => value + 1);
+          }}
+        />
       ) : null}
       {!response && !error ? (
-        <p role="status">Loading {declaration.title}…</p>
+        <LoadingState message={`Loading ${declaration.title}…`} />
       ) : null}
-      {response?.state === "error" ? (
+      {!error && response?.state === "error" ? (
         <div>
-          <p role="alert">
-            {response.reason === "exec_isolation_required" && launch
-              ? `${response.title} isn't available on this preview. Open ${launch.label}.`
-              : response.error}
-          </p>
+          <FailureLine
+            role="alert"
+            message={
+              response.reason === "exec_isolation_required" && launch
+                ? `${response.title} isn't available on this preview. Open ${launch.label}.`
+                : response.error
+            }
+            {...(!recovery && !opensApp
+              ? {
+                  onRetry: () => {
+                    setRetry((value) => value + 1);
+                  },
+                }
+              : {})}
+          />
           {recoveryParam && onConfigure ? (
             <Button size="sm" variant="primary" onClick={onConfigure}>
               Choose {recoveryParam.label}
@@ -218,7 +225,7 @@ export function RowGill({
           ) : null}
         </div>
       ) : null}
-      {response?.state === "empty" ? (
+      {!error && response?.state === "empty" ? (
         <EmptyState
           variant="quiet"
           title={response.emptyText ?? "Nothing here yet."}
