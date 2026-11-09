@@ -103,7 +103,9 @@ export function FirstRunWelcome({
       </span>
       <div className="tourtois-welcome-text">
         <h3 id="tourtois-welcome-title">This is your Oyster</h3>
-        <p>Apps open here as windows.</p>
+        <p>
+          A place to talk to Agents, make things, and keep your work together.
+        </p>
         <p className="tourtois-welcome-hint">
           <Keycap size="hint">{isMac() ? "⌘" : "Ctrl"}</Keycap>{" "}
           <Keycap size="hint">K</Keycap> then <Keycap size="hint">O</Keycap>{" "}

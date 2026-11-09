@@ -1,5 +1,13 @@
 # @fungi.computer/tourtois
 
+## 0.12.9
+
+### Patch Changes
+
+- Changes since 0.12.8:
+
+  - fix(tourtois): explain Oyster and hide touch keyboard hints
+
 ## 0.12.8
 
 ### Patch Changes

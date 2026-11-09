@@ -44,6 +44,11 @@
   align-items: center;
   gap: var(--spacing-sm);
 }
+@media (hover: none) and (pointer: coarse) {
+  .tourtois-welcome-hint {
+    display: none;
+  }
+}
 @media (max-width: 640px) {
   .tourtois-welcome {
     flex-wrap: wrap;
