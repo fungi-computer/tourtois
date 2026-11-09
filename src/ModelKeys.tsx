@@ -11,7 +11,7 @@ import { KeycapButton } from "@fungi.computer/caps/components/keycap";
 import { SchemaForm, field, useSchemaForm } from "@fungi.computer/caps/form";
 import { Sigil } from "@fungi.computer/sigils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import * as z from "zod";
 import { SettingsItem } from "./settings-item.js";
 
@@ -77,9 +77,26 @@ const defaultSource = "default";
  * Model keys on a standalone host: store a provider API key once, then pick
  * which model and key each Agent runs on. A key is never shown again.
  */
-export function ModelKeys({ port }: { port: ModelKeysPort }) {
+export function ModelKeys({
+  port,
+  focus = false,
+}: {
+  port: ModelKeysPort;
+  focus?: boolean;
+}) {
   const client = useQueryClient();
   const view = useQuery({ queryKey, queryFn: () => port.read() });
+  const status = view.status;
+  const focusSetup = useCallback(
+    (section: HTMLElement | null) => {
+      if (!focus || status === "pending") return;
+      const target =
+        section?.querySelector<HTMLSelectElement>("select") ??
+        section?.querySelector<HTMLButtonElement>("button");
+      target?.focus();
+    },
+    [focus, status],
+  );
   const refresh = () => client.invalidateQueries({ queryKey });
   const remove = useMutation({
     mutationFn: (keyId: string) => port.removeKey(keyId),
@@ -91,6 +108,7 @@ export function ModelKeys({ port }: { port: ModelKeysPort }) {
   const [formKey, setFormKey] = useState(0);
   return (
     <section
+      ref={focusSetup}
       className="tourtois-settings-stack tourtois-model-keys"
       aria-label="Model keys"
     >

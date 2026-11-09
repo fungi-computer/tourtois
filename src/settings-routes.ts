@@ -31,7 +31,10 @@ export const settingsLocationSchema = z.discriminatedUnion("category", [
     ]),
   }),
   z.strictObject({ category: z.literal("computers") }),
-  z.strictObject({ category: z.literal("keys") }),
+  z.strictObject({
+    category: z.literal("keys"),
+    target: z.enum(["all", "model", "media"]),
+  }),
   z.strictObject({ category: z.literal("defaults") }),
   z.strictObject({ category: z.literal("channels") }),
   z.strictObject({ category: z.literal("selling"), appId: appKey.nullable() }),
@@ -139,7 +142,18 @@ export function createSettingsRouter() {
   const keys = createRoute({
     getParentRoute: () => root,
     path: "/keys",
-    loader: () => ({ category: "keys" }) satisfies SettingsLocation,
+    loader: () =>
+      ({ category: "keys", target: "all" }) satisfies SettingsLocation,
+  });
+  const keySetup = createRoute({
+    getParentRoute: () => root,
+    path: "/keys/$target",
+    params: {
+      parse: (params) =>
+        z.object({ target: z.enum(["model", "media"]) }).parse(params),
+    },
+    loader: ({ params }) =>
+      ({ category: "keys", target: params.target }) satisfies SettingsLocation,
   });
   const channels = createRoute({
     getParentRoute: () => root,
@@ -175,6 +189,7 @@ export function createSettingsRouter() {
     connectorAgent,
     computers,
     keys,
+    keySetup,
     channels,
   ]);
   const router: RouterCore<typeof routeTree, "never", false> = createRouter({
@@ -227,7 +242,12 @@ export function navigateSettings(
     case "computers":
       return router.navigate({ to: "/computers" });
     case "keys":
-      return router.navigate({ to: "/keys" });
+      return location.target === "all"
+        ? router.navigate({ to: "/keys" })
+        : router.navigate({
+            to: "/keys/$target",
+            params: { target: location.target },
+          });
     case "apps":
       return location.appKey === null
         ? router.navigate({ to: "/apps" })

@@ -1,5 +1,17 @@
 # @fungi.computer/tourtois
 
+## 0.12.5
+
+### Patch Changes
+
+- Changes since 0.12.4:
+
+  - fix(tourtois): retain the provider control scroll position
+  - fix(tourtois): focus setup controls instead of the scroll column
+  - fix(tourtois): give image setup a Caps primary action
+  - fix(tourtois): make every keys destination explicit at the host boundary
+  - fix(tourtois): open model and image setup at their own sections
+
 ## 0.12.4
 
 ### Patch Changes

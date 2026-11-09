@@ -316,13 +316,17 @@ const keysSampleRecords: readonly KeySummary<string>[] = [
   },
 ];
 
-function keysStory(state: "full" | "empty" = "full"): Story {
+function keysStory(
+  state: "full" | "empty" = "full",
+  target: "all" | "model" | "media" = "all",
+): Story {
   const Story: Story = () => {
     const [client] = useState(
       () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
     );
     const [location, setLocation] = useState<SettingsLocation | null>({
       category: "keys",
+      target,
     });
     const [port] = useState(() =>
       keysFixture(state === "empty" ? [] : keysSampleRecords),
@@ -363,6 +367,8 @@ function keysStory(state: "full" | "empty" = "full"): Story {
 
 export const KeysFull = keysStory();
 export const KeysEmpty = keysStory("empty");
+export const ModelSetup = keysStory("empty", "model");
+export const ImageSetup = keysStory("empty", "media");
 
 // Standalone Connectors: in-memory connections.
 function connectorsStory(): Story {

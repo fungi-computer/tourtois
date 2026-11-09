@@ -101,6 +101,14 @@ export function SystemSettings({
   const connectors = location?.category === "connectors";
   const computersSection = location?.category === "computers";
   const keysSection = location?.category === "keys";
+  const keysTarget = location?.category === "keys" ? location.target : "all";
+  const keyContent = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const content = keyContent.current;
+    if (keysTarget !== "media" || content === null) return;
+    content.scrollTop = 0;
+    content.querySelector<HTMLAnchorElement>("a")?.focus();
+  }, [keysTarget]);
   const keyableApps: readonly KeyAppOption[] = useMemo(
     () =>
       apps.flatMap((app) =>
@@ -208,6 +216,14 @@ export function SystemSettings({
     >
       <DialogContent
         finalFocus={restoreFocus}
+        initialFocus={
+          keysTarget === "all"
+            ? true
+            : () =>
+                keyContent.current?.querySelector<HTMLElement>(
+                  keysTarget === "model" ? "select" : "a",
+                ) ?? true
+        }
         render={<WindowFrame floating />}
         keepMounted={false}
         className="tourtois-system-settings"
@@ -273,12 +289,51 @@ export function SystemSettings({
               </div>
             ) : null}
             {keysSection ? (
-              <div className="tourtois-settings-content tourtois-settings-stack">
-                {keys !== undefined ? (
+              <div
+                ref={keyContent}
+                aria-label={
+                  keysTarget === "model"
+                    ? "Model setup"
+                    : keysTarget === "media"
+                      ? "Image setup"
+                      : "Keys settings"
+                }
+                className="tourtois-settings-content tourtois-settings-stack"
+              >
+                {keysTarget === "all" && keys !== undefined ? (
                   <Keys port={keys} apps={keyableApps} />
                 ) : null}
-                {ports.modelKeys !== undefined ? (
-                  <ModelKeys port={ports.modelKeys} />
+                {keysTarget !== "media" && ports.modelKeys !== undefined ? (
+                  <ModelKeys
+                    port={ports.modelKeys}
+                    focus={keysTarget === "model"}
+                  />
+                ) : null}
+                {keysTarget === "media" ? (
+                  <section
+                    className="tourtois-settings-stack"
+                    aria-label="Image models"
+                  >
+                    <SectionHeading>Image models</SectionHeading>
+                    <p className="tourtois-settings-lede">
+                      Prints creates images with Cloudflare Workers AI. Local
+                      Oyster trials have no Cloudflare account for image
+                      generation.
+                    </p>
+                    <p>
+                      Deploy this Oyster to your Cloudflare account with Workers
+                      AI enabled, then open Prints there.
+                    </p>
+                    <Button asChild className="w-fit">
+                      <a
+                        href="https://github.com/fungi-computer/oyster#deploy-to-cloudflare"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Set up image generation
+                      </a>
+                    </Button>
+                  </section>
                 ) : null}
               </div>
             ) : null}

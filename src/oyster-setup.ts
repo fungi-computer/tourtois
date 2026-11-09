@@ -15,9 +15,9 @@ export const oysterSetupSchema = z.strictObject({
 
 /** Where each need is fixed in this host's Settings. */
 export function settingsForNeed(need: SetupNeed): SettingsLocation {
-  // Models and media both come from a key; git and a runtime from Computers.
+  // Model keys and image setup have separate destinations; runtimes live in Computers.
   return need === "model" || need === "media"
-    ? { category: "keys" }
+    ? { category: "keys", target: need }
     : { category: "computers" };
 }
 

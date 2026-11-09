@@ -214,7 +214,7 @@ function navigationGroups(
         {
           value: "keys",
           label: "Keys",
-          location: { category: "keys" },
+          location: { category: "keys", target: "all" },
         },
       ],
     },
