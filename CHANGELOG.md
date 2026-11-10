@@ -1,5 +1,17 @@
 # @fungi.computer/tourtois
 
+## 0.12.16
+
+### Patch Changes
+
+- Changes since 0.12.15:
+
+  - fix(ui): clarify App access and unfunded Agent setup
+  - fix(oyster): connect Cloudflare model keys from Settings
+
+- Updated dependencies
+  - @fungi.computer/nacre@0.4.5
+
 ## 0.12.15
 
 ### Patch Changes

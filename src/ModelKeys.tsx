@@ -8,7 +8,12 @@ import {
 } from "@fungi.computer/caps/components/data-list";
 import { FormFooter } from "@fungi.computer/caps/components/field";
 import { KeycapButton } from "@fungi.computer/caps/components/keycap";
-import { SchemaForm, field, useSchemaForm } from "@fungi.computer/caps/form";
+import {
+  FormFields,
+  SchemaForm,
+  field,
+  useSchemaForm,
+} from "@fungi.computer/caps/form";
 import { Sigil } from "@fungi.computer/sigils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
@@ -16,12 +21,18 @@ import * as z from "zod";
 import { SettingsItem } from "./settings-item.js";
 
 const providers = {
+  "cloudflare-workers-ai": "Cloudflare Workers AI",
   anthropic: "Anthropic",
   openai: "OpenAI",
   openrouter: "OpenRouter",
 } as const;
 export type Provider = keyof typeof providers;
-const providerSchema = z.enum(["anthropic", "openai", "openrouter"]);
+const providerSchema = z.enum([
+  "cloudflare-workers-ai",
+  "anthropic",
+  "openai",
+  "openrouter",
+]);
 
 /** One stored key as the host lists it; the secret never comes back. */
 const modelKeySchema = z.strictObject({
@@ -57,6 +68,7 @@ export type ModelKeyDraft = Readonly<{
   provider: Provider;
   label: string;
   apiKey: string;
+  accountId?: string;
 }>;
 /** The Agent's next model: the instance default, or a stored key's provider. */
 export type AgentModelChoiceDraft =
@@ -241,6 +253,17 @@ function AddModelKey({
               placeholder: "Work key",
             }),
           ),
+        accountId: z
+          .string()
+          .max(32)
+          .meta(
+            field({
+              label: "Account ID",
+              icon: <Sigil name="internet" />,
+              help: "Find this in your Cloudflare dashboard. The token needs Workers AI access for this account.",
+              maxLength: 32,
+            }),
+          ),
         apiKey: z
           .string()
           .min(1, "Paste the key")
@@ -259,10 +282,34 @@ function AddModelKey({
   const add = useMutation({ mutationFn: onAdd });
   const model = useSchemaForm({
     schema,
-    defaultValues: { provider: "anthropic", label: "", apiKey: "" },
+    defaultValues: {
+      provider: "cloudflare-workers-ai",
+      label: "",
+      apiKey: "",
+      accountId: "",
+    },
     onSubmit: async (value) => {
       try {
-        await add.mutateAsync(value);
+        if (
+          value.provider === "cloudflare-workers-ai" &&
+          !/^[a-f0-9]{32}$/u.test(value.accountId)
+        )
+          return {
+            kind: "refused",
+            fields: {
+              accountId: "Enter your 32-character Cloudflare account ID.",
+            },
+          };
+        const draft: ModelKeyDraft = {
+          provider: value.provider,
+          label: value.label,
+          apiKey: value.apiKey,
+        };
+        await add.mutateAsync(
+          value.provider === "cloudflare-workers-ai"
+            ? { ...draft, accountId: value.accountId }
+            : draft,
+        );
         return { kind: "saved" };
       } catch (cause) {
         return {
@@ -288,7 +335,21 @@ function AddModelKey({
           </Button>
         </FormFooter>
       }
-    />
+    >
+      <model.form.Subscribe selector={(state) => state.values.provider}>
+        {(provider) => (
+          <FormFields
+            model={model}
+            names={
+              provider === "cloudflare-workers-ai"
+                ? ["provider", "label", "accountId", "apiKey"]
+                : ["provider", "label", "apiKey"]
+            }
+            layout="columns"
+          />
+        )}
+      </model.form.Subscribe>
+    </SchemaForm>
   );
 }
 
