@@ -173,7 +173,13 @@ const modelKeys: ModelKeysPort = {
     ]);
     return modelKeysViewSchema.parse({
       keys: z.object({ keys: z.unknown() }).parse(keys).keys,
-      agents: z.object({ agents: z.unknown() }).parse(agents).agents,
+      ...z
+        .object({
+          agents: z.unknown(),
+          catalogs: z.unknown(),
+          models: z.unknown(),
+        })
+        .parse(agents),
     });
   },
   addKey: async (draft) => {

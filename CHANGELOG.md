@@ -1,5 +1,14 @@
 # @fungi.computer/tourtois
 
+## 0.12.18
+
+### Patch Changes
+
+- Changes since 0.12.17:
+
+  - fix(tourtois): name current models and disconnected choices
+  - fix(grove): offer supported model choices and clarify setup
+
 ## 0.12.17
 
 ### Patch Changes

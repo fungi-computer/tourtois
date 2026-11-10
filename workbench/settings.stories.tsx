@@ -352,7 +352,13 @@ function keysStory(
           ports={{
             keys: port,
             modelKeys: {
-              read: () => Promise.resolve({ keys: [], agents: [] }),
+              read: () =>
+                Promise.resolve({
+                  keys: [],
+                  agents: [],
+                  models: "missing",
+                  catalogs: {},
+                }),
               addKey: () => Promise.resolve(),
               removeKey: () => Promise.resolve(),
               chooseModel: () => Promise.resolve(),

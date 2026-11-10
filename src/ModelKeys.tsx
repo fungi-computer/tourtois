@@ -6,9 +6,11 @@ import {
   DataRow,
   FactRow,
 } from "@fungi.computer/caps/components/data-list";
+import { Select } from "@fungi.computer/caps/components/select";
 import { FormFooter } from "@fungi.computer/caps/components/field";
 import { KeycapButton } from "@fungi.computer/caps/components/keycap";
 import {
+  FormField,
   FormFields,
   SchemaForm,
   field,
@@ -54,6 +56,18 @@ const agentChoiceSchema = z.strictObject({
 /** Every stored key and every Agent with its persisted model choice. */
 export const modelKeysViewSchema = z.strictObject({
   keys: z.array(modelKeySchema),
+  models: z.enum(["ready", "missing", "unknown"]),
+  catalogs: z.partialRecord(
+    providerSchema,
+    z.array(
+      z.strictObject({
+        id: z.string().min(1),
+        name: z.string().min(1),
+        input: z.number().nonnegative(),
+        output: z.number().nonnegative(),
+      }),
+    ),
+  ),
   agents: z.array(
     z.strictObject({
       agentId: z.string().min(1),
@@ -184,6 +198,12 @@ export function ModelKeys({
             }}
           />
           <SectionHeading>Agent models</SectionHeading>
+          {view.data.models === "missing" ? (
+            <p role="status">
+              No model is connected yet. The instance default cannot reply until
+              you add a model key.
+            </p>
+          ) : null}
           <DataList density="compact" aria-label="Agent models">
             <DataListHeading>Current choice</DataListHeading>
             {agents.length === 0 ? (
@@ -192,27 +212,44 @@ export function ModelKeys({
               </DataRow>
             ) : null}
             {agents.map((agent) => {
-              const keyLabel =
-                agent.choice?.keyId === undefined
-                  ? null
-                  : (keys.find((key) => key.keyId === agent.choice?.keyId)
-                      ?.label ?? "Removed key");
+              const selectedKey = keys.find(
+                (key) => key.keyId === agent.choice?.keyId,
+              );
+              const catalog = Object.entries(view.data.catalogs).find(
+                ([provider]) => provider === agent.choice?.model.providerId,
+              )?.[1];
+              const name = catalog?.find(
+                (model) => model.id === agent.choice?.model.modelId,
+              )?.name;
+              const disconnected =
+                view.data.models === "missing" ||
+                (agent.choice?.keySource === "byok" &&
+                  selectedKey === undefined);
               return (
                 <FactRow
                   key={agent.agentId}
                   icon={<Sigil name="agent" />}
                   label={agent.name}
                 >
-                  {agent.choice?.model.modelId ?? "Unavailable"}
-                  {keyLabel === null ? "" : ` · ${keyLabel}`}
+                  {disconnected
+                    ? "Not connected"
+                    : agent.choice === null
+                      ? "Unavailable"
+                      : (name ?? "Instance default")}
+                  {disconnected || selectedKey === undefined
+                    ? ""
+                    : ` · ${selectedKey.label}`}
                 </FactRow>
               );
             })}
           </DataList>
           {agents.length > 0 ? (
             <ChooseAgentModel
+              key={keys.map((key) => key.keyId).join(":")}
               agents={agents}
               keys={keys}
+              catalogs={view.data.catalogs}
+              models={view.data.models}
               onChoose={async (agentId, draft) => {
                 await port.chooseModel(agentId, draft);
                 await refresh();
@@ -356,10 +393,14 @@ function AddModelKey({
 function ChooseAgentModel({
   agents,
   keys,
+  catalogs,
+  models,
   onChoose,
 }: {
   agents: ModelKeysView["agents"];
   keys: ModelKeysView["keys"];
+  catalogs: ModelKeysView["catalogs"];
+  models: ModelKeysView["models"];
   onChoose: (agentId: string, draft: AgentModelChoiceDraft) => Promise<void>;
 }) {
   const schema = useMemo(
@@ -375,35 +416,10 @@ function ChooseAgentModel({
             ),
           }),
         ),
-        source: z.string().meta(
-          field({
-            label: "Runs on",
-            icon: <Sigil name="restricted" />,
-            kind: "select",
-            options: {
-              [defaultSource]: "Instance default model",
-              ...Object.fromEntries(
-                keys.map((key) => [
-                  key.keyId,
-                  `${key.label} (${providers[key.provider]})`,
-                ]),
-              ),
-            },
-          }),
-        ),
-        modelId: z
-          .string()
-          .max(256)
-          .meta(
-            field({
-              label: "Model",
-              icon: <Sigil name="write" />,
-              help: "For a key: the provider's model id, such as gpt-6-luna.",
-              maxLength: 256,
-            }),
-          ),
+        source: z.string(),
+        modelId: z.string(),
       }),
-    [agents, keys],
+    [agents],
   );
   const choose = useMutation({
     mutationFn: (input: { agentId: string; draft: AgentModelChoiceDraft }) =>
@@ -413,15 +429,20 @@ function ChooseAgentModel({
     schema,
     defaultValues: {
       agentId: agents[0]?.agentId ?? "",
-      source: defaultSource,
+      source: keys[0]?.keyId ?? defaultSource,
       modelId: "",
     },
     onSubmit: async (value) => {
       const key = keys.find((item) => item.keyId === value.source);
       if (value.source !== defaultSource && key === undefined)
         return { kind: "refused", error: "Choose a stored key." };
-      if (key !== undefined && value.modelId.length === 0)
-        return { kind: "refused", error: "Name the model this key runs." };
+      const available = key === undefined ? [] : (catalogs[key.provider] ?? []);
+      const modelId = value.modelId || available[0]?.id;
+      if (key !== undefined && !available.some((item) => item.id === modelId))
+        return {
+          kind: "refused",
+          error: "Choose a supported model for this key.",
+        };
       try {
         await choose.mutateAsync({
           agentId: value.agentId,
@@ -431,7 +452,7 @@ function ChooseAgentModel({
               : {
                   keyId: key.keyId,
                   provider: key.provider,
-                  modelId: value.modelId,
+                  modelId: modelId ?? "",
                 },
         });
         return { kind: "saved" };
@@ -459,6 +480,65 @@ function ChooseAgentModel({
           </Button>
         </FormFooter>
       }
-    />
+    >
+      <FormFields model={model} names={["agentId"]} />
+      <FormField form={model.form} name="source" label="Runs on">
+        {(source) => (
+          <Select
+            name="source"
+            value={source.state.value}
+            onChange={(event) => {
+              source.handleChange(event.target.value);
+              model.form.setFieldValue("modelId", "");
+            }}
+          >
+            <option value={defaultSource}>
+              {models === "missing"
+                ? "Instance default — not connected"
+                : "Instance default model"}
+            </option>
+            {keys.map((key) => (
+              <option key={key.keyId} value={key.keyId}>
+                {key.label} ({providers[key.provider]})
+              </option>
+            ))}
+          </Select>
+        )}
+      </FormField>
+      <model.form.Subscribe selector={(state) => state.values.source}>
+        {(source) => {
+          const key = keys.find((item) => item.keyId === source);
+          if (key === undefined) return null;
+          const available = catalogs[key.provider] ?? [];
+          return (
+            <FormField
+              form={model.form}
+              name="modelId"
+              label="Model"
+              description="USD per million tokens: input / output. Lowest combined rate first."
+            >
+              {(choice) => (
+                <Select
+                  name="modelId"
+                  value={choice.state.value || (available[0]?.id ?? "")}
+                  onChange={(event) => {
+                    choice.handleChange(event.target.value);
+                  }}
+                >
+                  {available.length === 0 ? (
+                    <option value="">No supported models available</option>
+                  ) : null}
+                  {available.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} · ${item.input} / ${item.output}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </FormField>
+          );
+        }}
+      </model.form.Subscribe>
+    </SchemaForm>
   );
 }
