@@ -17,7 +17,13 @@ import {
   WindowFrame,
   WindowHeader,
 } from "@fungi.computer/caps/components/window";
-import { Settings, ShieldCheck } from "lucide-react";
+import { Ellipsis, Settings, ShieldCheck } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@fungi.computer/caps/components/dropdown-menu";
 import { WindowStatusItem } from "./status-bar.js";
 import {
   useLayer,
@@ -51,11 +57,17 @@ function headerContent(
   navigation: AppNavigationState | null,
   popover: HTMLElement | null,
   activate: (activation: AppNavigationActivation) => void,
+  phone: boolean,
 ): Partial<ComponentProps<typeof WindowHeader>> {
   if (navigation?.crumbs === undefined || navigation.crumbs.length === 0)
     return {};
   let content: Partial<ComponentProps<typeof WindowHeader>> = {
-    crumbs: navigation.crumbs,
+    // Long App paths conventionally start with the App and Item, then view
+    // and version. Keep the Item and current place; the menu retains the rest.
+    crumbs:
+      phone && navigation.crumbs.length > 3
+        ? [...navigation.crumbs.slice(1, 2), ...navigation.crumbs.slice(-1)]
+        : navigation.crumbs,
     popover,
     onCrumb: (crumbId, siblingId) => {
       activate(
@@ -69,12 +81,38 @@ function headerContent(
     },
   };
   if (navigation.primary !== undefined)
-    content = { ...content, primary: navigation.primary };
-  if (navigation.menu !== undefined)
+    content = {
+      ...content,
+      primary: phone
+        ? navigation.primary.slice(0, 1).map((command) => {
+            const labelled = { ...command };
+            delete labelled.icon;
+            return labelled;
+          })
+        : navigation.primary,
+    };
+  if (!phone && navigation.menu !== undefined)
     content = { ...content, menu: navigation.menu };
   if (navigation.status !== undefined)
     content = { ...content, status: navigation.status };
   return content;
+}
+
+/** The shell's phone breakpoint also selects its compact command presentation. */
+function usePhone() {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 640px)");
+    const update = () => {
+      setPhone(media.matches);
+    };
+    update();
+    media.addEventListener("change", update);
+    return () => {
+      media.removeEventListener("change", update);
+    };
+  }, []);
+  return phone;
 }
 
 /** The focused window's App-level settings; its Computer lives in its status bar. */
@@ -162,6 +200,108 @@ function WindowFailure({
   );
 }
 
+/** Places folded out of a phone's trail stay available in the same menu. */
+function PhonePathMenu({
+  crumbs,
+  onAction,
+}: {
+  crumbs: AppNavigationState["crumbs"];
+  onAction: (activation: AppNavigationActivation) => void;
+}) {
+  if (crumbs === undefined || crumbs.length <= 3) return null;
+  return crumbs.flatMap((crumb, index) =>
+    index === 1 || index === crumbs.length - 1
+      ? []
+      : [
+          <DropdownMenuItem
+            key={`crumb:${crumb.id}`}
+            onSelect={() => {
+              onAction({ kind: "crumb", crumbId: crumb.id });
+            }}
+          >
+            {crumb.label}
+          </DropdownMenuItem>,
+          ...(crumb.siblings ?? []).map((sibling) => (
+            <DropdownMenuItem
+              key={`crumb:${crumb.id}:${sibling.id}`}
+              onSelect={() => {
+                onAction({
+                  kind: "crumb",
+                  crumbId: crumb.id,
+                  siblingId: sibling.id,
+                });
+              }}
+            >
+              {crumb.label} · {sibling.label}
+            </DropdownMenuItem>
+          )),
+        ],
+  );
+}
+
+/** One maintained command menu on phones; ordinary window keys on desktop. */
+function AppWindowControls({
+  phone,
+  navigation,
+  onAction,
+  popover,
+  ...actions
+}: ComponentProps<typeof WindowActions> & {
+  onToggleMaximize: () => void;
+  onMinimize: () => void;
+  onClose: () => void;
+  phone: boolean;
+  navigation: AppNavigationState | null;
+  onAction: (activation: AppNavigationActivation) => void;
+  popover: HTMLElement | null;
+}) {
+  if (!phone) return <WindowActions {...actions} />;
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger
+        render={
+          <IconButton
+            icon={<Ellipsis />}
+            aria-label={`More for ${actions.title}`}
+          />
+        }
+      />
+      <DropdownMenuContent align="end" container={popover}>
+        <PhonePathMenu crumbs={navigation?.crumbs} onAction={onAction} />
+        {[
+          ...(navigation?.primary?.slice(1) ?? []),
+          ...(navigation?.menu ?? []),
+        ].map((command) => (
+          <DropdownMenuItem
+            key={command.id}
+            disabled={command.disabled === true}
+            variant={command.tone === "destructive" ? "destructive" : "default"}
+            onSelect={() => {
+              onAction({ kind: "action", actionId: command.id });
+            }}
+          >
+            {command.label}
+          </DropdownMenuItem>
+        ))}
+        {actions.onPromote ? (
+          <DropdownMenuItem onSelect={actions.onPromote}>
+            Make main window
+          </DropdownMenuItem>
+        ) : null}
+        <DropdownMenuItem onSelect={actions.onToggleMaximize}>
+          {actions.maximized ? "Restore window" : "Maximize window"}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={actions.onMinimize}>
+          Minimize window
+        </DropdownMenuItem>
+        <DropdownMenuItem variant="destructive" onSelect={actions.onClose}>
+          Close window
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function AppPane({
   projection,
   nextLaunch,
@@ -189,6 +329,7 @@ export function AppPane({
   /** No Computer is granted: open the App's permissions to grant one. */
   onChooseComputer: (surfaceId: string) => void;
 }) {
+  const phone = usePhone();
   const containerRef = useRef<HTMLDivElement>(null);
   const popover = useLayer("popover");
   const [computerPickerOpen, setComputerPickerOpen] = useState(false);
@@ -289,17 +430,23 @@ export function AppPane({
           always have a home; floating windows keep the regular bar. */}
       <WindowHeader
         title={projection.launch.title}
+        data-phone-compact={phone || undefined}
         {...(projection.navigation?.title === undefined
           ? {}
           : { subtitle: projection.navigation.title })}
-        {...headerContent(projection.navigation, popover, (activation) => {
-          void manager
-            .activateNavigation(projection.windowId, activation)
-            .catch((cause: unknown) => {
-              console.error("App workbench operation failed", cause);
-              onError("App could not handle that action.");
-            });
-        })}
+        {...headerContent(
+          projection.navigation,
+          popover,
+          (activation) => {
+            void manager
+              .activateNavigation(projection.windowId, activation)
+              .catch((cause: unknown) => {
+                console.error("App workbench operation failed", cause);
+                onError("App could not handle that action.");
+              });
+          },
+          phone,
+        )}
         density={layout.mode === "tiled" ? "compact" : "regular"}
         icon={<AppIcon roles={projection.launch.roles} icon={icon} />}
         {...(projection.navigation?.canGoBack === true
@@ -319,36 +466,45 @@ export function AppPane({
           onDoubleClick: zoom,
         }}
         actions={
-          <>
-            <WindowActions
-              title={projection.launch.title}
-              maximized={zoomed}
-              {...(layout.mode === "tiled" &&
-              layout.order[0] !== projection.windowId
-                ? {
-                    onPromote: () => {
-                      const main = layout.order[0];
-                      if (main) layout.swap(projection.windowId, main);
-                      focusWindow(projection.windowId);
-                    },
-                  }
-                : {})}
-              onToggleMaximize={zoom}
-              onMinimize={() => {
-                void manager
-                  .minimize(projection.windowId)
-                  .then(() => {
-                    afterHide(projection.windowId);
-                  })
-                  .catch((cause: unknown) => {
-                    console.error("App workbench operation failed", cause);
+          <AppWindowControls
+            phone={phone}
+            navigation={projection.navigation}
+            popover={popover}
+            onAction={(activation) => {
+              void manager
+                .activateNavigation(projection.windowId, activation)
+                .catch((cause: unknown) => {
+                  console.error("App workbench operation failed", cause);
+                  onError("App could not handle that action.");
+                });
+            }}
+            title={projection.launch.title}
+            maximized={zoomed}
+            {...(layout.mode === "tiled" &&
+            layout.order[0] !== projection.windowId
+              ? {
+                  onPromote: () => {
+                    const main = layout.order[0];
+                    if (main) layout.swap(projection.windowId, main);
+                    focusWindow(projection.windowId);
+                  },
+                }
+              : {})}
+            onToggleMaximize={zoom}
+            onMinimize={() => {
+              void manager
+                .minimize(projection.windowId)
+                .then(() => {
+                  afterHide(projection.windowId);
+                })
+                .catch((cause: unknown) => {
+                  console.error("App workbench operation failed", cause);
 
-                    onError("App could not be minimized.");
-                  });
-              }}
-              onClose={close}
-            />
-          </>
+                  onError("App could not be minimized.");
+                });
+            }}
+            onClose={close}
+          />
         }
       />
       {projection.status === "loading" ||
@@ -461,19 +617,7 @@ export function WindowStatusBar({
   onChooseComputer?: (() => void) | undefined;
 }) {
   const popover = useLayer("popover");
-  const [phone, setPhone] = useState(false);
-  useEffect(() => {
-    // Match Caps' phone status-bar breakpoint, including its touch targets.
-    const media = window.matchMedia("(max-width: 640px)");
-    const update = () => {
-      setPhone(media.matches);
-    };
-    update();
-    media.addEventListener("change", update);
-    return () => {
-      media.removeEventListener("change", update);
-    };
-  }, []);
+  const phone = usePhone();
   const { computers, title } = projection.launch;
   const items = projection.statusItems;
   if (computers === undefined && items.length === 0 && !onReload)

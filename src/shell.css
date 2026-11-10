@@ -908,3 +908,18 @@
     height: 7rem;
   }
 }
+
+/* Keep the launcher keys' existing material at a compact widget scale. */
+.tourtois-launcher-grid[data-size="lg"] {
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+}
+.tourtois-launcher-grid[data-size="lg"] .caps-app-grid-icon {
+  width: 4rem;
+  height: 4rem;
+}
+.tourtois-gill-frame > .caps-card-header {
+  padding: var(--spacing-lg);
+}
+.tourtois-gill-frame > .caps-card-content {
+  padding: 0 var(--spacing-lg) var(--spacing-lg);
+}

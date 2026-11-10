@@ -183,6 +183,7 @@ export function LauncherGill({
           pendingTiles.length > 0 ||
           warnings.length > 0 ? (
             <AppGrid
+              className="tourtois-launcher-grid"
               aria-label="Apps"
               items={[
                 ...tiles,

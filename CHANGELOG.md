@@ -1,5 +1,18 @@
 # @fungi.computer/tourtois
 
+## 0.12.19
+
+### Patch Changes
+
+- Changes since 0.12.18:
+
+  - fix(tourtois): compact phone chrome and desktop widgets
+  - fix(tourtois): compact phone chrome and desktop widgets
+
+- Updated dependencies
+  - @fungi.computer/caps@0.10.5
+  - @fungi.computer/parakeet@0.11.10
+
 ## 0.12.18
 
 ### Patch Changes

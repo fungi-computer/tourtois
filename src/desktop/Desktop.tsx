@@ -559,7 +559,10 @@ function ArrangedDesktop({
                 left: frame.x,
                 top: frame.y,
                 width: frame.width,
-                height: frame.height,
+                height: Math.min(
+                  contentHeights.get(item.id) ?? frame.height,
+                  frame.height,
+                ),
               }}
               onPointerDown={(event) => {
                 // Touch has no menu to reach Arrange from: a long press enters it.
