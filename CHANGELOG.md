@@ -1,5 +1,13 @@
 # @fungi.computer/tourtois
 
+## 0.12.22
+
+### Patch Changes
+
+- Changes since 0.12.21:
+
+  - fix(oyster): run trial Git storage in Wrangler's local simulator
+
 ## 0.12.21
 
 ### Patch Changes
