@@ -1,5 +1,18 @@
 # @fungi.computer/tourtois
 
+## 0.12.21
+
+### Patch Changes
+
+- Changes since 0.12.20:
+
+  - fix(tourtois): keep chat-only catalog models selectable
+  - fix(tourtois): explain saved models unavailable for tools
+  - fix(grove): keep tool-limited models out of agent choices
+
+- Updated dependencies
+  - @fungi.computer/parakeet@0.11.12
+
 ## 0.12.20
 
 ### Patch Changes

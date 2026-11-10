@@ -65,6 +65,7 @@ export const modelKeysViewSchema = z.strictObject({
         name: z.string().min(1),
         input: z.number().nonnegative(),
         output: z.number().nonnegative(),
+        tools: z.boolean(),
       }),
     ),
   ),
@@ -235,7 +236,10 @@ export function ModelKeys({
                     ? "Not connected"
                     : agent.choice === null
                       ? "Unavailable"
-                      : (name ?? "Instance default")}
+                      : (name ??
+                        (catalog === undefined
+                          ? "Instance default"
+                          : "Model unavailable for tools"))}
                   {disconnected || selectedKey === undefined
                     ? ""
                     : ` · ${selectedKey.label}`}
@@ -437,7 +441,7 @@ function ChooseAgentModel({
       if (value.source !== defaultSource && key === undefined)
         return { kind: "refused", error: "Choose a stored key." };
       const available = key === undefined ? [] : (catalogs[key.provider] ?? []);
-      const modelId = value.modelId || available[0]?.id;
+      const modelId = value.modelId || available.find((item) => item.tools)?.id;
       if (key !== undefined && !available.some((item) => item.id === modelId))
         return {
           kind: "refused",
@@ -515,12 +519,15 @@ function ChooseAgentModel({
               form={model.form}
               name="modelId"
               label="Model"
-              description="USD per million tokens: input / output. Lowest combined rate first."
+              description="Choose tools for work in Apps. Other models may not use tools. USD per million tokens: input / output; lowest rate first in each group."
             >
               {(choice) => (
                 <Select
                   name="modelId"
-                  value={choice.state.value || (available[0]?.id ?? "")}
+                  value={
+                    choice.state.value ||
+                    (available.find((item) => item.tools)?.id ?? "")
+                  }
                   onChange={(event) => {
                     choice.handleChange(event.target.value);
                   }}
@@ -528,11 +535,30 @@ function ChooseAgentModel({
                   {available.length === 0 ? (
                     <option value="">No supported models available</option>
                   ) : null}
-                  {available.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} · ${item.input} / ${item.output}
-                    </option>
-                  ))}
+                  {available.length > 0 &&
+                  !available.some((item) => item.tools) ? (
+                    <option value="">Choose a model</option>
+                  ) : null}
+                  {[true, false].map((tools) => {
+                    const group = available.filter(
+                      (item) => item.tools === tools,
+                    );
+                    return group.length === 0 ? null : (
+                      <optgroup
+                        key={String(tools)}
+                        label={
+                          tools ? "Tools" : "Other models (may not use tools)"
+                        }
+                      >
+                        {group.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name} · {tools ? "tools" : "chat only"} · $
+                            {item.input} / ${item.output}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
                 </Select>
               )}
             </FormField>
