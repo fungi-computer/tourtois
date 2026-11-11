@@ -772,6 +772,12 @@
 .tourtois-desktop-stage {
   position: relative;
 }
+@media (min-width: 1100px) {
+  .tourtois-desktop-stage {
+    max-inline-size: 76rem;
+    margin-inline: auto;
+  }
+}
 .tourtois-desktop-tile {
   position: absolute;
   min-width: 0;
@@ -792,6 +798,16 @@
   min-height: 0;
   flex: 1;
   overflow: auto;
+}
+/* A lone empty state sits in the middle of a card that is taller than it. The
+   content box keeps its natural height, so the card still measures to fit. */
+.tourtois-gill-body:has(> .tourtois-gill-content > .empty-state) {
+  display: flex;
+  flex-direction: column;
+}
+.tourtois-gill-body:has(> .tourtois-gill-content > .empty-state)
+  > .tourtois-gill-content {
+  margin-block: auto;
 }
 .tourtois-gill-text-row {
   display: flex;
@@ -916,6 +932,35 @@
 .tourtois-launcher-grid[data-size="lg"] .caps-app-grid-icon {
   width: 4rem;
   height: 4rem;
+}
+@media (max-width: 640px) {
+  /* Two dense rows of keys on a phone keep the Inbox in the first screen. */
+  .tourtois-launcher-grid[data-size="lg"] {
+    row-gap: var(--spacing-xs);
+  }
+  .tourtois-launcher-grid[data-size="lg"] .caps-app-grid-icon {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+  .tourtois-launcher-more {
+    margin-block-start: 0;
+  }
+  .tourtois-desktop .tourtois-gill-frame > .caps-card-header {
+    padding-block-end: var(--spacing-sm);
+  }
+}
+/* Wide desktops give the Launcher full-size keys to fill its card. */
+@media (min-width: 1100px) {
+  .tourtois-launcher-grid[data-size="lg"] {
+    grid-template-columns: repeat(auto-fit, 6rem);
+    justify-content: center;
+    row-gap: var(--spacing-md);
+    padding-block: var(--spacing-lg);
+  }
+  .tourtois-launcher-grid[data-size="lg"] .caps-app-grid-icon {
+    width: 5rem;
+    height: 5rem;
+  }
 }
 .tourtois-gill-frame > .caps-card-header {
   padding: var(--spacing-lg);

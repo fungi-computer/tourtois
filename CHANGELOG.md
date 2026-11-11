@@ -1,5 +1,24 @@
 # @fungi.computer/tourtois
 
+## 0.13.0
+
+### Minor Changes
+
+- Changes since 0.12.22:
+
+  - fix(tourtois): centre the empty Inbox and refresh the desktop-gills proof
+  - feat(tourtois): even desktop rows, centred stage, centred keys
+  - feat(tourtois): compose a fuller first desktop and a shorter phone Launcher
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/caps@0.10.6
+  - @fungi.computer/nacre@0.4.6
+  - @fungi.computer/parakeet@0.11.13
+
 ## 0.12.22
 
 ### Patch Changes

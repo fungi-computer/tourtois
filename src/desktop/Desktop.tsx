@@ -298,6 +298,27 @@ function ArrangedDesktop({
   });
   const frames = [...binding.frames.values()];
   const height = Math.max(0, ...frames.map((frame) => frame.y + frame.height));
+  // Phones and arranging fit each card to its content. Otherwise cards that
+  // share a row reach the tallest neighbour's bottom, so Inbox matches Launcher.
+  const evenRows = !props.phone && !editing;
+  const evenRowHeight = (id: string) => {
+    const frame = binding.frames.get(id);
+    const cell = placements.find((entry) => entry.id === id);
+    if (!frame || !cell) return 0;
+    const bottom = Math.max(
+      frame.y + frame.height,
+      ...placements
+        .filter(
+          (other) =>
+            other.row < cell.row + cell.h && cell.row < other.row + other.h,
+        )
+        .map((other) => {
+          const otherFrame = binding.frames.get(other.id);
+          return otherFrame ? otherFrame.y + otherFrame.height : 0;
+        }),
+    );
+    return bottom - frame.y;
+  };
   const warnings: readonly AppGridItem[] = [
     ...props.apps
       .filter(
@@ -559,10 +580,12 @@ function ArrangedDesktop({
                 left: frame.x,
                 top: frame.y,
                 width: frame.width,
-                height: Math.min(
-                  contentHeights.get(item.id) ?? frame.height,
-                  frame.height,
-                ),
+                height: evenRows
+                  ? evenRowHeight(item.id)
+                  : Math.min(
+                      contentHeights.get(item.id) ?? frame.height,
+                      frame.height,
+                    ),
               }}
               onPointerDown={(event) => {
                 // Touch has no menu to reach Arrange from: a long press enters it.
