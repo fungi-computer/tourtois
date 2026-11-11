@@ -200,7 +200,7 @@ export function ModelKeys({
           />
           <SectionHeading>Agent models</SectionHeading>
           {view.data.models === "missing" ? (
-            <p role="status">
+            <p role="status" className="tourtois-settings-note">
               No model is connected yet. The instance default cannot reply until
               you add a model key.
             </p>

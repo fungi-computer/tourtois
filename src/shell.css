@@ -159,7 +159,9 @@
 }
 
 .tourtois-settings-nav-label {
-  margin: var(--spacing-md) var(--spacing-sm) var(--spacing-xs);
+  /* Start where an item's text starts: its button padding plus border. */
+  margin: var(--spacing-md) var(--spacing-sm) var(--spacing-xs)
+    calc(0.75rem + var(--border));
 }
 
 .tourtois-settings-content {
@@ -216,6 +218,13 @@
 .tourtois-settings-empty {
   font-size: var(--text-sm);
   color: var(--stipe-fg-muted);
+}
+/* An empty list row starts at the heading's edge, not the row padding. */
+.list-row.tourtois-settings-empty {
+  padding-inline: 0;
+}
+.tourtois-settings-note {
+  font-size: var(--text-sm);
 }
 /* Each Computer: its SettingsItem over its compact switch rows. */
 .tourtois-computer {

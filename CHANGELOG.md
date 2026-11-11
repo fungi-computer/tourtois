@@ -1,5 +1,17 @@
 # @fungi.computer/tourtois
 
+## 0.13.1
+
+### Patch Changes
+
+- Changes since 0.13.0:
+
+  - fix(tourtois,bonsai): tighten desktop, Settings and Bonsai alignment
+
+- Updated dependencies
+  - @fungi.computer/caps@0.10.7
+  - @fungi.computer/parakeet@0.11.14
+
 ## 0.13.0
 
 ### Minor Changes

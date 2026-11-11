@@ -77,7 +77,12 @@
   justify-content: flex-end;
   /* Keep the keyboard outline inside the Gill body's scroll boundary. */
   padding: var(--spacing-sm);
+  padding-inline-end: 0;
   margin-block-start: var(--spacing-sm);
+}
+/* The ghost button's text, not its padding, lines up with Edit launcher. */
+.tourtois-launcher-more > .btn {
+  margin-inline-end: -0.75rem;
 }
 
 /* Trial starter Apps that failed or need a runtime stack under the grid. */
