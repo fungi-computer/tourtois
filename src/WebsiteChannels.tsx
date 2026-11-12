@@ -640,7 +640,6 @@ function WebsiteRow({
                     <strong>Copy this code.</strong>
                   </p>
                   <CopyField
-                    className="not-prose"
                     layout="block"
                     title="HTML"
                     label="Copy snippet"

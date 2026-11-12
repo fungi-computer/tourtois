@@ -170,9 +170,7 @@ export function Connections({
       {view.data?.callbackUrl ? (
         <DataList density="compact" aria-label="Redirect URL">
           <FactRow icon={<Sigil name="internet" />} label="Redirect URL">
-            <code className="text-[length:inherit]">
-              {view.data.callbackUrl}
-            </code>
+            <code>{view.data.callbackUrl}</code>
           </FactRow>
         </DataList>
       ) : null}
@@ -212,7 +210,7 @@ export function Connections({
                           port={port}
                           onChanged={refresh}
                         />
-                        <div className="tourtois-settings-item-keys mt-2">
+                        <div className="tourtois-settings-item-keys">
                           {port.editor?.(connection) ? (
                             <KeycapButton
                               density="compact"

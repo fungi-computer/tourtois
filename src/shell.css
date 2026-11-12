@@ -309,6 +309,19 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-xs) var(--spacing-sm);
+  margin-top: 0.5rem;
+}
+
+.tourtois-issued-key {
+  word-break: break-all;
+}
+
+.tourtois-settings-tabs-end {
+  margin-left: auto;
+}
+
+.tourtois-call-permissions-note {
+  margin-top: 0.25rem;
 }
 
 .tourtois-settings-app-content:not([hidden]),
@@ -752,6 +765,16 @@
   width: 100%;
   min-width: 0;
 }
+.tourtois-launcher-preference-icon {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+.tourtois-launcher-preference-icon svg {
+  width: 100%;
+  height: 100%;
+}
 .tourtois-launcher-preference-identity {
   display: grid;
   gap: var(--spacing-2xs);
@@ -796,6 +819,16 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+.tourtois-gill-frame-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.tourtois-gill-frame-icon :is(svg, .caps-monogram) {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 .tourtois-gill-frame > :last-child {
   min-height: 0;

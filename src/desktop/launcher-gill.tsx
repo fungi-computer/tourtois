@@ -230,7 +230,7 @@ export function LauncherGill({
                   <div className="tourtois-launcher-preference">
                     <span
                       aria-hidden="true"
-                      className="grid size-6 place-items-center [&_svg]:size-full"
+                      className="tourtois-launcher-preference-icon"
                     >
                       {item.icon ?? <Sigil name="installApps" />}
                     </span>

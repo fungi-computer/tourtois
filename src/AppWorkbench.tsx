@@ -33,6 +33,7 @@ import {
 import type { WorkbenchDirectory } from "@fungi.computer/nacre/workbench-directory";
 import { useAppDirectory } from "./app-directory.js";
 import { AppIcon } from "./app-icon.js";
+import { tileGap } from "./tile-gap.js";
 import {
   appForRole,
   composeOpenRequests,
@@ -1006,7 +1007,10 @@ export function AppWorkbench({
               max={layout.divider.max}
               value={layout.divider.position}
               onValueChange={layout.resizeMain}
-              style={{ left: layout.divider.position, ...layout.stackingStyle }}
+              style={{
+                left: layout.divider.position + tileGap / 2,
+                ...layout.stackingStyle,
+              }}
             />
           ) : null}
         </MaosaicoRegion>

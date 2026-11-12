@@ -417,7 +417,7 @@ export function SystemSettings({
                     </SectionHeading>
                     <TabsList
                       variant="segmented"
-                      className="ml-auto w-auto"
+                      className="tourtois-settings-tabs-end w-auto"
                       hidden={
                         !selected || (desktopOnly && AppAdvanced === undefined)
                       }
@@ -446,7 +446,7 @@ export function SystemSettings({
                       <TabsContent
                         value="permissions"
                         forceMount
-                        className="mt-0 flex min-h-0 flex-1 flex-col"
+                        className="flex min-h-0 flex-1 flex-col"
                       >
                         <div
                           className="tourtois-settings-permissions"
@@ -462,7 +462,7 @@ export function SystemSettings({
                     <TabsContent
                       value="desktop"
                       forceMount
-                      className="mt-0 flex min-h-0 flex-1 flex-col"
+                      className="flex min-h-0 flex-1 flex-col"
                     >
                       {selected && desktop && desktopOnly ? (
                         <AppCallPermissions
@@ -483,7 +483,7 @@ export function SystemSettings({
                       <TabsContent
                         value="advanced"
                         forceMount
-                        className="mt-0 flex min-h-0 flex-1 flex-col"
+                        className="flex min-h-0 flex-1 flex-col"
                       >
                         <AppAdvanced
                           selectedKey={appKey}

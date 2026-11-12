@@ -26,10 +26,7 @@ export function WorkbenchAppBar({
             aria-label="Switch open Apps"
             title="Switch open Apps"
           >
-            <span
-              aria-hidden="true"
-              className="grid size-5 place-items-center [&_svg]:size-full"
-            >
+            <span aria-hidden="true" className="tourtois-switcher-icon">
               {props.windows.find((item) => item.active)?.icon ?? (
                 <PanelsTopLeft />
               )}
@@ -45,10 +42,7 @@ export function WorkbenchAppBar({
                 aria-current={item.active ? "page" : undefined}
                 onSelect={item.onSelect}
               >
-                <span
-                  aria-hidden="true"
-                  className="grid size-7 shrink-0 place-items-center [&_svg]:size-5"
-                >
+                <span aria-hidden="true" className="tourtois-switcher-row-icon">
                   {item.icon}
                 </span>
                 <span className="flex-1">{item.label}</span>

@@ -325,7 +325,7 @@ function KeysContent({
           <p className="tourtois-settings-lede">
             Copy this key now. It is shown once and cannot be retrieved later.
           </p>
-          <code className="break-all">{issued.plaintext}</code>
+          <code className="tourtois-issued-key">{issued.plaintext}</code>
           <div className="tourtois-settings-notice">
             <Button
               size="sm"

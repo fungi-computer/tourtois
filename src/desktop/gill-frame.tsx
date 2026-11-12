@@ -58,9 +58,7 @@ export function GillFrame({
       heading={
         appHeader ? (
           <span className="flex min-w-0 items-center gap-sm">
-            <span className="inline-flex size-5 shrink-0 [&_:is(svg,.caps-monogram)]:size-5">
-              {appHeader.icon}
-            </span>
+            <span className="tourtois-gill-frame-icon">{appHeader.icon}</span>
             <span className="truncate">{appHeader.name}</span>
           </span>
         ) : (

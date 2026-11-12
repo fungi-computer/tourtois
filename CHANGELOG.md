@@ -1,5 +1,24 @@
 # @fungi.computer/tourtois
 
+## 0.15.0
+
+### Minor Changes
+
+- Changes since 0.14.1:
+
+  - fix(inkcap): label the Explorer File menu entry Show Files
+  - feat(inkcap): add Open File and Save As to the File menu
+  - fix(inkcap): forward the leader and window-focus chords from App frames, fix
+    the tab strip
+  - fix(tourtois): give every class a rule and guard against unscanned utilities
+  - fix(tourtois): show the phone switcher icon and seat the tile divider in the
+    gap
+
+### Patch Changes
+
+- Updated dependencies
+  - @fungi.computer/nacre@0.5.2
+
 ## 0.14.1
 
 ### Patch Changes

@@ -30,7 +30,7 @@ export function AppCallPermissions({
           </DataRow>
         ))}
       </DataList>
-      <p className="mt-1 text-xs">
+      <p className="tourtois-call-permissions-note text-xs">
         Calls use your permissions in the other App. Renamed target methods need
         approval again.
       </p>

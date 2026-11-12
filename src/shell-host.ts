@@ -21,7 +21,10 @@ import {
   type WorkbenchGillRequest,
   type WorkbenchGillWatch,
 } from "@fungi.computer/nacre/workbench";
-import { createAppSurfaceCommandHost } from "@fungi.computer/nacre/command-host";
+import {
+  commandPaletteReservedChordForUserAgent,
+  createAppSurfaceCommandHost,
+} from "@fungi.computer/nacre/command-host";
 import * as Schema from "effect/Schema";
 import { type PlatformControls } from "./platform-controls.js";
 import type { GillReply } from "@fungi.computer/gills";
@@ -226,6 +229,19 @@ export type TourtoisShell = Readonly<{
   host: TourtoisAppSurfaceHost;
 }>;
 
+/** The reserved chord id that opens the leader list. */
+const leaderChordId = commandPaletteReservedChordForUserAgent("").id;
+
+/**
+ * Take keyboard focus back from the App frame that sent the leader chord. The
+ * frame keeps focus until the leader list's dialog opens, so a fast next key
+ * would otherwise be typed into the App instead of choosing a leader key.
+ */
+function releaseFrameFocus(): void {
+  const active = document.activeElement;
+  if (active instanceof HTMLIFrameElement) active.blur();
+}
+
 export function createTourtoisShell(
   workbench: TeamWorkbenchHostHandle,
 ): TourtoisShell {
@@ -290,8 +306,10 @@ export function createTourtoisShell(
             ),
         });
       },
-      onReservedChord: (input) =>
-        commandMount.handlers.invokeReservedChord(input),
+      onReservedChord: (input) => {
+        if (input.id === leaderChordId) releaseFrameFocus();
+        return commandMount.handlers.invokeReservedChord(input);
+      },
       onFocus: (focused) => {
         if (focused) {
           commands.focus(launch.surfaceId);

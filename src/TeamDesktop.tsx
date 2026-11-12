@@ -6,6 +6,7 @@ import { MaosaicoRoot } from "@fungi.computer/maosaico";
 import { useEffect, useRef, useState } from "react";
 import type { ComputerOption } from "./app-launch.js";
 import { AppWorkbench } from "./AppWorkbench.js";
+import { tileGap } from "./tile-gap.js";
 import { WelcomeProvider } from "./desktop/welcome.js";
 import type { SettingsLocation } from "./settings-routes.js";
 import type { ReactNode } from "react";
@@ -96,7 +97,10 @@ export function TeamTourtois({
             containerRef={paneLayerRef}
             tiling={
               tiled || phone
-                ? { mainSize: Math.max(0, Math.min(640, bounds.width)), gap: 8 }
+                ? {
+                    mainSize: Math.max(0, Math.min(640, bounds.width)),
+                    gap: tileGap,
+                  }
                 : undefined
             }
           >
