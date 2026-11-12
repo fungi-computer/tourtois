@@ -1,5 +1,19 @@
 # @fungi.computer/tourtois
 
+## 0.14.1
+
+### Patch Changes
+
+- Changes since 0.14.0:
+
+  - fix(window): keep a stable Back and Forward slot and pair their chords
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/caps@0.11.1
+  - @fungi.computer/nacre@0.5.1
+  - @fungi.computer/parakeet@0.11.19
+
 ## 0.14.0
 
 ### Minor Changes

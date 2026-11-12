@@ -434,6 +434,9 @@ export function AppWorkbench({
     back: () => {
       if (activeId) goBack(activeId);
     },
+    forward: () => {
+      if (activeId) goForward(activeId);
+    },
   });
   useEffect(() => {
     appSurfaceHost?.focus?.(activeSurfaceId);

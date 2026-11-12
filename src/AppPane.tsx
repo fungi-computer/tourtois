@@ -302,15 +302,17 @@ function AppWindowControls({
   );
 }
 
-/** Back and Forward for an App that keeps history; neither for one that does not. */
+/**
+ * Back and Forward for an App that publishes navigation, disabled while it
+ * cannot move, so the title keeps its place; none for one that never does.
+ */
 function historyProps(
   navigation: AppNavigationState | null,
   title: string,
   onBack: () => void,
   onForward: () => void,
 ): Pick<ComponentProps<typeof WindowHeader>, "back" | "forward"> {
-  if (navigation === null || !(navigation.canGoBack || navigation.canGoForward))
-    return {};
+  if (navigation === null) return {};
   return {
     back: {
       label: `Back in ${title}`,

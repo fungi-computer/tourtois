@@ -4,6 +4,7 @@ import type { WhistleCommand, WhistleSnapshot } from "@fungi.computer/whistle";
 import { Sigil, isSigilName } from "@fungi.computer/sigils";
 import {
   backBinding,
+  forwardBinding,
   shellCommands,
   type ShellActions,
 } from "@fungi.computer/nacre/commands";
@@ -19,15 +20,20 @@ import type { TourtoisAppSurfaceHost } from "./app-surface.js";
 import { AppIcon } from "./app-icon.js";
 import { installShellKeys } from "@fungi.computer/nacre/keys";
 
-/** The Back hint for this platform, e.g. "Back (Ctrl K, then [)". */
-export function backHint(): string {
-  const key = backBinding.slice("<leader>".length);
-  return `Back (${isMac() ? "⌘K" : "Ctrl K"}, then ${key})`;
+/** A tooltip naming the leader chord for `binding`, e.g. "Back (Ctrl K, then [)". */
+function chordHint(name: string, binding: string): string {
+  const key = binding.slice("<leader>".length);
+  return `${name} (${isMac() ? "⌘K" : "Ctrl K"}, then ${key})`;
 }
 
-/** The Forward hint for this platform; the App maps these keys itself. */
+/** The Back hint for this platform. */
+export function backHint(): string {
+  return chordHint("Back", backBinding);
+}
+
+/** The Forward hint for this platform, the matching chord to Back's. */
 export function forwardHint(): string {
-  return isMac() ? "Forward (⌘])" : "Forward (Alt+→)";
+  return chordHint("Forward", forwardBinding);
 }
 
 const emptySnapshot: WhistleSnapshot = Object.freeze({
@@ -51,9 +57,13 @@ function isMac(): boolean {
  */
 export function useShellCommands(
   host: TourtoisAppSurfaceHost | null,
-  actions: Omit<ShellActions, "showKeys" | "showCommandLine" | "back"> &
+  actions: Omit<
+    ShellActions,
+    "showKeys" | "showCommandLine" | "back" | "forward"
+  > &
     Readonly<{
       back: () => void;
+      forward: () => void;
       showDesktop: () => Promise<void>;
     }>,
 ): ShellCommandState {
@@ -99,6 +109,9 @@ export function useShellCommands(
         back: () => {
           latest.current.back();
         },
+        forward: () => {
+          latest.current.forward();
+        },
       }),
       {
         id: "desktop.show",
@@ -107,9 +120,9 @@ export function useShellCommands(
         description:
           "Hide visible Apps, or restore the Apps hidden by Show desktop.",
         projections: {
-          bindings: { values: ["<leader>d"], order: 8 },
+          bindings: { values: ["<leader>d"], order: 9 },
           palette: { order: 18 },
-          help: { order: 8 },
+          help: { order: 9 },
         },
         handler: async () => {
           setKeysOpen(false);
