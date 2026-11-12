@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
-import type { AppStorage } from "@fungi.computer/agar/storage";
+import { AppStorageError, type AppStorage } from "@fungi.computer/agar/storage";
 import type { AppDirectoryApp } from "./app-launch.js";
 import type { AppLaunchDescriptor, AppWindowManager } from "./app-windows.js";
 
@@ -18,9 +18,15 @@ export const windowSessionSchema = z.object({
   tiled: z.boolean(),
   /** The focused window's surface, raised last so it stays on top. */
   active: z.string().nullable(),
-  /** Open windows in tiling order; minimized windows are not kept. */
+  /** Open windows in tiling order, minimized ones included. */
   windows: z
-    .array(z.object({ surfaceId: z.string().min(1), frame: frameSchema }))
+    .array(
+      z.object({
+        surfaceId: z.string().min(1),
+        frame: frameSchema,
+        minimized: z.boolean().default(false),
+      }),
+    )
     .max(16),
 });
 
@@ -53,25 +59,21 @@ export const cascade = (index: number): WindowPlacement => ({
 export function windowSessionFrom(
   snapshot: WindowSessionSnapshot,
 ): WindowSession {
-  const windows = snapshot.windows.flatMap((item, index) =>
-    item.status === "minimized"
-      ? []
-      : [
-          {
-            surfaceId: item.surfaceId,
-            frame: {
-              ...(snapshot.frames.get(item.windowId) ?? cascade(index)),
-            },
-          },
-        ],
-  );
+  const windows = snapshot.windows.map((item, index) => ({
+    surfaceId: item.surfaceId,
+    frame: { ...(snapshot.frames.get(item.windowId) ?? cascade(index)) },
+    minimized: item.status === "minimized",
+  }));
   const active = snapshot.windows.find(
     (item) => item.windowId === snapshot.activeWindowId,
   );
   return windowSessionSchema.parse({
     tiled: snapshot.tiled,
     active:
-      active && windows.some((item) => item.surfaceId === active.surfaceId)
+      active &&
+      windows.some(
+        (item) => item.surfaceId === active.surfaceId && !item.minimized,
+      )
         ? active.surfaceId
         : null,
     windows: windows.slice(0, 16),
@@ -86,14 +88,20 @@ export function restorableLaunches<
   session: WindowSession,
   apps: readonly App[],
   launchFor: (app: App) => Launch | null,
-): readonly Readonly<{ launch: Launch; frame: WindowPlacement }>[] {
+): readonly Readonly<{
+  launch: Launch;
+  frame: WindowPlacement;
+  minimized: boolean;
+}>[] {
   return session.windows.flatMap((saved) => {
     const app = apps.find(
       (item) =>
         item.surfaceId === saved.surfaceId && !item.roles.includes("dashboard"),
     );
     const launch = app ? launchFor(app) : null;
-    return launch ? [{ launch, frame: saved.frame }] : [];
+    return launch
+      ? [{ launch, frame: saved.frame, minimized: saved.minimized }]
+      : [];
   });
 }
 
@@ -109,29 +117,27 @@ export function createWindowSessionStore(storage: AppStorage) {
       return parsed.success ? parsed.data : null;
     },
     save(session: WindowSession): Promise<void> {
+      const attempt = async () => {
+        const result = await storage.write({
+          key: windowSessionKey,
+          scope: "member",
+          basedOn: revision,
+          value: session,
+        });
+        revision = result.revision;
+      };
       const write = async () => {
         try {
-          const result = await storage.write({
-            key: windowSessionKey,
-            scope: "member",
-            basedOn: revision,
-            value: session,
-          });
-          revision = result.revision;
+          await attempt();
         } catch (cause) {
-          // Re-read the revision so the next change is not stuck on a
-          // conflict; a failed re-read is reported together with the write.
-          try {
-            const resolved = await storage.read(windowSessionKey);
-            revision = resolved.member?.revision ?? null;
-          } catch (readCause) {
-            throw new AggregateError(
-              [cause, readCause],
-              "Open windows could not be saved",
-              { cause: readCause },
-            );
-          }
-          throw cause;
+          // Another tab saved first. This tab's state is the current one, so
+          // take the stored revision and save over it once; anything else is a
+          // real failure.
+          if (!(cause instanceof AppStorageError) || cause.code !== "conflict")
+            throw cause;
+          const resolved = await storage.read(windowSessionKey);
+          revision = resolved.member?.revision ?? null;
+          await attempt();
         }
       };
       // Each save waits for the previous one to settle, then runs; the caller
@@ -188,7 +194,7 @@ export function useWindowSession(input: WindowSessionInput) {
         );
         for (const { launch, frame } of launches)
           seeds.current.set(launch.windowId, frame);
-        for (const { launch } of launches) {
+        for (const { launch, minimized } of launches) {
           if (
             current.manager
               .read()
@@ -196,6 +202,7 @@ export function useWindowSession(input: WindowSessionInput) {
           )
             continue;
           await current.manager.open(launch);
+          if (minimized) await current.manager.minimize(launch.windowId);
         }
         const active = session.active && windowIdFor(session.active);
         if (

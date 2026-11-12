@@ -1,5 +1,18 @@
 # @fungi.computer/tourtois
 
+## 0.15.3
+
+### Patch Changes
+
+- Changes since 0.15.2:
+
+  - fix(oyster): focus the picker search from the keyboard, list open apps,
+    restore minimized windows
+
+- Updated dependencies
+  - @fungi.computer/caps@0.11.3
+  - @fungi.computer/parakeet@0.11.21
+
 ## 0.15.2
 
 ### Patch Changes

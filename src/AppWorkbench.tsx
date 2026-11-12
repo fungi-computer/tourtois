@@ -209,6 +209,8 @@ export function AppWorkbench({
 }: AppWorkbenchProps) {
   const setSettingsLocation = platform.openSettings;
   const [appDialOpen, setAppDialOpen] = useState(false);
+  const appDialOpenRef = useRef(appDialOpen);
+  appDialOpenRef.current = appDialOpen;
   // The Layout menu's "Arrange desktop" command and the desktop's own
   // controls share one state: this is their common ancestor.
   const [desktopEditing, setDesktopEditing] = useState(false);
@@ -672,6 +674,19 @@ export function AppWorkbench({
     focusWindow,
     onError: setAppStatus,
   });
+  /** An App that is already open comes forward instead of opening twice. */
+  const bringForward = (windowId: string) => {
+    void appWindows
+      .restore(windowId)
+      .then(() => {
+        layout.zoom(null);
+        focusWindow(windowId);
+      })
+      .catch((cause: unknown) => {
+        console.error("App workbench operation failed", cause);
+        setAppStatus("App could not be restored.");
+      });
+  };
   const launchApp = (
     installation: AppDirectoryApp,
     requestedLaunch?: AppLaunchDescriptor,
@@ -739,14 +754,13 @@ export function AppWorkbench({
         label: installation.displayName ?? "App",
         icon: <AppIcon roles={installation.roles} icon={installation.icon} />,
         onSelect: () => {
-          launchApp(installation);
+          if (appProjection.windows.some((item) => item.windowId === windowId))
+            bringForward(windowId);
+          else launchApp(installation);
         },
       };
     });
-  const appLaunchers = launchableItems.filter(
-    (launcher) =>
-      !appProjection.windows.some((window) => window.windowId === launcher.id),
-  );
+  const appLaunchers = [...launchableItems];
   appLaunchers.push(
     ...settingsLaunchers.map((launcher) => {
       const item = {
@@ -1054,9 +1068,15 @@ export function AppWorkbench({
         }))}
         onStatus={setAppStatus}
         finalFocus={() =>
-          document.querySelector<HTMLButtonElement>(
-            ".caps-app-bar-launcher-button",
-          )
+          // Ctrl K then O opens the App dial as this dialog closes; focus goes
+          // to its search so typing filters, not back to the launcher button.
+          appDialOpenRef.current
+            ? document.querySelector<HTMLInputElement>(
+                ".caps-app-bar-launchers input[type='search']",
+              )
+            : document.querySelector<HTMLButtonElement>(
+                ".caps-app-bar-launcher-button",
+              )
         }
       />
     </div>
