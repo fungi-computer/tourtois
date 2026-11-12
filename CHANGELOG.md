@@ -1,5 +1,26 @@
 # @fungi.computer/tourtois
 
+## 0.15.2
+
+### Patch Changes
+
+- Changes since 0.15.1:
+
+  - fix(oyster): keep the launcher focus ring and arranged desktop from clipping
+    or shifting
+  - fix(oyster): keep the app picker solid and open, and update stale tourtois
+    proofs
+  - fix(oyster): keep the maosaico layout contract and track floating frames
+    from panes
+  - fix(oyster): export the window session input type its hook exposes
+  - fix(oyster): report a failed window session save instead of dropping it
+  - fix(oyster): filter the open app picker by typing and restore open windows
+    on reload
+
+- Updated dependencies
+  - @fungi.computer/caps@0.11.2
+  - @fungi.computer/parakeet@0.11.20
+
 ## 0.15.1
 
 ### Patch Changes

@@ -300,7 +300,7 @@ function ArrangedDesktop({
   const height = Math.max(0, ...frames.map((frame) => frame.y + frame.height));
   // Phones and arranging fit each card to its content. Otherwise cards that
   // share a row reach the tallest neighbour's bottom, so Inbox matches Launcher.
-  const evenRows = !props.phone && !editing;
+  const evenRows = !props.phone;
   const evenRowHeight = (id: string) => {
     const frame = binding.frames.get(id);
     const cell = placements.find((entry) => entry.id === id);

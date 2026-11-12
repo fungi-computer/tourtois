@@ -75,9 +75,10 @@
 .tourtois-launcher-more {
   display: flex;
   justify-content: flex-end;
-  /* Keep the keyboard outline inside the Gill body's scroll boundary. */
+  /* Keep the keyboard outline inside the Gill body's scroll boundary: the
+     button below pulls 0.75rem outward, so reserve that plus the outline. */
   padding: var(--spacing-sm);
-  padding-inline-end: 0;
+  padding-inline-end: calc(0.75rem + var(--spacing-sm));
   margin-block-start: var(--spacing-sm);
 }
 /* The ghost button's text, not its padding, lines up with Edit launcher. */

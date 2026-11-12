@@ -1,3 +1,4 @@
+import { cascade, type WindowPlacement } from "./window-session.js";
 import type { ReactNode } from "react";
 import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
 import { ResultState } from "@fungi.computer/caps/blocks/result-state";
@@ -335,6 +336,8 @@ export function AppPane({
   manager,
   onError,
   index,
+  seedFrame,
+  onFrame,
   focusWindow,
   afterHide,
   onBack,
@@ -348,6 +351,10 @@ export function AppPane({
   manager: ReturnType<typeof createAppWindowManager>;
   onError: (message: string) => void;
   index: number;
+  /** Where a restored window last sat; absent for a new window. */
+  seedFrame?: WindowPlacement | undefined;
+  /** Reports where the window floats, so the session can restore it. */
+  onFrame?: ((windowId: string, frame: WindowPlacement) => void) | undefined;
   focusWindow: (id: string) => void;
   afterHide: (id: string) => void;
   onBack: (id: string) => void;
@@ -380,17 +387,18 @@ export function AppPane({
   const binding = useMaosaicoItem(
     {
       id: projection.windowId,
-      frame: {
-        x: 24 + index * 40,
-        y: 24 + index * 32,
-        width: 600,
-        height: 480,
-      },
+      frame: seedFrame ?? cascade(index),
       minima: { width: 320, height: 360 },
     },
     { participating: projection.status !== "minimized" },
   );
   const layout = useMaosaicoLayout();
+  // The session keeps where each window floats; a tiled arrangement is not it.
+  const floating = layout.mode === "floating";
+  const { x, y, width, height } = binding.frame;
+  useEffect(() => {
+    if (floating) onFrame?.(projection.windowId, { x, y, width, height });
+  }, [floating, onFrame, projection.windowId, x, y, width, height]);
   const element = useWindowMotion(binding, layout.interacting, layout.bounds);
   const zoomed = layout.zoomedId === projection.windowId;
   const zoom = () => {

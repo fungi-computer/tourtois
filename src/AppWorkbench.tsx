@@ -70,6 +70,7 @@ import { Desktop } from "./desktop/Desktop.js";
 import type { DesktopLayoutClient } from "./desktop-client.js";
 import { useAppOpenUrlHandoff } from "./useAppOpenUrlHandoff.js";
 import { useAppWindowManager } from "./useAppWindowManager.js";
+import { useWindowSession } from "./window-session.js";
 
 import { useDirectoryCommands } from "./useDirectoryCommands.js";
 
@@ -308,6 +309,9 @@ export function AppWorkbench({
     (id: string) => {
       focus(id);
       requestAnimationFrame(() => {
+        // Focus the person moved into an open App dial since this request must
+        // stay there; landing in a window would dismiss the dial.
+        if (appDialContainer?.contains(document.activeElement)) return;
         const pane = [
           ...(paneLayerRef.current?.querySelectorAll<HTMLElement>(
             "[data-window-id]",
@@ -318,7 +322,7 @@ export function AppWorkbench({
           ?.focus();
       });
     },
-    [focus, paneLayerRef],
+    [appDialContainer, focus, paneLayerRef],
   );
   const afterHide = (id: string) => {
     if (layout.zoomedId === id) layout.zoom(null);
@@ -648,6 +652,26 @@ export function AppWorkbench({
   }, [appWindows, listedApps, initialComputerId, computers]);
 
   const directory = useMemo(() => listedApps ?? [], [listedApps]);
+  const windowSession = useWindowSession({
+    storage: desktopStorage,
+    manager: appWindows,
+    apps: listedApps,
+    launchFor: (app) => launchFor(app),
+    snapshot: {
+      tiled: mode === "tiled",
+      activeWindowId: activeId,
+      windows: appProjection.windows.map((item) => ({
+        windowId: item.windowId,
+        surfaceId: item.launch.surfaceId,
+        status: item.status,
+      })),
+    },
+    interacting: layout.interacting,
+    phone,
+    onTiledChange: onLayoutChange,
+    focusWindow,
+    onError: setAppStatus,
+  });
   const launchApp = (
     installation: AppDirectoryApp,
     requestedLaunch?: AppLaunchDescriptor,
@@ -969,6 +993,8 @@ export function AppWorkbench({
               <AppPane
                 key={projection.windowId}
                 index={index}
+                seedFrame={windowSession.seedFrame(projection.windowId)}
+                onFrame={windowSession.reportFrame}
                 focusWindow={focusWindow}
                 afterHide={afterHide}
                 onBack={goBack}

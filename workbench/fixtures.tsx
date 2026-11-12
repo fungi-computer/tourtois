@@ -373,7 +373,11 @@ export function createDesktopFixture(
       });
     },
   };
-  const storage = createDesktopStorageFixture();
+  const storage = createDesktopStorageFixture(
+    sessionStorage.getItem("tourtois-fixture:persist") === "1"
+      ? { persist: sessionStorage }
+      : {},
+  );
   return {
     storage,
     methods: createDesktopMethodsFixture(storage, () =>
