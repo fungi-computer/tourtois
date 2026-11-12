@@ -32,6 +32,10 @@ import {
   createOysterComputersPort,
 } from "./OysterComputers.js";
 import {
+  DiscordChannels,
+  createOysterDiscordChannelsPort,
+} from "./DiscordChannels.js";
+import {
   WebsiteChannels,
   createOysterWebsiteChannelsPort,
   type WebsiteChannelsCopy,
@@ -443,8 +447,13 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
   const websitesPort = createOysterWebsiteChannelsPort(
     new URL(window.location.origin),
   );
+  const discordPort = createOysterDiscordChannelsPort(
+    new URL(window.location.origin),
+  );
   const channels = () => (
-    <WebsiteChannels port={websitesPort} copy={oysterWebsiteCopy} />
+    <WebsiteChannels port={websitesPort} copy={oysterWebsiteCopy}>
+      <DiscordChannels port={discordPort} />
+    </WebsiteChannels>
   );
   const setup = createOysterSetupPort({
     readFacts: async () => oysterSetupSchema.parse(await json("/api/setup")),

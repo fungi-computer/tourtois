@@ -35,6 +35,7 @@ import { Sigil } from "@fungi.computer/sigils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import * as z from "zod";
+import { ChannelConversations } from "./ChannelConversations.js";
 import { tourtoisQueryKeys } from "./queries.js";
 import { requestIds } from "./team-directory.js";
 
@@ -807,107 +808,28 @@ function WebsiteRow({
             </DataList>
             {notice}
             {patch.isError ? <p role="alert">{patch.error.message}</p> : null}
-            <Conversations port={port} site={site} />
+            <ChannelConversations
+              keys={{
+                list: tourtoisQueryKeys.websiteConversations(
+                  port.scope,
+                  site.bindingId,
+                ),
+                transcript: (sessionId) =>
+                  tourtoisQueryKeys.websiteTranscript(
+                    port.scope,
+                    site.bindingId,
+                    sessionId,
+                  ),
+              }}
+              load={() => port.conversations(site)}
+              read={(sessionId) => port.transcript(site, sessionId)}
+              speaker="Visitor"
+              empty="No visitor has written yet."
+              label="Website conversations"
+            />
           </div>
         ) : null}
       </div>
     </DataRow>
-  );
-}
-
-function Conversations({
-  port,
-  site,
-}: {
-  port: WebsiteChannelsPort;
-  site: WebsiteSite;
-}) {
-  const { bindingId } = site;
-  const [shown, setShown] = useState(false);
-  const [reading, setReading] = useState<string | null>(null);
-  const list = useQuery({
-    queryKey: tourtoisQueryKeys.websiteConversations(port.scope, bindingId),
-    enabled: shown,
-    retry: false,
-    queryFn: () => port.conversations(site),
-  });
-  const transcript = useQuery({
-    queryKey: tourtoisQueryKeys.websiteTranscript(
-      port.scope,
-      bindingId,
-      reading ?? "",
-    ),
-    enabled: reading !== null,
-    retry: false,
-    queryFn: () =>
-      reading === null
-        ? Promise.reject(new Error("No conversation is open"))
-        : port.transcript(site, reading),
-  });
-  return (
-    <section className="grid gap-sm" aria-label="Conversations">
-      <DataListHeading level={3}>Conversations</DataListHeading>
-      {shown ? null : (
-        <KeycapButton
-          density="compact"
-          label="Show conversations"
-          onClick={() => {
-            setShown(true);
-          }}
-        />
-      )}
-      {list.isPending && shown ? <p role="status">Loading…</p> : null}
-      {list.isError ? (
-        <p role="alert">Conversations could not be loaded.</p>
-      ) : null}
-      {list.data?.length === 0 ? (
-        <p className="text-sm">No visitor has written yet.</p>
-      ) : null}
-      {list.data !== undefined && list.data.length > 0 ? (
-        <DataList density="compact" aria-label="Website conversations">
-          {list.data.map((conversation) => (
-            <FactRow key={conversation.sessionId} label={conversation.label}>
-              <span className="flex flex-wrap items-center gap-sm">
-                <span className="text-sm">
-                  {new Date(conversation.lastEventAt).toLocaleString()}
-                </span>
-                <KeycapButton
-                  density="compact"
-                  label={
-                    reading === conversation.sessionId
-                      ? "Close transcript"
-                      : "Read transcript"
-                  }
-                  aria-label={`${reading === conversation.sessionId ? "Close" : "Read"} transcript of ${conversation.label}`}
-                  onClick={() => {
-                    setReading(
-                      reading === conversation.sessionId
-                        ? null
-                        : conversation.sessionId,
-                    );
-                  }}
-                />
-              </span>
-            </FactRow>
-          ))}
-        </DataList>
-      ) : null}
-      {reading !== null && transcript.isPending ? (
-        <p role="status">Loading…</p>
-      ) : null}
-      {transcript.isError ? (
-        <p role="alert">This conversation could not be read.</p>
-      ) : null}
-      {reading !== null && transcript.data ? (
-        <ol aria-label="Transcript" className="grid gap-xs">
-          {transcript.data.lines.map((line, index) => (
-            <li key={`${String(index)}-${line.role}`} className="text-sm">
-              <strong>{line.role === "visitor" ? "Visitor" : "Agent"}:</strong>{" "}
-              {line.text}
-            </li>
-          ))}
-        </ol>
-      ) : null}
-    </section>
   );
 }

@@ -11,6 +11,17 @@ import { desktopSettingsHandler } from "../src/desktop/consent.js";
 import { SystemSettings } from "../src/SystemSettings.js";
 import type { SettingsLocation } from "../src/settings-routes.js";
 import { workbenchPorts } from "./host-ports.js";
+import type { SettingsSectionPorts } from "../src/settings-sections.js";
+import {
+  DiscordChannels,
+  type DiscordBinding,
+  type DiscordChannelsPort,
+} from "../src/DiscordChannels.js";
+import {
+  WebsiteChannels,
+  type WebsiteChannelsPort,
+  type WebsiteSite,
+} from "../src/WebsiteChannels.js";
 import type { KeysPort } from "../src/Keys.js";
 import type { ConnectionsPort, ConnectionsView } from "../src/Connections.js";
 import type { KeySummary } from "@fungi.computer/ear-tag/keys";
@@ -23,6 +34,7 @@ export default { title: "Desktop / System Settings" } satisfies StoryDefault;
 function settings(
   initial: SettingsLocation,
   state: "full" | "icons" | "calls" = "full",
+  ports: SettingsSectionPorts = workbenchPorts,
 ): Story {
   const fixture = createDesktopFixture();
   const Story: Story = () => {
@@ -116,7 +128,7 @@ function settings(
             setLocation(null);
           }}
           restoreFocus={false}
-          ports={workbenchPorts}
+          ports={ports}
         />
       </QueryClientProvider>
     );
@@ -138,6 +150,125 @@ export const DesktopGills = settings({
 export const MemberCallsOnOyster = settings(
   { category: "apps", appKey: "default:inkcap", section: "desktop" },
   "calls",
+);
+
+// Channels are a host port: the story supplies in-memory Website and Discord ones.
+const channelsFixtureSite: WebsiteSite = {
+  bindingId: "chb_site",
+  agentId: "agent_fern",
+  selector: {
+    provider: "web",
+    siteKey: "site_pk_story",
+    origins: ["https://shop.example"],
+  },
+  lifecycle: "active",
+  authorityVersion: 1,
+  persona: "",
+};
+const channelsFixtureDiscord: DiscordBinding = {
+  bindingId: "chb_discord",
+  agentId: "agent_fern",
+  selector: {
+    provider: "discord",
+    applicationId: "1234567890123456789",
+    publicKey: "ab".repeat(32),
+    guildIds: ["2345678901234567890"],
+    channelIds: [],
+  },
+  lifecycle: "active",
+  authorityVersion: 1,
+  persona: "",
+};
+const channelsFixtureAgents = [{ agentId: "agent_fern", name: "Fern" }];
+const channelsWebsitePort: WebsiteChannelsPort = {
+  scope: "story-channels",
+  read: () =>
+    Promise.resolve({
+      embedOrigin: "https://my-oyster.example",
+      agents: channelsFixtureAgents,
+      sites: [channelsFixtureSite],
+    }),
+  create: () => Promise.resolve(channelsFixtureSite),
+  update: () => Promise.resolve(channelsFixtureSite),
+  conversations: () => Promise.resolve([]),
+  transcript: (_site, sessionId) =>
+    Promise.resolve({ sessionId, label: "Visitor", lines: [] }),
+};
+const channelsDiscordPort: DiscordChannelsPort = {
+  scope: "story-channels",
+  read: () =>
+    Promise.resolve({
+      interactionsOrigin: "https://my-oyster.example",
+      agents: channelsFixtureAgents,
+      bindings: [channelsFixtureDiscord],
+    }),
+  create: () => Promise.resolve(channelsFixtureDiscord),
+  update: () => Promise.resolve(channelsFixtureDiscord),
+  registerCommands: () =>
+    Promise.resolve({ registered: ["2345678901234567890"], failed: [] }),
+  conversations: () =>
+    Promise.resolve([
+      {
+        sessionId: "session_discord_a",
+        label: "Ava",
+        lastEventAt: Date.UTC(2026, 10, 12, 18, 30),
+      },
+      {
+        sessionId: "session_discord_b",
+        label: "@bram",
+        lastEventAt: Date.UTC(2026, 10, 11, 9, 5),
+      },
+    ]),
+  undelivered: () =>
+    Promise.resolve([
+      {
+        interactionId: "1234567890123456789",
+        label: "Bram",
+        state: "failed" as const,
+        closedAt: Date.UTC(2026, 10, 12, 19, 5),
+      },
+      {
+        interactionId: "1234567890123456780",
+        label: "Discord member",
+        state: "expired" as const,
+        closedAt: Date.UTC(2026, 10, 11, 8, 40),
+      },
+    ]),
+  transcript: (_binding, sessionId) =>
+    Promise.resolve({
+      sessionId,
+      label: "Ava",
+      lines: [
+        { role: "visitor", text: "Which fern likes shade?" },
+        { role: "agent", text: "A holly fern does well in deep shade." },
+        { role: "visitor", text: "How often should I water it?" },
+        { role: "agent", text: "Weekly, and let the top inch dry out first." },
+      ],
+    }),
+};
+const channelsPorts: SettingsSectionPorts = {
+  ...workbenchPorts,
+  channels: () => (
+    <WebsiteChannels
+      port={channelsWebsitePort}
+      copy={{
+        intro: (
+          <p className="text-sm">
+            Put a chat with one of your Agents on a website you run.
+          </p>
+        ),
+        visitors: (agent) => `A chat with ${agent}.`,
+        reach: (agent) => `Visitors talk to ${agent} itself.`,
+      }}
+    >
+      <DiscordChannels port={channelsDiscordPort} />
+    </WebsiteChannels>
+  ),
+};
+export const ChannelsOnOyster = settings(
+  { category: "channels" },
+  "full",
+  channelsPorts,
 );
 
 // The Keys page is a host port: the story supplies an in-memory one.

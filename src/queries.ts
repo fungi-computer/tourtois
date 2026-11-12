@@ -12,6 +12,21 @@ export const tourtoisQueryKeys = {
     ["tourtois", "oyster-keep-awake", teamId, computerId] as const,
   oysterEgressPolicy: (teamId: string) =>
     ["tourtois", "oyster-egress-policy", teamId] as const,
+  discordChannels: (scope: string) =>
+    ["tourtois", "discord-channels", scope] as const,
+  discordConversations: (scope: string, bindingId: string) =>
+    [...tourtoisQueryKeys.discordChannels(scope), bindingId] as const,
+  discordUndelivered: (scope: string, bindingId: string) =>
+    [
+      ...tourtoisQueryKeys.discordChannels(scope),
+      "undelivered",
+      bindingId,
+    ] as const,
+  discordTranscript: (scope: string, bindingId: string, sessionId: string) =>
+    [
+      ...tourtoisQueryKeys.discordConversations(scope, bindingId),
+      sessionId,
+    ] as const,
   websiteChannels: (scope: string) =>
     ["tourtois", "website-channels", scope] as const,
   websiteConversations: (scope: string, bindingId: string) =>

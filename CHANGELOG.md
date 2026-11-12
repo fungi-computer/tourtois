@@ -1,5 +1,27 @@
 # @fungi.computer/tourtois
 
+## 0.17.0
+
+### Minor Changes
+
+- Changes since 0.16.0:
+
+  - feat(oyster): split long Discord answers and say why a reply failed
+  - fix(tourtois): open a transcript under the conversation it belongs to
+  - feat(oyster): show a Discord member's name, never their id
+  - feat(tourtois): read Discord conversations in the Channels view
+  - fix(tourtois): export the types the Discord channels port exposes
+  - feat(tourtois): add a Discord section to the Channels view
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.10.1
+  - @fungi.computer/shiitake@0.14.0
+  - @fungi.computer/nacre@0.5.3
+  - @fungi.computer/parakeet@0.11.22
+
 ## 0.16.0
 
 ### Minor Changes

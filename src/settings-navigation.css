@@ -129,6 +129,39 @@
   min-width: 0;
 }
 
+/* A conversation is one column: its line, then its transcript when open. */
+.tourtois-conversation {
+  display: grid;
+  flex: 1;
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+
+/* A conversation line: its name gets the room, its date and button wrap below
+   when the line is narrow. */
+.tourtois-conversation-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs) var(--spacing-md);
+  min-width: 0;
+}
+/* An open transcript sits inside its own row, under the name it belongs to. */
+.tourtois-conversation-transcript {
+  display: grid;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+  min-width: 0;
+}
+.tourtois-conversation-name {
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 500;
+}
+
 /* The Settings panel owns scrolling; its GitHub contents retain their natural
    height rather than shrinking the form and feedback inside the flex column. */
 .tourtois-github-settings > * {
