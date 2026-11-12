@@ -357,6 +357,7 @@ function keysStory(
                   keys: [],
                   agents: [],
                   models: "missing",
+                  providers: modelKeyProviderFixture,
                   catalogs: {},
                 }),
               addKey: () => Promise.resolve(),
@@ -375,6 +376,28 @@ export const KeysFull = keysStory();
 export const KeysEmpty = keysStory("empty");
 export const ModelSetup = keysStory("empty", "model");
 export const ImageSetup = keysStory("empty", "media");
+
+// The host owns this list; the workbench has no host, so it shows a copy.
+const modelKeyProviderFixture = [
+  {
+    id: "cloudflare-workers-ai",
+    label: "Cloudflare Workers AI",
+    accountId: true,
+  },
+  ...Object.entries({
+    anthropic: "Anthropic",
+    openai: "OpenAI",
+    openrouter: "OpenRouter",
+    google: "Google Gemini",
+    xai: "xAI",
+    groq: "Groq",
+    mistral: "Mistral",
+    deepseek: "DeepSeek",
+    cerebras: "Cerebras",
+    together: "Together AI",
+    moonshotai: "Moonshot AI",
+  }).map(([id, label]) => ({ id, label, accountId: false })),
+];
 
 // Standalone Connectors: in-memory connections.
 function connectorsStory(): Story {

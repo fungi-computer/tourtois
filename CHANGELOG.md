@@ -1,5 +1,14 @@
 # @fungi.computer/tourtois
 
+## 0.16.0
+
+### Minor Changes
+
+- Changes since 0.15.3:
+
+  - fix(model-keys): lint the provider fixture in the workbench story
+  - feat(model-keys): connect every API-key provider Pi ships from one list
+
 ## 0.15.3
 
 ### Patch Changes

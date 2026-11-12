@@ -22,19 +22,14 @@ import { useCallback, useMemo, useState } from "react";
 import * as z from "zod";
 import { SettingsItem } from "./settings-item.js";
 
-const providers = {
-  "cloudflare-workers-ai": "Cloudflare Workers AI",
-  anthropic: "Anthropic",
-  openai: "OpenAI",
-  openrouter: "OpenRouter",
-} as const;
-export type Provider = keyof typeof providers;
-const providerSchema = z.enum([
-  "cloudflare-workers-ai",
-  "anthropic",
-  "openai",
-  "openrouter",
-]);
+/** A provider the host offers; the host owns the list and the client only shows it. */
+const providerChoiceSchema = z.strictObject({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  accountId: z.boolean(),
+});
+export type Provider = string;
+const providerSchema = z.string().min(1);
 
 /** One stored key as the host lists it; the secret never comes back. */
 const modelKeySchema = z.strictObject({
@@ -57,6 +52,7 @@ const agentChoiceSchema = z.strictObject({
 export const modelKeysViewSchema = z.strictObject({
   keys: z.array(modelKeySchema),
   models: z.enum(["ready", "missing", "unknown"]),
+  providers: z.array(providerChoiceSchema).min(1),
   catalogs: z.partialRecord(
     providerSchema,
     z.array(
@@ -96,6 +92,12 @@ export type ModelKeysPort = Readonly<{
   removeKey(keyId: string): Promise<void>;
   chooseModel(agentId: string, draft: AgentModelChoiceDraft): Promise<void>;
 }>;
+
+/** Provider label from the host's list; an unlisted provider shows its id. */
+const providerLabel = (
+  providers: ModelKeysView["providers"],
+  id: Provider,
+): string => providers.find((choice) => choice.id === id)?.label ?? id;
 
 const queryKey = ["tourtois", "model-keys"] as const;
 const defaultSource = "default";
@@ -170,7 +172,9 @@ export function ModelKeys({
                 <SettingsItem
                   icon={<Sigil name="restricted" />}
                   title={key.label}
-                  detail={<p>{providers[key.provider]}</p>}
+                  detail={
+                    <p>{providerLabel(view.data.providers, key.provider)}</p>
+                  }
                   actions={
                     <KeycapButton
                       density="compact"
@@ -192,6 +196,7 @@ export function ModelKeys({
           ) : null}
           <AddModelKey
             key={formKey}
+            providers={view.data.providers}
             onAdd={async (draft) => {
               await port.addKey(draft);
               await refresh();
@@ -252,6 +257,7 @@ export function ModelKeys({
               key={keys.map((key) => key.keyId).join(":")}
               agents={agents}
               keys={keys}
+              providers={view.data.providers}
               catalogs={view.data.catalogs}
               models={view.data.models}
               onChoose={async (agentId, draft) => {
@@ -267,10 +273,14 @@ export function ModelKeys({
 }
 
 function AddModelKey({
+  providers,
   onAdd,
 }: {
+  providers: ModelKeysView["providers"];
   onAdd: (draft: ModelKeyDraft) => Promise<void>;
 }) {
+  const needsAccountId = (provider: Provider) =>
+    providers.find((choice) => choice.id === provider)?.accountId === true;
   const schema = useMemo(
     () =>
       z.object({
@@ -279,7 +289,9 @@ function AddModelKey({
             label: "Provider",
             icon: <Sigil name="internet" />,
             kind: "select",
-            options: providers,
+            options: Object.fromEntries(
+              providers.map((choice) => [choice.id, choice.label]),
+            ),
           }),
         ),
         label: z
@@ -318,13 +330,13 @@ function AddModelKey({
             }),
           ),
       }),
-    [],
+    [providers],
   );
   const add = useMutation({ mutationFn: onAdd });
   const model = useSchemaForm({
     schema,
     defaultValues: {
-      provider: "cloudflare-workers-ai",
+      provider: providers[0]?.id ?? "",
       label: "",
       apiKey: "",
       accountId: "",
@@ -332,7 +344,7 @@ function AddModelKey({
     onSubmit: async (value) => {
       try {
         if (
-          value.provider === "cloudflare-workers-ai" &&
+          needsAccountId(value.provider) &&
           !/^[a-f0-9]{32}$/u.test(value.accountId)
         )
           return {
@@ -347,7 +359,7 @@ function AddModelKey({
           apiKey: value.apiKey,
         };
         await add.mutateAsync(
-          value.provider === "cloudflare-workers-ai"
+          needsAccountId(value.provider)
             ? { ...draft, accountId: value.accountId }
             : draft,
         );
@@ -382,7 +394,7 @@ function AddModelKey({
           <FormFields
             model={model}
             names={
-              provider === "cloudflare-workers-ai"
+              needsAccountId(provider)
                 ? ["provider", "label", "accountId", "apiKey"]
                 : ["provider", "label", "apiKey"]
             }
@@ -397,12 +409,14 @@ function AddModelKey({
 function ChooseAgentModel({
   agents,
   keys,
+  providers,
   catalogs,
   models,
   onChoose,
 }: {
   agents: ModelKeysView["agents"];
   keys: ModelKeysView["keys"];
+  providers: ModelKeysView["providers"];
   catalogs: ModelKeysView["catalogs"];
   models: ModelKeysView["models"];
   onChoose: (agentId: string, draft: AgentModelChoiceDraft) => Promise<void>;
@@ -503,7 +517,7 @@ function ChooseAgentModel({
             </option>
             {keys.map((key) => (
               <option key={key.keyId} value={key.keyId}>
-                {key.label} ({providers[key.provider]})
+                {key.label} ({providerLabel(providers, key.provider)})
               </option>
             ))}
           </Select>
