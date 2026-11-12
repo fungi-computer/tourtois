@@ -244,6 +244,7 @@ export const UnattachedInkcap: Story = () => {
                   focusWindow={() => undefined}
                   afterHide={() => undefined}
                   onBack={() => undefined}
+                  onForward={() => undefined}
                   onChooseComputer={() => undefined}
                   onSelectComputer={(windowId, computerId) => {
                     void attachWindowComputer(

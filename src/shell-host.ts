@@ -101,6 +101,7 @@ const relayCommands = (maximum: number) =>
 const navigationRelaySchema = z
   .strictObject({
     canGoBack: z.boolean(),
+    canGoForward: z.boolean(),
     title: z.string().trim().min(1).max(APP_NAVIGATION_TITLE_MAX).optional(),
     crumbs: z
       .array(
@@ -137,7 +138,10 @@ const navigationRelaySchema = z
 function parseNavigationRelay(value: unknown): AppNavigationState | null {
   const state = navigationRelaySchema.parse(value);
   if (state === null) return null;
-  let parsed: AppNavigationState = { canGoBack: state.canGoBack };
+  let parsed: AppNavigationState = {
+    canGoBack: state.canGoBack,
+    canGoForward: state.canGoForward,
+  };
   if (state.title !== undefined) parsed = { ...parsed, title: state.title };
   if (state.crumbs !== undefined)
     parsed = {
@@ -353,6 +357,7 @@ export function createTourtoisShell(
       reconfigure: (nextLaunch) => handle.reconfigure(childLaunch(nextLaunch)),
       requestClose: () => handle.requestClose(),
       requestBack: () => handle.requestBack(),
+      requestForward: () => handle.requestForward(),
       activateNavigation: (activation) => handle.activateNavigation(activation),
       activateStatus: (action) => handle.activateStatus(action),
       dispose: close,

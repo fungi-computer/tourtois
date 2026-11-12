@@ -1,5 +1,24 @@
 # @fungi.computer/tourtois
 
+## 0.14.0
+
+### Minor Changes
+
+- Changes since 0.13.4:
+
+  - feat(window): add in-App Forward to the window contract and title bar
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.10.0
+  - @fungi.computer/caps@0.11.0
+  - @fungi.computer/nacre@0.5.0
+  - @fungi.computer/parakeet@0.11.18
+  - @fungi.computer/shiitake@0.13.1
+
 ## 0.13.4
 
 ### Patch Changes

@@ -346,6 +346,11 @@ export function AppWorkbench({
       console.error("App workbench operation failed", cause);
     });
   };
+  const goForward = (windowId: string) => {
+    void appWindows.forward(windowId).catch((cause: unknown) => {
+      console.error("App workbench operation failed", cause);
+    });
+  };
   // The shell's window keys run through Whistle so /keys, the `:` line and
   // which-key list them; these are the behaviors behind those commands.
   const stepTarget = (step: -1 | 1) =>
@@ -962,6 +967,7 @@ export function AppWorkbench({
                 focusWindow={focusWindow}
                 afterHide={afterHide}
                 onBack={goBack}
+                onForward={goForward}
                 manager={appWindows}
                 projection={projection}
                 nextLaunch={app ? launchFor(app, projection.launch) : null}

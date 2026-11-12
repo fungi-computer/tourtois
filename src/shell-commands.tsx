@@ -25,6 +25,11 @@ export function backHint(): string {
   return `Back (${isMac() ? "⌘K" : "Ctrl K"}, then ${key})`;
 }
 
+/** The Forward hint for this platform; the App maps these keys itself. */
+export function forwardHint(): string {
+  return isMac() ? "Forward (⌘])" : "Forward (Alt+→)";
+}
+
 const emptySnapshot: WhistleSnapshot = Object.freeze({
   bindings: Object.freeze([]),
   palette: Object.freeze([]),

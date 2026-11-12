@@ -15,13 +15,34 @@ import {
   useRouterState,
   type RouterHistory,
 } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const seeds = [
   { id: "fern", name: "Fern", note: "Shade, damp soil, patience." },
   { id: "clover", name: "Clover", note: "Sun, any soil, spreads politely." },
   { id: "moss", name: "Moss", note: "Stone, mist, no hurry at all." },
 ] as const;
+
+/**
+ * TanStack Router can go forward but cannot say whether it can, so the demo
+ * counts the steps Back has taken since the last push.
+ */
+function useCanGoForward(history: RouterHistory): boolean {
+  const [steps, setSteps] = useState(0);
+  useEffect(
+    () =>
+      history.subscribe(({ action }) => {
+        setSteps((current) => {
+          if (action.type === "PUSH") return 0;
+          if (action.type === "BACK") return current + 1;
+          if (action.type === "FORWARD") return Math.max(0, current - 1);
+          return current;
+        });
+      }),
+    [history],
+  );
+  return steps > 0;
+}
 
 /**
  * The TanStack Router recipe: memory history, so the browser's own history
@@ -35,6 +56,7 @@ function HostBack({
   history: RouterHistory;
 }) {
   const canGoBack = useCanGoBack();
+  const canGoForward = useCanGoForward(history);
   const title = useRouterState({
     select: (state) => {
       const seed = seeds.find(
@@ -45,6 +67,12 @@ function HostBack({
   });
   useHostNavigation(navigation, {
     canGoBack,
+    canGoForward,
+    onForward: () => {
+      if (!canGoForward) return false;
+      history.forward();
+      return true;
+    },
     title,
     onBack: () => {
       if (!history.canGoBack()) return false;

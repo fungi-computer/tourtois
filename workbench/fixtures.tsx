@@ -38,6 +38,7 @@ import { mountLocalCommands } from "./local-commands.js";
 import { PagesDemo } from "./pages-demo.js";
 import type {
   AppBackHandler,
+  AppForwardHandler,
   AppRoot,
   AppStatusActionHandler,
   HostNavigation,
@@ -816,6 +817,7 @@ function createFixtureHost(
       // The demo App speaks the same navigation contract an iframe App
       // does; only the transport is local.
       let back: AppBackHandler | undefined;
+      let forward: AppForwardHandler | undefined;
       const navigation: HostNavigation = {
         publish: (state) => {
           events.onNavigationState?.(state);
@@ -826,6 +828,12 @@ function createFixtureHost(
           back = handler;
           return () => {
             if (back === handler) back = undefined;
+          };
+        },
+        onForward: (handler) => {
+          forward = handler;
+          return () => {
+            if (forward === handler) forward = undefined;
           };
         },
       };
@@ -984,6 +992,7 @@ function createFixtureHost(
         },
         requestClose: async () => (await inkcap?.requestClose()) ?? true,
         requestBack: async () => (await back?.()) ?? false,
+        requestForward: async () => (await forward?.()) ?? false,
         activateNavigation: () => Promise.resolve(false),
         activateStatus: async (action) =>
           (await statusAction?.(action)) ?? false,

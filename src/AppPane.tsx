@@ -40,7 +40,7 @@ import {
 import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { AppIcon } from "./app-icon.js";
 import { useWindowMotion } from "./use-window-motion.js";
-import { backHint } from "./shell-commands.js";
+import { backHint, forwardHint } from "./shell-commands.js";
 import {
   createAppWindowManager,
   type AppWindowProjection,
@@ -302,6 +302,31 @@ function AppWindowControls({
   );
 }
 
+/** Back and Forward for an App that keeps history; neither for one that does not. */
+function historyProps(
+  navigation: AppNavigationState | null,
+  title: string,
+  onBack: () => void,
+  onForward: () => void,
+): Pick<ComponentProps<typeof WindowHeader>, "back" | "forward"> {
+  if (navigation === null || !(navigation.canGoBack || navigation.canGoForward))
+    return {};
+  return {
+    back: {
+      label: `Back in ${title}`,
+      hint: backHint(),
+      disabled: !navigation.canGoBack,
+      onBack,
+    },
+    forward: {
+      label: `Forward in ${title}`,
+      hint: forwardHint(),
+      disabled: !navigation.canGoForward,
+      onForward,
+    },
+  };
+}
+
 export function AppPane({
   projection,
   nextLaunch,
@@ -312,6 +337,7 @@ export function AppPane({
   focusWindow,
   afterHide,
   onBack,
+  onForward,
   onSelectComputer,
   onChooseComputer,
 }: {
@@ -324,6 +350,7 @@ export function AppPane({
   focusWindow: (id: string) => void;
   afterHide: (id: string) => void;
   onBack: (id: string) => void;
+  onForward: (id: string) => void;
   /** The person chose another of this window's offered Computers. */
   onSelectComputer: (windowId: string, computerId: string) => void;
   /** No Computer is granted: open the App's permissions to grant one. */
@@ -416,13 +443,19 @@ export function AppPane({
       onPointerDownCapture={() => {
         binding.focus();
       }}
-      // The mouse back button over this window's chrome is its App's Back;
-      // inside the App, Agar maps it the same way.
+      // The mouse back and forward buttons over this window's chrome are its
+      // App's Back and Forward; inside the App, Agar maps them the same way.
       onMouseUp={(event) => {
-        if (event.button !== 3 || projection.navigation?.canGoBack !== true)
-          return;
-        event.preventDefault();
-        onBack(projection.windowId);
+        if (event.button === 3 && projection.navigation?.canGoBack === true) {
+          event.preventDefault();
+          onBack(projection.windowId);
+        } else if (
+          event.button === 4 &&
+          projection.navigation?.canGoForward === true
+        ) {
+          event.preventDefault();
+          onForward(projection.windowId);
+        }
       }}
       style={binding.stackingStyle}
     >
@@ -449,17 +482,16 @@ export function AppPane({
         )}
         density={layout.mode === "tiled" ? "compact" : "regular"}
         icon={<AppIcon roles={projection.launch.roles} icon={icon} />}
-        {...(projection.navigation?.canGoBack === true
-          ? {
-              back: {
-                label: `Back in ${projection.launch.title}`,
-                hint: backHint(),
-                onBack: () => {
-                  onBack(projection.windowId);
-                },
-              },
-            }
-          : {})}
+        {...historyProps(
+          projection.navigation,
+          projection.launch.title,
+          () => {
+            onBack(projection.windowId);
+          },
+          () => {
+            onForward(projection.windowId);
+          },
+        )}
         handleProps={{
           ...binding.props,
           onClick: binding.focus,
