@@ -1,5 +1,14 @@
 # @fungi.computer/tourtois
 
+## 0.15.1
+
+### Patch Changes
+
+- Changes since 0.15.0:
+
+  - fix(tourtois): paint a backdrop behind tiled gaps and keep history controls
+    on every window
+
 ## 0.15.0
 
 ### Minor Changes

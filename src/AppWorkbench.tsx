@@ -959,6 +959,7 @@ export function AppWorkbench({
           ref={paneLayerRef}
           className="tourtois-pane-layer"
           data-layout-mode={mode}
+          data-desktop={visibility}
         >
           {appProjection.windows.map((projection, index) => {
             const app = directory.find(

@@ -575,6 +575,13 @@
   width: 100%;
 }
 
+/* Tiled windows cover the desktop: the gaps between them paint a plain face,
+   never the widgets underneath. The layer ignores the pointer, so the divider
+   handle above the backdrop keeps working. */
+.tourtois-pane-layer[data-desktop="covered"] {
+  background: var(--color-base-200);
+}
+
 .tourtois-pane {
   pointer-events: auto;
   position: absolute;
