@@ -1,5 +1,23 @@
 # @fungi.computer/tourtois
 
+## 0.18.0
+
+### Minor Changes
+
+- Changes since 0.17.1:
+
+  - feat(oyster): give each Agent standing owner instructions, set from Grove
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.12.0
+  - @fungi.computer/puffball@0.6.0
+  - @fungi.computer/nacre@0.5.5
+  - @fungi.computer/parakeet@0.11.24
+  - @fungi.computer/shiitake@0.14.2
+
 ## 0.17.1
 
 ### Patch Changes

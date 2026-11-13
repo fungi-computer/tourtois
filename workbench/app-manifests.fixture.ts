@@ -166,6 +166,7 @@ export const groveApp = {
     "agent.manage",
     "agent.rename",
     "agent.avatar",
+    "agent.instructions",
     "agent.toolPolicy",
     "agent.read",
     "agent.send",
