@@ -3,6 +3,7 @@ import {
   DataListHeading,
   DataRow,
 } from "@fungi.computer/caps/components/data-list";
+import { channelWhen } from "./channel-time.js";
 import { KeycapButton } from "@fungi.computer/caps/components/keycap";
 import type {
   WebsiteConversation,
@@ -78,7 +79,9 @@ export function ChannelConversations({
   });
   return (
     <section className="grid gap-sm" aria-label="Conversations">
-      <DataListHeading level={3}>Conversations</DataListHeading>
+      <DataListHeading level={3} className="tourtois-conversations-heading">
+        Conversations
+      </DataListHeading>
       {shown ? null : (
         <KeycapButton
           density="compact"
@@ -104,7 +107,7 @@ export function ChannelConversations({
                   </span>
                   <span className="flex flex-wrap items-center gap-sm">
                     <span className="text-sm">
-                      {new Date(conversation.lastEventAt).toLocaleString()}
+                      {channelWhen(conversation.lastEventAt, Date.now())}
                     </span>
                     <KeycapButton
                       density="compact"
@@ -156,7 +159,9 @@ export function ChannelConversations({
       ) : null}
       {undelivered.data !== undefined && undelivered.data.length > 0 ? (
         <section className="grid gap-xs" aria-label="Replies not delivered">
-          <DataListHeading level={3}>Not delivered</DataListHeading>
+          <DataListHeading level={3} className="tourtois-conversations-heading">
+            Not delivered
+          </DataListHeading>
           <DataList density="compact" aria-label="Replies not delivered">
             {undelivered.data.map((problem) => (
               <DataRow key={problem.id}>
@@ -166,7 +171,7 @@ export function ChannelConversations({
                       {problem.label}
                     </span>
                     <span className="text-sm">
-                      {new Date(problem.at).toLocaleString()}
+                      {channelWhen(problem.at, Date.now())}
                     </span>
                   </div>
                   <p className="text-sm">{problem.reason}</p>

@@ -138,6 +138,17 @@
   min-width: 0;
 }
 
+/* The Conversations and Not delivered labels sit on their rows' left edge. */
+.tourtois-conversations-heading {
+  padding-inline: 0;
+}
+/* On a phone the control that reads a transcript is a full touch target. */
+@media (max-width: 40rem) {
+  .tourtois-conversation-row button {
+    min-height: 44px;
+  }
+}
+
 /* A conversation line: its name gets the room, its date and button wrap below
    when the line is narrow. */
 .tourtois-conversation-row {

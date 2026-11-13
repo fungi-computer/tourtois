@@ -359,12 +359,20 @@ export function DiscordChannels({ port }: { port: DiscordChannelsPort }) {
             </p>
           ) : (
             <div className="flex justify-end">
+              {/* Nothing here saves an edit: pausing saves at once, and this opens
+                  a new application. So it is the main action only until there
+                  is one; after that it is the quiet way to add another. */}
               <Button
+                variant={
+                  directory.data.bindings.length === 0 ? "primary" : "outline"
+                }
                 onClick={() => {
                   setAdding(true);
                 }}
               >
-                Add Discord
+                {directory.data.bindings.length === 0
+                  ? "Add Discord"
+                  : "Add another application"}
               </Button>
             </div>
           )}

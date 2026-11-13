@@ -1,5 +1,20 @@
 # @fungi.computer/tourtois
 
+## 0.17.1
+
+### Patch Changes
+
+- Changes since 0.17.0:
+
+  - fix(tourtois): polish the Discord conversations and footer
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.11.0
+  - @fungi.computer/shiitake@0.14.1
+  - @fungi.computer/nacre@0.5.4
+  - @fungi.computer/parakeet@0.11.23
+
 ## 0.17.0
 
 ### Minor Changes

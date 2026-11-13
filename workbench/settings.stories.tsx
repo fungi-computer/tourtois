@@ -215,7 +215,7 @@ const channelsDiscordPort: DiscordChannelsPort = {
       },
       {
         sessionId: "session_discord_b",
-        label: "@bram",
+        label: "Bram",
         lastEventAt: Date.UTC(2026, 10, 11, 9, 5),
       },
     ]),
