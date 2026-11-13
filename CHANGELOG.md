@@ -1,5 +1,26 @@
 # @fungi.computer/tourtois
 
+## 0.19.0
+
+### Minor Changes
+
+- Changes since 0.18.0:
+
+  - feat(computer): small, default and large Computers with a published hourly
+    price
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.12.1
+  - @fungi.computer/nacre@0.6.0
+  - @fungi.computer/puffball@0.7.0
+  - @fungi.computer/shiitake@0.15.0
+  - @fungi.computer/parakeet@0.11.25
+
 ## 0.18.0
 
 ### Minor Changes

@@ -22,10 +22,44 @@ import {
 } from "@fungi.computer/nacre/workbench";
 import { workbenchDirectorySchema } from "@fungi.computer/nacre/workbench-directory";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState, type ReactElement, type ReactNode } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import * as z from "zod";
 import { requestIds } from "./team-directory.js";
 import { tourtoisQueryKeys } from "./queries.js";
+
+/** A Computer's size: its vCPUs and memory, chosen once at creation. */
+export type ComputerSize = TeamComputer["size"];
+const computerSizes = {
+  small: { label: "Small", resources: "2 vCPU, 4 GiB" },
+  default: { label: "Default", resources: "4 vCPU, 8 GiB" },
+  large: { label: "Large", resources: "8 vCPU, 16 GiB" },
+} as const satisfies Record<
+  ComputerSize,
+  Readonly<{ label: string; resources: string }>
+>;
+const computerSizeOrder = ["small", "default", "large"] as const;
+
+/** What a size gives, with its price when the host bills for it. */
+const sizeDetail = (
+  size: ComputerSize,
+  prices: OysterComputersPort["sizePrices"],
+) =>
+  [computerSizes[size].resources, prices?.[size]]
+    .filter((part) => part !== undefined)
+    .join(", ");
+
+/** What to create: the owner's choices and the identity a retry reuses. */
+export type ComputerCreateInput = Readonly<{
+  name: string | undefined;
+  size: ComputerSize;
+  requestId: string;
+}>;
 
 /** One owner-fleet page returned by the public Computer controls port. */
 export type ComputerPage = z.output<typeof teamComputerDirectorySchema>;
@@ -33,7 +67,12 @@ export type ComputerPage = z.output<typeof teamComputerDirectorySchema>;
 /** Host-supplied owner controls over the existing fleet, not a second inventory. */
 export type OysterComputersPort = Readonly<{
   list(offset: number): Promise<ComputerPage>;
-  create(name: string | undefined, requestId: string): Promise<TeamComputer>;
+  create(input: ComputerCreateInput): Promise<TeamComputer>;
+  /**
+   * Hosts that bill a Computer by size say what each costs, such as
+   * "$0.03 an hour". Hosts that do not bill omit it.
+   */
+  sizePrices?: Readonly<Record<ComputerSize, string>>;
   start(computerId: string): Promise<void>;
   internetAccess(computerId: string): Promise<boolean>;
   setInternetAccess(computerId: string, enabled: boolean): Promise<boolean>;
@@ -116,11 +155,11 @@ export function createOysterComputersPort(origin: URL): OysterComputersPort {
       );
       return teamComputerDirectorySchema.parse(await response.json());
     },
-    create: async (name, requestId) => {
+    create: async ({ name, size, requestId }) => {
       const response = await read("/api/computers", {
         method: "POST",
         body: JSON.stringify(
-          name === undefined ? { requestId } : { requestId, name },
+          name === undefined ? { requestId, size } : { requestId, name, size },
         ),
       });
       return teamComputerSchema.parse(await response.json());
@@ -325,27 +364,38 @@ export const keepAwakeHelp = (idleMetered: boolean) =>
       : "Stays on when idle."
   } Off, it sleeps after 15 idle minutes.`;
 
-const createComputerSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .max(256, "Use at most 256 characters.")
-    .meta(
+const createComputerSchema = (prices: OysterComputersPort["sizePrices"]) =>
+  z.object({
+    name: z
+      .string()
+      .trim()
+      .max(256, "Use at most 256 characters.")
+      .meta(
+        field({
+          label: "Name",
+          icon: <Sigil name="computer" />,
+          placeholder: "Leave blank for a generated name",
+          maxLength: 256,
+        }),
+      ),
+    size: z.enum(computerSizeOrder).meta(
       field({
-        label: "Name",
+        label: "Size",
+        kind: "select",
         icon: <Sigil name="computer" />,
-        placeholder: "Leave blank for a generated name",
-        maxLength: 256,
+        options: Object.fromEntries(
+          computerSizeOrder.map((size) => [
+            size,
+            `${computerSizes[size].label}: ${sizeDetail(size, prices)}`,
+          ]),
+        ),
+        help: "Fixed when the Computer is created.",
       }),
     ),
-});
+  });
 
 type Action =
-  | Readonly<{
-      kind: "create";
-      name: string | undefined;
-      requestId: string;
-    }>
+  | Readonly<{ kind: "create" } & ComputerCreateInput>
   | Readonly<{ kind: "start" | "select"; computerId: string }>;
 
 /** Owner Settings over the host's existing inventory and optional default. */
@@ -388,7 +438,7 @@ export function OysterComputers({
     mutationFn: async (input: Action) => {
       switch (input.kind) {
         case "create":
-          await port.create(input.name, input.requestId);
+          await port.create(input);
           return;
         case "start":
           await port.start(input.computerId);
@@ -419,17 +469,29 @@ export function OysterComputers({
     inventory.isFetching ||
     (selection !== undefined && selected.isFetching) ||
     action.isPending;
+  const createSchema = useMemo(
+    () => createComputerSchema(port.sizePrices),
+    [port.sizePrices],
+  );
   const create = useSchemaForm({
-    schema: createComputerSchema,
-    defaultValues: { name: "" },
+    schema: createSchema,
+    defaultValues: { name: "", size: "default" },
     failure: "Could not create the Computer.",
-    onSubmit: async ({ name }): Promise<SubmitResult<{ name: string }>> => {
+    onSubmit: async ({
+      name,
+      size,
+    }): Promise<SubmitResult<{ name: string; size: ComputerSize }>> => {
       const requestedName = name === "" ? undefined : name;
       // A retried create keeps its request identity until the host confirms it.
-      if (intent.current === null || intent.current.name !== requestedName)
+      if (
+        intent.current === null ||
+        intent.current.name !== requestedName ||
+        intent.current.size !== size
+      )
         intent.current = {
           kind: "create",
           name: requestedName,
+          size,
           requestId: requestIds.request.generate(),
         };
       try {
@@ -439,7 +501,7 @@ export function OysterComputers({
           ? { kind: "refused", error: cause.message }
           : { kind: "refused" };
       }
-      return { kind: "saved", values: { name: "" } };
+      return { kind: "saved", values: { name: "", size } };
     },
   });
   const policyStatus =
@@ -502,6 +564,7 @@ export function OysterComputers({
             <SettingsItem
               icon={<Sigil name="computer" />}
               title={computer.name}
+              detail={`${computerSizes[computer.size].label}: ${sizeDetail(computer.size, port.sizePrices)}`}
               actions={
                 <>
                   <KeycapButton

@@ -21,12 +21,14 @@ const computers = [
   {
     computerId: ids.computer.generate(),
     name: "Studio",
+    size: "default" as const,
     createdAt: 1,
     updatedAt: 1,
   },
   {
     computerId: ids.computer.generate(),
     name: "Travel laptop",
+    size: "small" as const,
     createdAt: 2,
     updatedAt: 2,
   },
@@ -77,6 +79,11 @@ function computerStory(host: "standalone" | "hub" | "team-off"): Story {
             }
           : {
               idleMetered: true as const,
+              sizePrices: {
+                small: "$0.015 an hour",
+                default: "$0.03 an hour",
+                large: "$0.06 an hour",
+              },
               egressPolicy: () =>
                 Promise.resolve(
                   host === "team-off"

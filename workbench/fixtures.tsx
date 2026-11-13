@@ -66,13 +66,21 @@ const computers = [
   {
     computerId: "workbench-laptop",
     name: "Workbench",
+    size: "default",
     createdAt: 1,
     updatedAt: 1,
   },
-  { computerId: "studio", name: "Studio", createdAt: 1, updatedAt: 1 },
+  {
+    computerId: "studio",
+    name: "Studio",
+    size: "default",
+    createdAt: 1,
+    updatedAt: 1,
+  },
   {
     computerId: "travel-laptop",
     name: "Travel laptop",
+    size: "default",
     createdAt: 1,
     updatedAt: 1,
   },
