@@ -1,5 +1,19 @@
 # @fungi.computer/tourtois
 
+## 0.20.1
+
+### Patch Changes
+
+- Changes since 0.20.0:
+
+  - fix(oyster): bind a permissions save to the operations the owner saw
+
+- Updated dependencies
+  - @fungi.computer/agar@0.14.0
+  - @fungi.computer/nacre@0.6.2
+  - @fungi.computer/parakeet@0.11.27
+  - @fungi.computer/shiitake@0.16.1
+
 ## 0.20.0
 
 ### Minor Changes
