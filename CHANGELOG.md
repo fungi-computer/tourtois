@@ -1,5 +1,17 @@
 # @fungi.computer/tourtois
 
+## 0.20.3
+
+### Patch Changes
+
+- Changes since 0.20.2:
+
+  - fix(oyster): drop a carried App approval when its host descriptor changes
+
+- Updated dependencies
+  - @fungi.computer/shiitake@0.17.0
+  - @fungi.computer/parakeet@0.11.29
+
 ## 0.20.2
 
 ### Patch Changes
