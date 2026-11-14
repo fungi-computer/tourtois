@@ -1,5 +1,35 @@
 # @fungi.computer/tourtois
 
+## 0.20.0
+
+### Minor Changes
+
+- Changes since 0.19.0:
+
+  - feat(computers): per-plan running limit from the price book, 1 h idle sleep
+  - fix(tourtois): confirm Stop with Cancel and Stop, add a stop sigil
+  - fix(caps): let a nested Dialog dim the page it opens over
+  - fix(tourtois): dim Settings behind the Stop confirmation
+  - fix(tourtois): put settings dialogs in the shell dialog layer, clarify Stop
+  - feat(tourtois): show Computer state, one lifecycle key, confirm Stop, toasts
+  - feat(oyster): owner Stop for a standalone Computer
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.13.0
+  - @fungi.computer/caps@0.11.4
+  - @fungi.computer/parakeet@0.11.26
+  - @fungi.computer/puffball@0.8.0
+  - @fungi.computer/shiitake@0.16.0
+  - @fungi.computer/sigils@0.3.2
+  - @fungi.computer/nacre@0.6.1
+
 ## 0.19.0
 
 ### Minor Changes

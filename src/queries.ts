@@ -8,6 +8,10 @@ export const tourtoisQueryKeys = {
     ["tourtois", "oyster-selected-computer", teamId] as const,
   oysterInternetAccess: (teamId: string, computerId: string) =>
     ["tourtois", "oyster-internet-access", teamId, computerId] as const,
+  oysterComputerStates: (teamId: string) =>
+    ["tourtois", "oyster-computer-state", teamId] as const,
+  oysterComputerState: (teamId: string, computerId: string) =>
+    [...tourtoisQueryKeys.oysterComputerStates(teamId), computerId] as const,
   oysterKeepAwake: (teamId: string, computerId: string) =>
     ["tourtois", "oyster-keep-awake", teamId, computerId] as const,
   oysterEgressPolicy: (teamId: string) =>

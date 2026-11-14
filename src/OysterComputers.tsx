@@ -5,7 +5,18 @@ import { Button } from "@fungi.computer/caps/components/button";
 import { DataList, DataRow } from "@fungi.computer/caps/components/data-list";
 import { Field, FormFooter } from "@fungi.computer/caps/components/field";
 import { KeycapButton } from "@fungi.computer/caps/components/keycap";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@fungi.computer/caps/components/dialog";
 import { Status } from "@fungi.computer/caps/components/status";
+import { toast } from "@fungi.computer/caps/components/toaster";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
 import { Switch } from "@fungi.computer/caps/components/switch";
 import {
   SchemaForm,
@@ -74,6 +85,13 @@ export type OysterComputersPort = Readonly<{
    */
   sizePrices?: Readonly<Record<ComputerSize, string>>;
   start(computerId: string): Promise<void>;
+  /**
+   * Hosts whose owner may stop a running Computer supply this. Durable
+   * workspace files are kept; the next start brings them back.
+   */
+  stop?(computerId: string): Promise<void>;
+  /** Hosts that can stop a Computer also read whether it is running. */
+  state?(computerId: string): Promise<ComputerRunState>;
   internetAccess(computerId: string): Promise<boolean>;
   setInternetAccess(computerId: string, enabled: boolean): Promise<boolean>;
   keepAwake(computerId: string): Promise<boolean>;
@@ -88,6 +106,13 @@ export type OysterComputersPort = Readonly<{
   /** Operator policy readback, when the host exposes it. Unknown locks writes. */
   egressPolicy?(): Promise<"enabled" | "globally-disabled" | "team-disabled">;
 }>;
+
+/** Whether a Computer's runtime is up, as the host reads it without waking it. */
+export type ComputerRunState =
+  "running" | "sleeping" | "starting" | "queued" | "start_failed";
+const computerRunStateSchema = z.looseObject({
+  state: z.enum(["running", "sleeping", "starting", "queued", "start_failed"]),
+});
 
 /** The durable per-Computer switches an owner manages. */
 export type ComputerSwitchSetting = "internet-access" | "keep-awake";
@@ -173,6 +198,19 @@ export function createOysterComputersPort(origin: URL): OysterComputersPort {
         },
       );
       await response.json();
+    },
+    stop: async (computerId) => {
+      const response = await read(
+        `/api/computers/${encodeURIComponent(computerId)}/stop`,
+        { method: "POST" },
+      );
+      await response.json();
+    },
+    state: async (computerId) => {
+      const response = await read(
+        `/api/computers/${encodeURIComponent(computerId)}/state`,
+      );
+      return computerRunStateSchema.parse(await response.json()).state;
     },
     selection: {
       selected: async () => {
@@ -362,7 +400,7 @@ export const keepAwakeHelp = (idleMetered: boolean) =>
     idleMetered
       ? "Stays on when idle, and idle time is charged."
       : "Stays on when idle."
-  } Off, it sleeps after 15 idle minutes.`;
+  } Off, it sleeps after an idle hour.`;
 
 const createComputerSchema = (prices: OysterComputersPort["sizePrices"]) =>
   z.object({
@@ -394,9 +432,158 @@ const createComputerSchema = (prices: OysterComputersPort["sizePrices"]) =>
     ),
   });
 
+const stateDisplay = {
+  running: { label: "Running", tone: "success" },
+  sleeping: { label: "Sleeping", tone: "neutral" },
+  starting: { label: "Starting", tone: "info" },
+  queued: { label: "Queued", tone: "info" },
+  start_failed: { label: "Start failed", tone: "error" },
+} as const;
+
+/** The runtime state of one Computer; polled while it is changing. */
+function useComputerRunState(
+  teamId: string,
+  computer: TeamComputer,
+  port: OysterComputersPort,
+) {
+  const read = port.state;
+  return useQuery({
+    queryKey: tourtoisQueryKeys.oysterComputerState(
+      teamId,
+      computer.computerId,
+    ),
+    enabled: read !== undefined,
+    queryFn: () =>
+      read === undefined
+        ? Promise.reject(new Error("This host cannot read Computer state"))
+        : read(computer.computerId),
+    refetchInterval: (query) =>
+      query.state.data === "starting" || query.state.data === "queued"
+        ? 2000
+        : false,
+  });
+}
+
+/** The state beside a Computer's name: a dot and one word. */
+function ComputerRunStatus({
+  teamId,
+  computer,
+  port,
+}: {
+  teamId: string;
+  computer: TeamComputer;
+  port: OysterComputersPort;
+}) {
+  const run = useComputerRunState(teamId, computer, port);
+  if (run.data === undefined) return null;
+  const { label, tone } = stateDisplay[run.data];
+  return (
+    <Status
+      size="compact"
+      tone={tone}
+      label={label}
+      motion={
+        run.data === "starting" || run.data === "queued" ? "pulse" : "none"
+      }
+    />
+  );
+}
+
+/**
+ * Start when the Computer sleeps, Stop when it runs; neither while it is
+ * changing. Hosts that cannot read state keep the one Start key.
+ */
+function ComputerLifecycleKeys({
+  teamId,
+  computer,
+  port,
+  disabled,
+  busy,
+  onStart,
+  onStop,
+}: {
+  teamId: string;
+  computer: TeamComputer;
+  port: OysterComputersPort;
+  disabled: boolean;
+  busy: boolean;
+  onStart: () => void;
+  onStop: () => Promise<void>;
+}) {
+  const run = useComputerRunState(teamId, computer, port);
+  const [confirming, setConfirming] = useState(false);
+  const canStop = port.stop !== undefined && port.state !== undefined;
+  if (canStop && run.data === "running")
+    return (
+      <>
+        <KeycapButton
+          density="compact"
+          label="Stop"
+          icon={<Sigil name="stop" />}
+          aria-label={`Stop ${computer.name}`}
+          disabled={disabled || busy}
+          onClick={() => {
+            setConfirming(true);
+          }}
+        />
+        <Dialog
+          open={confirming}
+          onOpenChange={(next, details) => {
+            if (busy) {
+              details.cancel();
+              return;
+            }
+            setConfirming(next);
+          }}
+        >
+          <DialogContent forceBackdrop>
+            <DialogHeader>
+              <DialogTitle>Stop {computer.name}?</DialogTitle>
+              <DialogDescription>
+                Running commands end; files are kept.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose render={<Button variant="ghost" />} disabled={busy}>
+                Cancel
+              </DialogClose>
+              <Button
+                variant="destructive"
+                loading={busy}
+                onClick={() => {
+                  void onStop().then(
+                    () => {
+                      setConfirming(false);
+                    },
+                    // The mutation's onError already shows the toast.
+                    () => undefined,
+                  );
+                }}
+              >
+                Stop
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  return (
+    <KeycapButton
+      density="compact"
+      label="Start"
+      icon={<Sigil name="run" />}
+      aria-label={`Start ${computer.name}`}
+      disabled={
+        disabled || busy || run.data === "starting" || run.data === "queued"
+      }
+      onClick={onStart}
+    />
+  );
+}
+
 type Action =
   | Readonly<{ kind: "create" } & ComputerCreateInput>
-  | Readonly<{ kind: "start" | "select"; computerId: string }>;
+  | Readonly<{ kind: "start" | "stop" | "select"; computerId: string }>;
 
 /** Owner Settings over the host's existing inventory and optional default. */
 export function OysterComputers({
@@ -443,16 +630,42 @@ export function OysterComputers({
         case "start":
           await port.start(input.computerId);
           return;
+        case "stop":
+          if (port.stop === undefined)
+            throw new Error("This host cannot stop a Computer");
+          await port.stop(input.computerId);
+          return;
         case "select":
           if (selection === undefined)
             throw new Error("This host has no default Computer");
           await selection.select(input.computerId);
       }
     },
+    onError: (cause, input) => {
+      if (input.kind !== "create")
+        toast.error(cause.message, { toasterId: WORKBENCH_NOTICES });
+    },
     onSuccess: async (_result, input) => {
       if (input.kind === "create") {
         intent.current = null;
         setOffset(0);
+      }
+      if (input.kind !== "create") {
+        const name =
+          inventory.data?.computers.find(
+            (row) => row.computerId === input.computerId,
+          )?.name ?? "The Computer";
+        toast.success(
+          input.kind === "start"
+            ? `${name} started.`
+            : input.kind === "stop"
+              ? `${name} stopped. Your files are kept.`
+              : `${name} is now the default for new Apps.`,
+          { toasterId: WORKBENCH_NOTICES },
+        );
+        await client.invalidateQueries({
+          queryKey: tourtoisQueryKeys.oysterComputerStates(teamId),
+        });
       }
       await Promise.all([
         client.invalidateQueries({ queryKey: inventoryKey }),
@@ -563,22 +776,41 @@ export function OysterComputers({
           >
             <SettingsItem
               icon={<Sigil name="computer" />}
-              title={computer.name}
+              title={
+                <>
+                  {computer.name}{" "}
+                  <ComputerRunStatus
+                    teamId={teamId}
+                    computer={computer}
+                    port={port}
+                  />
+                </>
+              }
               detail={`${computerSizes[computer.size].label}: ${sizeDetail(computer.size, port.sizePrices)}`}
               actions={
                 <>
-                  <KeycapButton
-                    density="compact"
-                    label="Start"
-                    icon={<Sigil name="run" />}
-                    aria-label={`Start ${computer.name}`}
+                  <ComputerLifecycleKeys
+                    teamId={teamId}
+                    computer={computer}
+                    port={port}
                     disabled={unavailable}
-                    onClick={() => {
+                    busy={
+                      action.isPending &&
+                      action.variables.kind !== "create" &&
+                      action.variables.computerId === computer.computerId
+                    }
+                    onStart={() => {
                       action.mutate({
                         kind: "start",
                         computerId: computer.computerId,
                       });
                     }}
+                    onStop={() =>
+                      action.mutateAsync({
+                        kind: "stop",
+                        computerId: computer.computerId,
+                      })
+                    }
                   />
                   {isDefault ? (
                     <Status
@@ -657,12 +889,6 @@ export function OysterComputers({
           </FormFooter>
         }
       />
-      {action.isError && action.variables.kind !== "create" ? (
-        <p role="alert">{action.error.message}</p>
-      ) : null}
-      {action.isSuccess ? (
-        <p role="status">Computer request completed.</p>
-      ) : null}
     </section>
   );
 }

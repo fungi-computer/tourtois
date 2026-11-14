@@ -4,6 +4,10 @@ import { AppError } from "@fungi.computer/agar";
 import { Button } from "@fungi.computer/caps/components/button";
 import { toast } from "@fungi.computer/caps/components/toaster";
 import {
+  OverlayRoot,
+  type OverlayContainers,
+} from "@fungi.computer/caps/components/overlay-root";
+import {
   desktopGillAdditionSchema,
   desktopGillSelectionSchema,
   type WorkbenchDesktopSettings,
@@ -23,6 +27,7 @@ import {
   useState,
   useSyncExternalStore,
   type ComponentProps,
+  type ReactNode,
 } from "react";
 import {
   AppAccessConsent,
@@ -111,6 +116,47 @@ export type PlatformControlsHost = PlatformControls &
     attachDesktopSettings: (handler: WorkbenchDesktopSettings) => () => void;
     desktopSettings: WorkbenchDesktopSettings;
   }>;
+
+const overlayLayers = ["popover", "dialog", "toast", "tooltip"] as const;
+
+/** The shell's own layer roots, or the body where no shell is mounted. */
+function shellOverlays(): OverlayContainers {
+  const find = (name: string) =>
+    document.querySelector<HTMLElement>(`[data-maosaico-layer="${name}"]`) ??
+    document.body;
+  return {
+    popover: find("popover"),
+    dialog: find("dialog"),
+    toast: find("toast"),
+    tooltip: find("tooltip"),
+  };
+}
+
+/**
+ * Settings mount in their own React root, outside the shell's layers. Give
+ * their dialogs the shell's dialog layer so toasts and other overlays paint in
+ * the shell's order instead of under a window in the body.
+ */
+function ShellOverlays({ children }: { children: ReactNode }) {
+  const [containers, setContainers] = useState(shellOverlays);
+  useEffect(() => {
+    const sync = () => {
+      const next = shellOverlays();
+      setContainers((current) =>
+        overlayLayers.every((name) => current[name] === next[name])
+          ? current
+          : next,
+      );
+    };
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+  return <OverlayRoot containers={containers}>{children}</OverlayRoot>;
+}
 
 /** One host's platform controls; render them with `PlatformControlsView`. */
 export function createPlatformControls(
@@ -481,9 +527,15 @@ export function PlatformControlsView({
       />
     </>
   );
-  return data.avatar === undefined ? (
-    settings
-  ) : (
-    <MemberAvatarSource read={data.avatar.read}>{settings}</MemberAvatarSource>
+  return (
+    <ShellOverlays>
+      {data.avatar === undefined ? (
+        settings
+      ) : (
+        <MemberAvatarSource read={data.avatar.read}>
+          {settings}
+        </MemberAvatarSource>
+      )}
+    </ShellOverlays>
   );
 }
