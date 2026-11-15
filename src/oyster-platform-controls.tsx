@@ -9,6 +9,7 @@ import { createQueryClient } from "@fungi.computer/agar/query";
 import type { KeyWire } from "@fungi.computer/ear-tag/keys";
 import type { MountPlatformControls } from "@fungi.computer/nacre/shell-module";
 import { workbenchDirectorySchema } from "@fungi.computer/nacre/workbench-directory";
+import { toast } from "@fungi.computer/caps/components/toaster";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as S from "effect/Schema";
 import { z } from "zod";
@@ -25,6 +26,7 @@ import {
 } from "./platform-controls.js";
 import { createOysterSetupPort, oysterSetupSchema } from "./oyster-setup.js";
 import { modelKeysViewSchema, type ModelKeysPort } from "./ModelKeys.js";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
 import { settingsLocationSchema } from "./settings-routes.js";
 import type { PlatformControlsData } from "./platform-controls.js";
 import {
@@ -320,7 +322,6 @@ function OysterPermissionsFrame({
   const sizeObserver = useRef<ResizeObserver | null>(null);
   const [height, setHeight] = useState(0);
   const leave = useRef<SettingsLeaveState>("clean");
-  const [refreshFailed, setRefreshFailed] = useState(false);
   useSettingsLeaveGuard(() => leave.current);
   useEffect(
     () => () => {
@@ -341,10 +342,14 @@ function OysterPermissionsFrame({
       if (!parsed.success) return;
       leave.current = parsed.data.state;
       if (parsed.data.event === "accepted") {
-        setRefreshFailed(false);
         void onAccepted().catch((cause: unknown) => {
           console.error("App permissions Settings refresh failed", cause);
-          setRefreshFailed(true);
+          toast.error(
+            "Settings could not be refreshed. Reopen Settings to try again.",
+            {
+              toasterId: WORKBENCH_NOTICES,
+            },
+          );
         });
       }
     };
@@ -355,12 +360,6 @@ function OysterPermissionsFrame({
   }, [onAccepted]);
   return (
     <>
-      {refreshFailed ? (
-        <p role="alert">
-          Permissions saved. Settings could not refresh. Close and reopen
-          Settings to retry.
-        </p>
-      ) : null}
       <iframe
         ref={frame}
         title="App permissions"

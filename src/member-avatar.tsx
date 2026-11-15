@@ -5,6 +5,8 @@ import {
   type MemberAvatar,
 } from "@fungi.computer/sprite-zdog/avatar";
 import type { RenderStyle } from "@fungi.computer/sprite";
+import { toast } from "@fungi.computer/caps/components/toaster";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
 import { AvatarPreview } from "./AvatarPreview.js";
 import { AvatarPicker } from "./AvatarPicker.js";
 import {
@@ -110,6 +112,9 @@ function useSaveMemberAvatar(save: MemberAvatarSave) {
     },
     mutationFn: save,
     onError: (_cause, _next, snapshot) => {
+      toast.error("Your avatar could not be saved. Try again.", {
+        toasterId: WORKBENCH_NOTICES,
+      });
       if (
         snapshot &&
         client.getQueryData(accountAvatarQuery) === snapshot.optimistic
@@ -158,12 +163,6 @@ export function AvatarSettings({ save: write }: { save: MemberAvatarSave }) {
         Choose your character, colours and drawing style. Changes save
         automatically.
       </p>
-      {save.isError ? (
-        <p role="alert">
-          Your account did not save this avatar. Your previous avatar was
-          restored. Choose it again to retry.
-        </p>
-      ) : null}
       <AvatarPicker
         value={saved}
         disabled={save.isPending}

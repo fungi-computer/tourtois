@@ -1,5 +1,13 @@
 # @fungi.computer/tourtois
 
+## 0.20.13
+
+### Patch Changes
+
+- Changes since 0.20.12:
+
+  - fix(tourtois): show avatar and permission refresh failures as toasts
+
 ## 0.20.12
 
 ### Patch Changes
