@@ -166,7 +166,6 @@ function ArrangedDesktop({
     gill: DesktopGill;
     itemId?: string;
   } | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
@@ -220,6 +219,11 @@ function ArrangedDesktop({
         : cell;
     });
   const placements = arrangeBento(projected, columns);
+  // Each failure is reported once, as a toast; nothing renders above the stage.
+  const reportFailure = (message: string) => {
+    setSaved(false);
+    toast.error(message, { toasterId: WORKBENCH_NOTICES });
+  };
   const save = async (
     method: DesktopMutation,
     input: Record<string, WhistleJsonValue>,
@@ -235,12 +239,15 @@ function ArrangedDesktop({
       });
       if (result.kind !== "accepted")
         console.error("Desktop change refused", result.code);
-      setError(result.kind === "accepted" ? null : refusalMessage(result.code));
-      if (result.kind === "accepted") setSaved(true);
-      return result.kind === "accepted";
+      if (result.kind === "accepted") {
+        setSaved(true);
+        return true;
+      }
+      reportFailure(refusalMessage(result.code));
+      return false;
     } catch (cause) {
       console.error("Desktop arrangement update failed", cause);
-      setError("Your desktop change could not be confirmed.");
+      reportFailure("Your desktop change could not be confirmed.");
       return false;
     } finally {
       setSaving(false);
@@ -400,7 +407,6 @@ function ArrangedDesktop({
         <ArrangeToolbar
           phone={props.phone}
           status={saving ? "saving" : saved ? "saved" : "idle"}
-          error={error}
           canWriteTeam={snapshot.canWriteTeam}
           choices={choices}
           saving={saving}
@@ -490,7 +496,6 @@ function ArrangedDesktop({
           />
         </div>
       ) : null}
-      {error && !editing ? <Alert tone="error" description={error} /> : null}
       <div
         ref={stage}
         className="tourtois-desktop-stage"

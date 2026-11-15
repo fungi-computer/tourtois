@@ -169,6 +169,7 @@ function WindowFailure({
   return (
     <ResultState
       className="tourtois-window-failure"
+      role="alert"
       tone="failed"
       headingLevel={3}
       title={lost ? "This App lost its connection" : described.title}

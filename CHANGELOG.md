@@ -1,5 +1,20 @@
 # @fungi.computer/tourtois
 
+## 0.20.14
+
+### Patch Changes
+
+- Changes since 0.20.13:
+
+  - fix(tourtois): announce a failed window and finish refreshing the workbench
+    proof
+  - fix(tourtois): report a refused layout change only as a toast
+  - fix(tourtois): toast a refused desktop layout change instead of an alert
+  - fix(tourtois): let Settings pickers paint above the Settings dialog
+
+- Updated dependencies
+  - @fungi.computer/parakeet@0.12.0
+
 ## 0.20.13
 
 ### Patch Changes

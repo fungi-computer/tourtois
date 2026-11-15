@@ -43,7 +43,6 @@ function restoreFocus(origin: Element | null): void {
 export function ArrangeToolbar({
   phone,
   status,
-  error,
   canWriteTeam,
   choices,
   saving,
@@ -54,7 +53,6 @@ export function ArrangeToolbar({
 }: {
   phone: boolean;
   status: ArrangeStatus;
-  error: string | null;
   canWriteTeam: boolean;
   choices: readonly WidgetChoice[];
   saving: boolean;
@@ -143,11 +141,9 @@ export function ArrangeToolbar({
       <span
         className="tourtois-arrange-state"
         role="status"
-        data-empty={error || status !== "idle" ? undefined : ""}
+        data-empty={status !== "idle" ? undefined : ""}
       >
-        {error ? (
-          <Status glyph="cross" tone="error" label={error} />
-        ) : status === "saving" ? (
+        {status === "saving" ? (
           <Status glyph="arc" tone="info" label="Saving…" />
         ) : status === "saved" ? (
           <Status glyph="check" tone="success" label="Saved" />

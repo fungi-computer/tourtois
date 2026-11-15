@@ -125,7 +125,8 @@ function shellOverlays(): OverlayContainers {
     document.querySelector<HTMLElement>(`[data-maosaico-layer="${name}"]`) ??
     document.body;
   return {
-    popover: find("popover"),
+    // Settings are dialogs: their menus and pickers must paint above them.
+    popover: find("dialog"),
     dialog: find("dialog"),
     toast: find("toast"),
     tooltip: find("tooltip"),
