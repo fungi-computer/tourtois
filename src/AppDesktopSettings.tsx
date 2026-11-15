@@ -4,7 +4,9 @@ import { AppError } from "@fungi.computer/agar";
 import type { WorkbenchDesktopSettings } from "@fungi.computer/nacre/workbench";
 import { Button } from "@fungi.computer/caps/components/button";
 import { DataList, DataRow } from "@fungi.computer/caps/components/data-list";
+import { toast } from "@fungi.computer/caps/components/toaster";
 import { Select } from "@fungi.computer/caps/components/select";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
 import type {
   AppDirectoryEntry,
   AppDirectoryGill,
@@ -50,10 +52,11 @@ function GillOption({
       window.clearTimeout(timer);
     };
   }, [consentReadyAt]);
-  const [error, setError] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
   useEffect(() => {
     let retired = false;
     setSaved(null);
+    setUnavailable(false);
     void Promise.resolve()
       .then(() =>
         desktop.readGill({ surfaceId: app.surfaceId, gillId: gill.id }),
@@ -67,10 +70,13 @@ function GillOption({
           gillId: gill.id,
           cause,
         });
-        if (!retired)
-          setError(
+        if (!retired) {
+          setUnavailable(true);
+          toast.error(
             "Your desktop could not be read. Reopen Settings to try again.",
+            { toasterId: WORKBENCH_NOTICES },
           );
+        }
         return { kind: "failed", cause };
       });
     return () => {
@@ -83,7 +89,7 @@ function GillOption({
       return { kind: "busy" };
     busy.current = true;
     setPending(true);
-    setError(null);
+    setUnavailable(false);
     const selection = { surfaceId: app.surfaceId, gillId: gill.id };
     try {
       if (onDesktop) await desktop.removeGill(selection);
@@ -95,10 +101,12 @@ function GillOption({
         ...selection,
         cause,
       });
-      setError(
+      setUnavailable(true);
+      toast.error(
         cause instanceof AppError
           ? cause.message
           : "The widget could not be changed. Reopen Settings to try again.",
+        { toasterId: WORKBENCH_NOTICES },
       );
       // A refusal may mean another tab changed the saved layout. Never keep an optimistic membership flag.
       setSaved(null);
@@ -113,7 +121,8 @@ function GillOption({
       <div>
         <strong>{gill.title}</strong>
         <p>
-          {saved === null && !error && "Reading your desktop…"}
+          {saved === null && !unavailable && "Reading your desktop…"}
+          {saved === null && unavailable && "Your desktop is unavailable."}
           {saved !== null && onDesktop && (
             <span role="status">
               On your desktop ·{" "}
@@ -123,7 +132,6 @@ function GillOption({
           {saved !== null &&
             !onDesktop &&
             "Choose a size, then add this widget to your desktop."}
-          {error ? <span role="alert">{error}</span> : null}
         </p>
       </div>
       <div

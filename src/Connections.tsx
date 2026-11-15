@@ -23,6 +23,8 @@ import { useState, type ComponentType } from "react";
 import type { ConnectorsTarget, Navigate } from "./settings-sections.js";
 import * as z from "zod";
 import { SettingsItem } from "./settings-item.js";
+import { toast } from "@fungi.computer/caps/components/toaster";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
 
 /** What an Agent may do with one connection: everything, only reads, or named tools. */
 const connectionAccessSchema = z.union([
@@ -150,6 +152,11 @@ export function Connections({
   const remove = useMutation({
     mutationFn: (connectionId: string) => port.remove(connectionId),
     onSuccess: refresh,
+    onError: () => {
+      toast.error("The connection could not be removed.", {
+        toasterId: WORKBENCH_NOTICES,
+      });
+    },
   });
   const agents = view.data?.agents ?? [];
   const connections = view.data?.connections ?? [];
@@ -244,9 +251,6 @@ export function Connections({
               ))}
             </DataList>
           )}
-          {remove.isError ? (
-            <p role="alert">The connection could not be removed.</p>
-          ) : null}
           <AddConnection
             key={formKey}
             signIn={view.data.callbackUrl !== null}
@@ -297,6 +301,11 @@ function AgentAccess({
         });
     },
     onSuccess: onChanged,
+    onError: () => {
+      toast.error("The access could not be changed.", {
+        toasterId: WORKBENCH_NOTICES,
+      });
+    },
   });
   if (agents.length === 0) return <p>Create an Agent to share this.</p>;
   const grantFor = (agentId: string) =>
@@ -346,9 +355,6 @@ function AgentAccess({
               />,
             ];
       })}
-      {change.isError ? (
-        <p role="alert">The access could not be changed.</p>
-      ) : null}
     </FieldSet>
   );
 }

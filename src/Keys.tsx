@@ -26,6 +26,8 @@ import { useState, type ComponentType, type ReactNode } from "react";
 import * as z from "zod";
 import { Sigil, type SigilName } from "@fungi.computer/sigils";
 import { SettingsItem } from "./settings-item.js";
+import { toast } from "@fungi.computer/caps/components/toaster";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
 
 export type KeyAppOption = Readonly<{
   installationId: string;
@@ -117,12 +119,10 @@ function KeysContent({
   const [command, setCommand] = useState<Command | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const refresh = () => client.invalidateQueries({ queryKey });
   const mutate = async (pending: Command) => {
     setCommand(pending);
     setBusy(true);
-    setError(null);
     setNotice(null);
     try {
       const change =
@@ -138,10 +138,12 @@ function KeysContent({
       if (!change.retry) setCommand(null);
       await refresh();
     } catch (cause) {
-      setError(
+      console.error("Key change failed", pending.kind, cause);
+      toast.error(
         cause instanceof Error
           ? cause.message
           : "The key change could not be confirmed.",
+        { toasterId: WORKBENCH_NOTICES },
       );
     } finally {
       setBusy(false);
@@ -257,7 +259,6 @@ function KeysContent({
         ))}
       </DataList>
       {notice ? <p role="status">{notice}</p> : null}
-      {error ? <p role="alert">{error}</p> : null}
       {command !== null ? (
         <div className="tourtois-settings-notice">
           <Button

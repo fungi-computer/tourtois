@@ -21,6 +21,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import * as z from "zod";
 import { SettingsItem } from "./settings-item.js";
+import { toast } from "@fungi.computer/caps/components/toaster";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
 
 /** A provider the host offers; the host owns the list and the client only shows it. */
 const providerChoiceSchema = z.strictObject({
@@ -130,6 +132,11 @@ export function ModelKeys({
   const remove = useMutation({
     mutationFn: (keyId: string) => port.removeKey(keyId),
     onSuccess: refresh,
+    onError: () => {
+      toast.error("The model key could not be removed.", {
+        toasterId: WORKBENCH_NOTICES,
+      });
+    },
   });
   const keys = view.data?.keys ?? [];
   const agents = view.data?.agents ?? [];
@@ -191,9 +198,6 @@ export function ModelKeys({
               </DataRow>
             ))}
           </DataList>
-          {remove.isError ? (
-            <p role="alert">The model key could not be removed.</p>
-          ) : null}
           <AddModelKey
             key={formKey}
             providers={view.data.providers}

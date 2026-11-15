@@ -10,6 +10,7 @@ import { CopyField } from "@fungi.computer/caps/components/copy-field";
 import { FormFooter } from "@fungi.computer/caps/components/field";
 import { InlineCode } from "@fungi.computer/caps/components/inline-code";
 import { KeycapButton } from "@fungi.computer/caps/components/keycap";
+import { toast } from "@fungi.computer/caps/components/toaster";
 import { Prose } from "@fungi.computer/caps/components/prose";
 import { Status } from "@fungi.computer/caps/components/status";
 import {
@@ -31,6 +32,7 @@ import {
   type WebsiteTranscript,
 } from "@fungi.computer/nacre/website-channels";
 import { ChannelConversations } from "./ChannelConversations.js";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
 import { tourtoisQueryKeys } from "./queries.js";
 import { requestIds } from "./team-directory.js";
 
@@ -625,10 +627,22 @@ function DiscordRow({
         throw new Error("Discord unavailable. Reload before changing it.");
       return port.update(binding.bindingId, current.authorityVersion, change);
     },
+    onError: () => {
+      toast.error("Couldn't update Discord. Please try again.", {
+        toasterId: WORKBENCH_NOTICES,
+        closeButton: true,
+      });
+    },
     onSettled: () => cache.invalidateQueries({ queryKey: key }),
   });
   const register = useMutation({
     mutationFn: () => port.registerCommands(binding.bindingId),
+    onError: () => {
+      toast.error("Couldn't register the Discord commands. Please try again.", {
+        toasterId: WORKBENCH_NOTICES,
+        closeButton: true,
+      });
+    },
   });
   const { applicationId, guildIds, channelIds } = binding.selector;
   const endpoint = `${interactionsOrigin}/api/discord/interactions/${binding.bindingId}`;
@@ -782,10 +796,6 @@ function DiscordRow({
                 </span>
               </FactRow>
             </DataList>
-            {patch.isError ? <p role="alert">{patch.error.message}</p> : null}
-            {register.isError ? (
-              <p role="alert">{register.error.message}</p>
-            ) : null}
             <ChannelConversations
               keys={{
                 list: tourtoisQueryKeys.discordConversations(

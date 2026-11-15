@@ -1,5 +1,17 @@
 # @fungi.computer/tourtois
 
+## 0.20.12
+
+### Patch Changes
+
+- Changes since 0.20.11:
+
+  - fix(channels): show channel settings failures as toasts
+  - fix(tourtois): show settings failures as toasts
+
+- Updated dependencies
+  - @fungi.computer/parakeet@0.11.38
+
 ## 0.20.11
 
 ### Patch Changes
