@@ -1,5 +1,20 @@
 # @fungi.computer/tourtois
 
+## 0.20.15
+
+### Patch Changes
+
+- Changes since 0.20.14:
+
+  - fix(tourtois): hand a menu its focus back and drop the focus-steal retries
+  - fix(tourtois): keep an open menu when an App focuses itself
+
+- Updated dependencies
+  - @fungi.computer/agar@0.18.1
+  - @fungi.computer/nacre@0.6.7
+  - @fungi.computer/parakeet@0.12.1
+  - @fungi.computer/shiitake@0.18.3
+
 ## 0.20.14
 
 ### Patch Changes
