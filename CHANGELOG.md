@@ -1,5 +1,34 @@
 # @fungi.computer/tourtois
 
+## 0.21.0
+
+### Minor Changes
+
+- Changes since 0.20.15:
+
+  - fix(oyster): hide a switch only for the typed unavailable reply
+  - fix(nacre): list an App command once in the active view
+  - fix(tourtois): hide a Computer switch the host calls unavailable
+  - fix(tourtois): list an App's palette command once and run it when the App is
+    closed
+  - fix(tourtois): typing in the Keys sheet carries on in the command line
+  - feat(hub): mount the shared Permissions view in Settings
+  - feat(nacre): carry each App's permission facts in the directory row
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.18.2
+  - @fungi.computer/caps@0.12.0
+  - @fungi.computer/nacre@0.7.0
+  - @fungi.computer/parakeet@0.12.2
+  - @fungi.computer/shiitake@0.19.0
+  - @fungi.computer/puffball@0.9.1
+
 ## 0.20.15
 
 ### Patch Changes

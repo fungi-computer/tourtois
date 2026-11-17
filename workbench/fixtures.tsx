@@ -52,12 +52,15 @@ import {
   memoryDraftStore,
 } from "../../trellis/src/editor/draft-store.js";
 import { groveApp, inkcapApp, printsApp } from "./app-manifests.fixture.js";
-import { appDeclarationSchema } from "@fungi.computer/puffball/app";
+import {
+  appCapabilityIds,
+  appDeclarationSchema,
+} from "@fungi.computer/puffball/app";
 import * as Schema from "effect/Schema";
 import type { TourtoisAppSurfaceHost } from "../src/app-surface.js";
 import type { AppLaunchDescriptor } from "../src/app-windows.js";
 import { launchComputerId } from "../src/app-launch.js";
-import { appPermissionChangesSchema } from "../src/app-authority.js";
+import { workbenchPermission } from "./settings-fixtures.js";
 import { buildAppDeclaration } from "@fungi.computer/agar/backend-declaration";
 import { appBackend as chatBackend } from "../../grove/backend/methods.js";
 const groveDeclaration = buildAppDeclaration(chatBackend, groveApp);
@@ -91,8 +94,23 @@ const mutation = z.object({
   expectedVersion: z.number(),
   command: z.discriminatedUnion("kind", [
     z.object({
-      kind: z.literal("set-permissions"),
-      permissions: appPermissionChangesSchema,
+      kind: z.literal("set-grants"),
+      changes: z.array(
+        z.object({
+          capability: z.enum(appCapabilityIds),
+          grant: z
+            .object({
+              operations: z.array(z.string()),
+              resources: z.union([
+                z.literal("tenant-scope"),
+                z.array(z.object({ kind: z.string(), id: z.string() })),
+              ]),
+            })
+            .nullable(),
+        }),
+      ),
+      artifactDigest: z.string().min(1),
+      declaredOperationsDigest: z.string().min(1),
     }),
     z.object({
       kind: z.literal("select"),
@@ -215,35 +233,7 @@ function appDirectory(
     override: null,
     authorityVersion: 1,
     enforcement: null,
-    grants: [],
-    generationPermissions: { llm: false, media: false },
-    marketplacePermissions: {
-      browse: false,
-      purchase: false,
-    },
-    agentPermission: {
-      kind: "all-team-agents" as const,
-      directoryOperations: [],
-      sessionOperations: [],
-    },
-    computerPermission: {
-      kind: "selected-computers",
-      computers: [
-        {
-          computerId: "workbench-laptop",
-          operations: [
-            "computer.list",
-            "computer.readFile",
-            "computer.writeFile",
-          ],
-        },
-        {
-          computerId: "studio",
-          operations: ["computer.list", "computer.readFile"],
-        },
-        { computerId: "travel-laptop", operations: ["computer.list"] },
-      ],
-    },
+    permission: workbenchPermission,
     handlers: [],
     declaredCapabilities: [...(capabilities.get(app.appId) ?? [])],
     availability: "available",
@@ -650,16 +640,43 @@ export function createDesktopFixture(
         if (!app) return new msw.HttpResponse(null, { status: 404 });
         if (app.authorityVersion !== expectedVersion)
           return new msw.HttpResponse(null, { status: 409 });
-        if (command.kind === "set-permissions") {
-          const permissions = command.permissions;
-          if (permissions.computer !== undefined)
-            app.computerPermission = permissions.computer;
-          if (permissions.agents !== undefined)
-            app.agentPermission = permissions.agents;
-          if (permissions.generation !== undefined)
-            app.generationPermissions = permissions.generation;
-          if (permissions.marketplace !== undefined)
-            app.marketplacePermissions = permissions.marketplace;
+        if (command.kind === "set-grants") {
+          const authority = app.permission?.authority;
+          if (app.permission === null || authority == null)
+            return new msw.HttpResponse(null, { status: 409 });
+          const changed = new Set(
+            command.changes.map(({ capability }) => capability),
+          );
+          app.permission = {
+            ...app.permission,
+            authority: {
+              ...authority,
+              authorityVersion: authority.authorityVersion + 1,
+              approvedGrants: [
+                ...authority.approvedGrants.filter(
+                  ({ capability }) => !changed.has(capability),
+                ),
+                ...command.changes.flatMap(({ capability, grant }) =>
+                  grant === null
+                    ? []
+                    : [
+                        {
+                          capability,
+                          capabilityApproved: true as const,
+                          operations: grant.operations,
+                          fingerprints: Object.fromEntries(
+                            grant.operations.map((operation) => [
+                              operation,
+                              "workbench",
+                            ]),
+                          ),
+                          resources: grant.resources,
+                        },
+                      ],
+                ),
+              ],
+            },
+          };
         } else if (command.kind === "select") {
           app.override = {
             releaseId: command.releaseId,
@@ -673,13 +690,7 @@ export function createDesktopFixture(
         app.authorityVersion += 1;
         return msw.HttpResponse.json({
           kind: "accepted",
-          receipt: {
-            authorityVersion: app.authorityVersion,
-            computerPermission: app.computerPermission,
-            generationPermissions: app.generationPermissions,
-            marketplacePermissions: app.marketplacePermissions,
-            agentPermission: app.agentPermission,
-          },
+          receipt: { authorityVersion: app.authorityVersion },
           enforcement: null,
         });
       }),

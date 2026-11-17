@@ -18,13 +18,7 @@ import {
 } from "@fungi.computer/caps/components/dialog";
 import { WindowFrame } from "@fungi.computer/caps/components/window";
 import { useRef, useState } from "react";
-import type {
-  AppAgentPermission,
-  AppComputerPermission,
-} from "@fungi.computer/nacre/app-directory";
 
-const directoryOperations = ["agent.list"] as const;
-const sessionOperations = ["agent.read", "agent.send", "agent.manage"] as const;
 const agentOperations: readonly AgentAccessOperation[] = [
   "agent.list",
   "agent.manage",
@@ -37,75 +31,6 @@ const computerOperations: readonly ComputerAccessOperation[] = [
   "computer.writeFile",
   "computer.execute",
 ];
-
-/** What the trusted host may offer: the request bounded by the declared ceiling. */
-function consentableOperations<Operation extends string>(
-  known: readonly Operation[],
-  requested: readonly Operation[],
-  declared: readonly string[],
-): readonly Operation[] {
-  return known.filter(
-    (operation) =>
-      requested.includes(operation) && declared.includes(operation),
-  );
-}
-
-export const consentableAgentOperations = (
-  requested: readonly AgentAccessOperation[],
-  declared: readonly string[],
-) => consentableOperations(agentOperations, requested, declared);
-
-export const consentableComputerOperations = (
-  requested: readonly ComputerAccessOperation[],
-  declared: readonly string[],
-) => consentableOperations(computerOperations, requested, declared);
-
-/** The all-Team-Agents grant that adds `offered` to the current policy. */
-export function consentedAgentPermission(
-  current: AppAgentPermission,
-  offered: readonly AgentAccessOperation[],
-): AppAgentPermission | "covered" | "customize" {
-  if (current.kind === "selected-agents") return "customize";
-  const currentOperations: readonly string[] = [
-    ...current.directoryOperations,
-    ...current.sessionOperations,
-  ];
-  if (offered.every((operation) => currentOperations.includes(operation)))
-    return "covered";
-  const granted = new Set<string>([...currentOperations, ...offered]);
-  return {
-    kind: "all-team-agents",
-    directoryOperations: directoryOperations.filter((operation) =>
-      granted.has(operation),
-    ),
-    sessionOperations: sessionOperations.filter((operation) =>
-      granted.has(operation),
-    ),
-  };
-}
-
-/**
- * The all-Team-Computers grant that adds `offered`. An empty selection is no
- * access; a real Computer selection is the owner's choice and never widened.
- */
-export function consentedComputerPermission(
-  current: AppComputerPermission | null,
-  offered: readonly ComputerAccessOperation[],
-): AppComputerPermission | "covered" | "customize" {
-  if (current?.kind === "selected-computers" && current.computers.length > 0)
-    return "customize";
-  const currentOperations: readonly string[] =
-    current?.kind === "all-team-computers" ? current.operations : [];
-  if (offered.every((operation) => currentOperations.includes(operation)))
-    return "covered";
-  const granted = new Set<string>([...currentOperations, ...offered]);
-  return {
-    kind: "all-team-computers",
-    operations: computerOperations.filter((operation) =>
-      granted.has(operation),
-    ),
-  };
-}
 
 /** Sentence variants following "<App> can" in the consent description. */
 const rightNames = {
@@ -141,7 +66,7 @@ const otherRightNames = {
 >;
 
 /** Every right the request names, in plain words, in a stable order. */
-export function plainRights(request: {
+function plainRights(request: {
   agents: readonly AgentAccessOperation[];
   computers: readonly ComputerAccessOperation[];
   others?: AppPermissionRequest | undefined;

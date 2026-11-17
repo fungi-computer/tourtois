@@ -13,7 +13,6 @@ import {
   type WorkbenchDesktopSettings,
   type WorkbenchDesktopRegistration,
 } from "@fungi.computer/nacre/workbench";
-import { addressKey } from "@fungi.computer/nacre/app-directory";
 import { tourtoisQueryKeys } from "./queries.js";
 import { useQuery } from "@tanstack/react-query";
 import type {
@@ -29,12 +28,7 @@ import {
   type ComponentProps,
   type ReactNode,
 } from "react";
-import {
-  AppAccessConsent,
-  consentableAgentOperations,
-  consentableComputerOperations,
-  type AppAccessRequest,
-} from "./AppAccessConsent.js";
+import { AppAccessConsent, type AppAccessRequest } from "./AppAccessConsent.js";
 import { RouterProvider, useRouterState } from "@tanstack/react-router";
 import {
   createSettingsRouter,
@@ -395,10 +389,10 @@ export type PlatformControlsData = SettingsSectionPorts &
   Readonly<{
     directory(): Promise<WorkbenchDirectory>;
     /**
-     * Override the owner consent flow below. Omit it to use the built-in
-     * one-click dialog, bounded by the target App's own declared
-     * capabilities; the owner's click in this trusted shell is the only grant
-     * a host without a separate per-App ceiling needs.
+     * The host's owner consent flow: it decides what the App may be offered
+     * from the owner's stored approvals, asks through `dialog` and saves the
+     * grant itself. A dialog answer grants nothing on its own, so a host
+     * without this flow declines every request.
      */
     requestAppAccess?(
       target: Parameters<WorkbenchHostControls["requestAppAccess"]>[0],
@@ -452,7 +446,6 @@ export function PlatformControlsView({
         return "customize";
       },
     };
-    const requestAppAccess = data.requestAppAccess;
     const refreshAfterGrant = async (
       outcome: Promise<AppPermissionOutcome>,
     ): Promise<AppPermissionOutcome> => {
@@ -461,44 +454,11 @@ export function PlatformControlsView({
       if (settled === "granted") controls.changed();
       return settled;
     };
-    const ask: PlatformControlsHost["requestAppAccess"] =
-      requestAppAccess === undefined
-        ? async (target, input) => {
-            const current = await data.directory();
-            const app = current.apps.find(
-              (candidate) => candidate.surfaceId === target.surfaceId,
-            );
-            const openSettings = () =>
-              dialog.customize({
-                category: "apps",
-                appKey: app ? addressKey(app.address) : null,
-                section: "desktop",
-              });
-            if (app === undefined) return openSettings();
-            const agents = consentableAgentOperations(
-              input.agents ?? [],
-              app.declaredCapabilities,
-            );
-            const computers = consentableComputerOperations(
-              input.computers ?? [],
-              app.declaredCapabilities,
-            );
-            if (agents.length === 0 && computers.length === 0)
-              return openSettings();
-            const outcome = await dialog.ask({
-              appName: target.title,
-              agents,
-              computers,
-              // This trusted shell only renders for the signed-in owner;
-              // their Allow click here is the whole grant, since this host
-              // keeps no further per-App ceiling to persist.
-              allow: () => Promise.resolve(true),
-            });
-            return outcome === "customize" ? openSettings() : outcome;
-          }
-        : (target, input) => requestAppAccess(target, input, dialog);
     const attached = controls.attach((target, input) =>
-      refreshAfterGrant(ask(target, input)),
+      refreshAfterGrant(
+        data.requestAppAccess?.(target, input, dialog) ??
+          Promise.resolve("declined"),
+      ),
     );
     return attached;
   }, [controls, data]);
