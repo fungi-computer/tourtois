@@ -42,6 +42,7 @@ export function createDesktopMethodsFixture(
   return {
     call: (method, input) =>
       appBackend.call(method, parseJsonValue(JSON.parse(input)), context, {
+        scope: { kind: "standalone" as const, tenant: "default" },
         computerId: null,
         actor: { kind: "member", memberId: "fixture-owner" },
       }),

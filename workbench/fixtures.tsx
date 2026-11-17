@@ -356,6 +356,7 @@ export function createDesktopFixture(
           },
         },
         {
+          scope: { kind: "standalone", tenant: "default" },
           computerId: null,
           actor: { kind: "member", memberId: "workbench-person" },
         },
