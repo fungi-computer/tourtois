@@ -62,7 +62,7 @@ export type DesktopGill = Readonly<{
   gillId: string;
   title: string;
   sizes: readonly AppGillDesktopSize[];
-  kind: "app" | "launcher";
+  kind: "app" | "surface" | "launcher";
   params?: readonly AppGillParam[] | undefined;
 }>;
 export const desktopArrangeSchema = z.strictObject({

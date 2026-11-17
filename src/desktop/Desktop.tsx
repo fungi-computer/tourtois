@@ -636,7 +636,7 @@ function ArrangedDesktop({
                     }
                     onContentHeight={onContentHeight}
                   />
-                ) : declaration && app ? (
+                ) : declaration?.view === "rows" && app ? (
                   <RowGill
                     key={JSON.stringify(item.params ?? {})}
                     surfaceId={item.surfaceId}

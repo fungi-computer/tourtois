@@ -1,5 +1,27 @@
 # @fungi.computer/tourtois
 
+## 0.23.0
+
+### Minor Changes
+
+- Changes since 0.22.0:
+
+  - feat(gills): declare surface Gills beside row Gills
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.21.0
+  - @fungi.computer/gills@0.4.0
+  - @fungi.computer/nacre@0.8.0
+  - @fungi.computer/parakeet@0.13.0
+  - @fungi.computer/puffball@0.11.0
+  - @fungi.computer/shiitake@0.20.1
+
 ## 0.22.0
 
 ### Minor Changes

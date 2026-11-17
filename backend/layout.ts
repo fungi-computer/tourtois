@@ -56,9 +56,9 @@ async function catalog(context: LayoutContext) {
           gillId: gill.id,
           title: gill.title,
           sizes: gill.desktop.sizes,
-          kind: "app",
+          kind: gill.view === "surface" ? "surface" : "app",
         };
-        if (gill.params !== undefined)
+        if (gill.view === "rows" && gill.params !== undefined)
           widget = { ...widget, params: gill.params };
         return [widget];
       }),

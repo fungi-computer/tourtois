@@ -19,7 +19,7 @@ export const desktopWidgetsSchema = z.strictObject({
       gillId: z.string().min(1),
       title: z.string(),
       sizes: z.array(z.enum(["S", "M", "L"])),
-      kind: z.enum(["app", "launcher"]),
+      kind: z.enum(["app", "surface", "launcher"]),
       params: z
         .array(
           z.strictObject({

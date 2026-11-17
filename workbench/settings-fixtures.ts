@@ -69,6 +69,7 @@ const app = (
   gills: roles.includes("inbox")
     ? [
         {
+          view: "rows",
           id: "inbox",
           title: "Inbox",
           source: "listInbox",

@@ -7,7 +7,7 @@ import {
 } from "@fungi.computer/gills";
 import type { TeamWorkbenchHostHandle } from "@fungi.computer/nacre/workbench";
 import type {
-  AppDeclaredGill,
+  AppDeclaredRowGill,
   AppGillDesktopSize,
 } from "@fungi.computer/gills";
 type RowV1 = GillResponse["rows"][number];
@@ -55,7 +55,7 @@ export function RowGill({
 }: {
   surfaceId: string;
   appHeader: Readonly<{ name: string; icon: ReactNode }>;
-  declaration: AppDeclaredGill;
+  declaration: AppDeclaredRowGill;
   params?: Readonly<Record<string, string>> | undefined;
   size: AppGillDesktopSize;
   paused: boolean;
