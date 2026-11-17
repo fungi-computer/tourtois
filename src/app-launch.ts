@@ -203,20 +203,19 @@ function computersForApp(
     return computers.filter(
       (computer) => computer.computerId === context.computerId,
     );
-  const permission = app.computerPermission;
-  if (!permission) return [];
-
-  if (
-    permission.kind === "all-team-computers" &&
-    permission.operations.length > 0
-  )
+  const approved = (app.permission?.authority?.approvedGrants ?? []).filter(
+    (grant) => grant.capability.startsWith("computer."),
+  );
+  if (approved.some((grant) => grant.resources === "tenant-scope"))
     return computers;
-
-  if (permission.kind !== "selected-computers") return [];
   const allowedIds = new Set(
-    permission.computers
-      .filter((computer) => computer.operations.length > 0)
-      .map((computer) => computer.computerId),
+    approved.flatMap((grant) =>
+      grant.resources === "tenant-scope"
+        ? []
+        : grant.resources
+            .filter((resource) => resource.kind === "computer")
+            .map((resource) => resource.id),
+    ),
   );
   return computers.filter((computer) => allowedIds.has(computer.computerId));
 }

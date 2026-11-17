@@ -1,10 +1,54 @@
-import type { AppDirectory } from "@fungi.computer/nacre/app-directory";
+import {
+  appPermissionFactsSchema,
+  type AppDirectory,
+} from "@fungi.computer/nacre/app-directory";
 import { appDeclarationSchema } from "@fungi.computer/puffball/app";
 import * as Schema from "effect/Schema";
 import tourtoisManifest from "../package.json" with { type: "json" };
 import vishnuManifest from "../../vishnu/package.json" with { type: "json" };
 
 export type SettingsApp = AppDirectory["apps"][number];
+
+const digest = `sha256:${"a".repeat(64)}`;
+const declaredComputer = (capability: string) => ({
+  capability,
+  operations: [],
+  fingerprints: {},
+});
+const approvedOn = (capability: string, ids: readonly string[]) => ({
+  ...declaredComputer(capability),
+  capabilityApproved: true,
+  resources: ids.map((id) => ({ kind: "computer", id })),
+});
+
+/** Computer approvals the Settings workbench shows: selected Computers only. */
+export const workbenchPermission = appPermissionFactsSchema.parse({
+  authority: {
+    authorityVersion: 1,
+    declaredOperationsDigest: digest,
+    approvedGrants: [
+      approvedOn("computer.list", [
+        "workbench-laptop",
+        "studio",
+        "travel-laptop",
+      ]),
+      approvedOn("computer.readFile", ["workbench-laptop", "studio"]),
+      approvedOn("computer.writeFile", ["workbench-laptop"]),
+    ],
+    approval: null,
+  },
+  declaredOperations: {
+    artifactDigest: digest,
+    digest,
+    capabilities: [
+      declaredComputer("computer.list"),
+      declaredComputer("computer.readFile"),
+      declaredComputer("computer.writeFile"),
+    ],
+  },
+  artifactDigest: digest,
+  canEdit: true,
+});
 
 const app = (
   appId: string,
@@ -20,7 +64,6 @@ const app = (
   override: null,
   authorityVersion: 1,
   enforcement: null,
-  grants: [],
   declaredCapabilities:
     appId === "grove" ? ["channels.read", "channels.personal.manage"] : [],
   gills: roles.includes("inbox")
@@ -41,34 +84,7 @@ const app = (
   commands: [],
   surface: null,
   surfacePath: `/${appId}`,
-  computerPermission: {
-    kind: "selected-computers",
-    computers: [
-      {
-        computerId: "workbench-laptop",
-        operations: [
-          "computer.list",
-          "computer.readFile",
-          "computer.writeFile",
-        ],
-      },
-      {
-        computerId: "studio",
-        operations: ["computer.list", "computer.readFile"],
-      },
-      { computerId: "travel-laptop", operations: ["computer.list"] },
-    ],
-  },
-  generationPermissions: { llm: false, media: false },
-  marketplacePermissions: {
-    browse: false,
-    purchase: false,
-  },
-  agentPermission: {
-    kind: "all-team-agents" as const,
-    directoryOperations: [],
-    sessionOperations: [],
-  },
+  permission: workbenchPermission,
 });
 
 export const settingsApps: readonly SettingsApp[] = [

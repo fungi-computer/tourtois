@@ -1,4 +1,10 @@
-import { useCallback, useLayoutEffect, useMemo, type ReactNode } from "react";
+import {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { CommandMenu } from "@fungi.computer/caps/blocks/command-menu";
 import { Combobox } from "@fungi.computer/caps/components/combobox";
 import {
@@ -137,6 +143,12 @@ export function CommandDialogs({
   const { active, keysOpen, setKeysOpen, commandLineOpen, setCommandLineOpen } =
     state;
   const focusedTitle = focusedWindow?.launch.title ?? null;
+  // A key typed in the Keys sheet that is not a leader key; the command line
+  // opens with it already in the search box. The dialog stays mounted, so the
+  // search box is keyed on it to start over with that text. It only lives while
+  // the line is open, so a later open starts empty.
+  const [typedInKeys, setTypedInKeys] = useState("");
+  if (!commandLineOpen && typedInKeys !== "") setTypedInKeys("");
   const keys = useMemo(() => leaderKeys(active), [active]);
   const groups = useMemo(() => {
     const shell = keys.filter((row) => row.scope === undefined);
@@ -231,7 +243,23 @@ export function CommandDialogs({
       const row = keys.find((candidate) =>
         leaderKeyMatches(event, candidate.key),
       );
-      if (row === undefined) return;
+      if (row === undefined) {
+        // Not a leader key: the person is typing a command, so carry on in
+        // the command line instead of leaving the sheet to swallow it.
+        if (
+          event.key.length !== 1 ||
+          event.ctrlKey ||
+          event.metaKey ||
+          event.altKey
+        )
+          return;
+        event.preventDefault();
+        event.stopPropagation();
+        setTypedInKeys(event.key);
+        setKeysOpen(false);
+        setCommandLineOpen(true);
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
       choose(row);
@@ -240,7 +268,7 @@ export function CommandDialogs({
     return () => {
       owner.removeEventListener("keydown", onKeyDown, true);
     };
-  }, [choose, dialog, keys, keysOpen]);
+  }, [choose, dialog, keys, keysOpen, setCommandLineOpen, setKeysOpen]);
   return (
     <>
       <Dialog open={keysOpen} onOpenChange={setKeysOpen}>
@@ -305,6 +333,8 @@ export function CommandDialogs({
               return "Workspace";
             }}
             inputProps={{ "aria-label": "Search commands" }}
+            defaultInputValue={typedInKeys}
+            key={typedInKeys}
             items={paletteRows}
             placeholder=":"
             renderItem={(command) => (

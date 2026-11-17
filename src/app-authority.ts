@@ -2,38 +2,25 @@ import * as z from "zod";
 import {
   appAuthorityEnforcementSchema,
   type AppAddress,
-  appComputerPermissionSchema,
-  appAgentPermissionSchema,
-  appGenerationPermissionsSchema,
-  appMarketplacePermissionsSchema,
 } from "@fungi.computer/nacre/app-directory";
 
-export const appPermissionChangesSchema = z
-  .strictObject({
-    computer: appComputerPermissionSchema.optional(),
-    agents: appAgentPermissionSchema.optional(),
-    generation: appGenerationPermissionsSchema.optional(),
-    marketplace: appMarketplacePermissionsSchema.optional(),
-  })
-  .refine(
-    (changes) => Object.values(changes).some((value) => value !== undefined),
-    "At least one permission section must change",
-  );
-export type AppPermissionChanges = z.output<typeof appPermissionChangesSchema>;
-export const appPermissionReceiptSchema = z.object({
-  authorityVersion: z.number().int().positive(),
-  computerPermission: appComputerPermissionSchema.nullable(),
-  agentPermission: appAgentPermissionSchema,
-  generationPermissions: appGenerationPermissionsSchema,
-  marketplacePermissions: appMarketplacePermissionsSchema,
-});
+/**
+ * One owner save of an App's grants: the changes Oyster reduced from the
+ * owner's edit and the digests the owner read them against. The host rejects
+ * a save whose Release artifact or declared operations have since changed.
+ */
+export type AppGrantsSave<Change extends object> = Readonly<{
+  changes: readonly Change[];
+  artifactDigest: string;
+  declaredOperationsDigest: string;
+}>;
 
-export function appPermissionsMutationRequest(
+export function appGrantsMutationRequest<Change extends object>(
   teamId: string,
   requestId: string,
   address: AppAddress,
   expectedAuthorityVersion: number,
-  permissions: AppPermissionChanges,
+  save: AppGrantsSave<Change>,
 ) {
   return {
     url: "/api/teams/" + encodeURIComponent(teamId) + "/apps",
@@ -48,15 +35,18 @@ export function appPermissionsMutationRequest(
       body: JSON.stringify({
         target: address,
         expectedVersion: expectedAuthorityVersion,
-        command: { kind: "set-permissions", permissions },
+        command: {
+          kind: "set-grants",
+          changes: save.changes,
+          artifactDigest: save.artifactDigest,
+          declaredOperationsDigest: save.declaredOperationsDigest,
+        },
       }),
     } satisfies RequestInit,
   };
 }
 
-export type AppMutationRequest = ReturnType<
-  typeof appPermissionsMutationRequest
->;
+export type AppMutationRequest = ReturnType<typeof appGrantsMutationRequest>;
 
 export const appMutationResponseSchema = z.strictObject({
   kind: z.literal("accepted"),

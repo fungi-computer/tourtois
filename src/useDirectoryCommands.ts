@@ -19,7 +19,7 @@ export function useDirectoryCommands({
 }: {
   host: TourtoisAppSurfaceHost | null;
   directory: readonly AppDirectoryApp[];
-  manager: ReturnType<typeof createAppWindowManager>;
+  manager: Pick<ReturnType<typeof createAppWindowManager>, "open">;
   launchFor: (app: AppDirectoryApp) => AppLaunchDescriptor | null;
   onFocus: (windowId: string) => void;
   onError: (message: string) => void;
@@ -64,6 +64,10 @@ export function useDirectoryCommands({
         try {
           await context.manager.open(launch);
           context.onFocus(launch.windowId);
+          // The window is the focus now, but only a focused App's commands are
+          // active, and a cold App has not reported frame focus yet. Name it
+          // here rather than wait for a report that may never come.
+          host.focus?.(surfaceId);
           const key = appSurfaceCommandKey({ surfaceId, commandId });
           const registered = () =>
             host

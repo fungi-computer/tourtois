@@ -117,6 +117,19 @@ const computerRunStateSchema = z.looseObject({
 /** The durable per-Computer switches an owner manages. */
 export type ComputerSwitchSetting = "internet-access" | "keep-awake";
 const missingRuntime = z.strictObject({ error: z.literal("no_runtime") });
+const switchUnavailable = z.strictObject({ error: z.literal("unavailable") });
+
+/**
+ * The host answered that this Computer has no such switch (a local trial's
+ * own machine has no sleep or egress policy). Unlike a failed check, there
+ * is nothing to retry, so Settings draws no row for it.
+ */
+export class SwitchUnavailable extends Error {
+  constructor() {
+    super("This Computer does not have that setting.");
+    this.name = "SwitchUnavailable";
+  }
+}
 const computerSwitchSchema = z.strictObject({ enabled: z.boolean() });
 
 async function request(url: URL, init?: RequestInit): Promise<Response> {
@@ -135,6 +148,11 @@ async function request(url: URL, init?: RequestInit): Promise<Response> {
       "This Computer has no runtime. Use the workspace Computer supplied by oyster try, or attach a runtime.",
       { code: "HOST_FAILURE", retryable: false },
     );
+  if (
+    response.status === 409 &&
+    switchUnavailable.safeParse(await response.clone().json()).success
+  )
+    throw new SwitchUnavailable();
   if (!response.ok)
     throw new AppError(
       `Computer request refused (${String(response.status)}).`,
@@ -301,6 +319,7 @@ function ComputerSwitch({
       mutationFn: write,
     }),
   );
+  if (current.error instanceof SwitchUnavailable) return null;
   return (
     <ComputerSettingRow
       setting={setting}
