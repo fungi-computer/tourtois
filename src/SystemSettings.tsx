@@ -1,7 +1,5 @@
 import { AppCallPermissions } from "./AppCallPermissions.js";
 import { SectionHeading } from "@fungi.computer/caps/blocks/section-heading";
-import { FormFooter } from "@fungi.computer/caps/components/field";
-import { Prose } from "@fungi.computer/caps/components/prose";
 import {
   AppDesktopSettings,
   type AppDesktopSettingsApp,
@@ -14,7 +12,7 @@ import type { WorkbenchDesktopSettings } from "@fungi.computer/nacre/workbench";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Connections } from "./Connections.js";
 import { Keys, type KeyAppOption } from "./Keys.js";
-import { ModelKeys } from "./ModelKeys.js";
+import { Vault } from "./Vault.js";
 import { AppIcon } from "./app-icon.js";
 import { AvatarSettings } from "./member-avatar.js";
 import { SettingsNavigation } from "./SettingsNavigation.js";
@@ -219,12 +217,9 @@ export function SystemSettings({
       <DialogContent
         finalFocus={restoreFocus}
         initialFocus={
-          keysTarget === "all"
-            ? true
-            : () =>
-                keyContent.current?.querySelector<HTMLElement>(
-                  keysTarget === "model" ? "select" : "a",
-                ) ?? true
+          keysTarget === "media"
+            ? () => keyContent.current?.querySelector<HTMLElement>("a") ?? true
+            : true
         }
         render={<WindowFrame floating />}
         keepMounted={false}
@@ -294,53 +289,19 @@ export function SystemSettings({
               <div
                 ref={keyContent}
                 aria-label={
-                  keysTarget === "model"
-                    ? "Model setup"
-                    : keysTarget === "media"
-                      ? "Image setup"
-                      : "Keys settings"
+                  keysTarget === "media" ? "Image setup" : "Keys settings"
                 }
                 className="tourtois-settings-content tourtois-settings-stack"
               >
                 {keysTarget === "all" && keys !== undefined ? (
                   <Keys port={keys} apps={keyableApps} />
                 ) : null}
-                {keysTarget !== "media" && ports.modelKeys !== undefined ? (
-                  <ModelKeys
-                    port={ports.modelKeys}
-                    focus={keysTarget === "model"}
-                  />
-                ) : null}
-                {keysTarget !== "model" && ports.modelKeys !== undefined ? (
-                  <section
-                    className="tourtois-settings-stack"
-                    aria-label="Image models"
-                  >
-                    <SectionHeading>Image models</SectionHeading>
-                    <p className="tourtois-settings-lede">
-                      Flux images use Cloudflare Workers AI.
-                    </p>
-                    <Prose>
-                      <p>Local trials can upload images. To generate:</p>
-                      <ol>
-                        <li>Enable Workers AI in your Cloudflare account.</li>
-                        <li>Deploy this Oyster using the setup guide.</li>
-                        <li>Open Prints at the deployed Oyster address.</li>
-                      </ol>
-                    </Prose>
-                    <FormFooter divider={false}>
-                      <Button asChild>
-                        <a
-                          href="https://docs.fungi.computer/guides/run-your-own-oyster/#image-models"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Set up Cloudflare Workers AI
-                        </a>
-                      </Button>
-                    </FormFooter>
-                  </section>
-                ) : null}
+                {ports.imageModels !== undefined ? <ports.imageModels /> : null}
+              </div>
+            ) : null}
+            {location?.category === "vault" && ports.vault !== undefined ? (
+              <div className="tourtois-settings-content">
+                <Vault port={ports.vault} focus={location.target === "model"} />
               </div>
             ) : null}
             {location?.category === "channels" &&

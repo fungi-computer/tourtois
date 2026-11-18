@@ -1,5 +1,22 @@
 # @fungi.computer/tourtois
 
+## 0.28.0
+
+### Minor Changes
+
+- Changes since 0.27.2:
+
+  - fix(vault): name an Agent's model by its id when no catalog is loaded
+  - fix(vault): calmer page: no stray lamps or label icons, forms behind openers
+  - feat(tourtois): one Vault for model keys and credentials
+  - feat(grove): show the model picker and a plain credit footer in the chat
+    widget
+
+### Patch Changes
+
+- Updated dependencies
+  - @fungi.computer/parakeet@0.14.5
+
 ## 0.27.2
 
 ### Patch Changes

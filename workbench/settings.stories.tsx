@@ -23,6 +23,8 @@ import {
   type WebsiteSite,
 } from "../src/WebsiteChannels.js";
 import type { KeysPort } from "../src/Keys.js";
+import type { VaultPort, VaultUse, VaultView } from "../src/Vault.js";
+import { OysterImageModels } from "../src/oyster-platform-controls.js";
 import type { ConnectionsPort, ConnectionsView } from "../src/Connections.js";
 import type { KeySummary } from "@fungi.computer/ear-tag/keys";
 import { createDesktopFixture } from "./fixtures.js";
@@ -449,7 +451,7 @@ const keysSampleRecords: readonly KeySummary<string>[] = [
 
 function keysStory(
   state: "full" | "empty" = "full",
-  target: "all" | "model" | "media" = "all",
+  target: "all" | "media" = "all",
 ): Story {
   const Story: Story = () => {
     const [client] = useState(
@@ -482,19 +484,7 @@ function keysStory(
           restoreFocus={false}
           ports={{
             keys: port,
-            modelKeys: {
-              read: () =>
-                Promise.resolve({
-                  keys: [],
-                  agents: [],
-                  models: "missing",
-                  providers: modelKeyProviderFixture,
-                  catalogs: {},
-                }),
-              addKey: () => Promise.resolve(),
-              removeKey: () => Promise.resolve(),
-              chooseModel: () => Promise.resolve(),
-            },
+            imageModels: OysterImageModels,
           }}
         />
       </QueryClientProvider>
@@ -505,8 +495,207 @@ function keysStory(
 
 export const KeysFull = keysStory();
 export const KeysEmpty = keysStory("empty");
-export const ModelSetup = keysStory("empty", "model");
 export const ImageSetup = keysStory("empty", "media");
+
+const day = 24 * 60 * 60 * 1000;
+/** A Team's Vault, in memory: what the host would list, never a value. */
+function vaultFixture(state: "full" | "empty" | "member"): VaultPort {
+  const view: VaultView = {
+    role:
+      state === "member"
+        ? { manageTeam: false, managePersonal: true }
+        : { manageTeam: true, managePersonal: true },
+    coverage:
+      state === "empty"
+        ? { state: "complete" }
+        : {
+            state: "incomplete",
+            missing: [{ kind: "connection", id: "conn_linear" }],
+          },
+    providers: modelKeyProviderFixture.map((provider) => ({
+      ...provider,
+      baseUrl: false,
+    })),
+    scopes: state === "member" ? ["user", "team"] : ["team"],
+    modelKeys:
+      state === "empty"
+        ? []
+        : [
+            {
+              keyId: "cred_anthropic",
+              provider: "anthropic",
+              label: "Team Claude",
+              scope: "team",
+              createdAt: Date.now() - 14 * day,
+              baseUrl: null,
+            },
+            {
+              keyId: "cred_groq",
+              provider: "groq",
+              label: "Fast drafts",
+              scope: "team",
+              createdAt: Date.now() - 3 * day,
+              baseUrl: null,
+            },
+          ],
+    credentials:
+      state === "empty"
+        ? []
+        : [
+            {
+              connectionId: "conn_stripe",
+              name: "stripe",
+              label: "Stripe",
+              kind: "secret",
+              origin: "https://api.stripe.com",
+              destinations: [
+                {
+                  host: "api.stripe.com",
+                  pathPrefix: "/v1/",
+                  methods: ["GET", "POST"],
+                },
+              ],
+              credential: "value",
+              placement: "bearer",
+              state: "active",
+              version: 2,
+              subjects: [
+                { kind: "agent", id: "gardener" },
+                { kind: "computer", id: "cedar" },
+              ],
+            },
+            {
+              connectionId: "conn_resend",
+              name: "resend",
+              label: "Resend",
+              kind: "secret",
+              origin: "https://api.resend.com",
+              destinations: [{ host: "api.resend.com", methods: ["POST"] }],
+              credential: "value",
+              placement: { header: "X-Api-Key" },
+              state: "active",
+              version: 1,
+              subjects: [],
+            },
+            {
+              connectionId: "conn_linear",
+              name: "linear",
+              label: "Linear",
+              kind: "mcp",
+              origin: "https://mcp.linear.app",
+              destinations: null,
+              credential: "value",
+              placement: "bearer",
+              state: "active",
+              version: 1,
+              subjects: [{ kind: "agent", id: "gardener" }],
+            },
+            {
+              connectionId: "conn_github",
+              name: "github",
+              label: "GitHub issues",
+              kind: "openapi",
+              origin: "https://api.github.com",
+              destinations: null,
+              credential: "sign-in",
+              placement: null,
+              state: "active",
+              version: 1,
+              subjects: [
+                { kind: "agent", id: "gardener" },
+                { kind: "agent", id: "librarian" },
+              ],
+            },
+          ],
+    subjects: {
+      agents: [
+        { id: "gardener", name: "Gardener" },
+        { id: "librarian", name: "Librarian" },
+      ],
+      computers: [{ id: "cedar", name: "cedar" }],
+    },
+  };
+  const uses: readonly VaultUse[] = [
+    {
+      subject: { kind: "agent", id: "gardener" },
+      host: "api.stripe.com",
+      method: "POST",
+      outcome: "upstream_status",
+      status: 200,
+      count: 12,
+      lastAt: Date.now() - 40 * 60 * 1000,
+    },
+    {
+      subject: { kind: "computer", id: "cedar" },
+      host: null,
+      method: "GET",
+      outcome: "refused_destination",
+      status: null,
+      count: 1,
+      lastAt: Date.now() - 3 * 60 * 60 * 1000,
+    },
+  ];
+  const later = () => Promise.resolve();
+  return {
+    read: () => Promise.resolve(structuredClone(view)),
+    addSecret: later,
+    updateCredential: later,
+    revokeCredential: later,
+    grant: later,
+    ungrant: later,
+    credentialUsage: () => Promise.resolve(uses),
+    modelKeys: {
+      add: later,
+      remove: later,
+      rotate: later,
+      usage: () => Promise.resolve(uses.slice(0, 1)),
+    },
+  };
+}
+
+function vaultStory(
+  state: "full" | "empty" | "member",
+  target: "all" | "model" = "all",
+): Story {
+  const Story: Story = () => {
+    const [client] = useState(
+      () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+    );
+    const [location, setLocation] = useState<SettingsLocation | null>({
+      category: "vault",
+      target,
+    });
+    const [port] = useState(() => vaultFixture(state));
+    return (
+      <QueryClientProvider client={client}>
+        <SystemSettings
+          location={location}
+          onNavigate={setLocation}
+          desktopConsentReadyAt={0}
+          desktopSettings={{
+            readGill: () => Promise.reject(new Error("not used")),
+            addGill: () => Promise.reject(new Error("not used")),
+            removeGill: () => Promise.reject(new Error("not used")),
+          }}
+          apps={keysDemoApps}
+          appCount={keysDemoApps.length}
+          onAccepted={() => Promise.resolve()}
+          onClosed={() => {
+            setLocation(null);
+          }}
+          restoreFocus={false}
+          ports={{ vault: port, keys: keysFixture([]) }}
+        />
+      </QueryClientProvider>
+    );
+  };
+  return Story;
+}
+
+export const VaultFull = vaultStory("full");
+export const VaultEmpty = vaultStory("empty");
+export const VaultMember = vaultStory("member");
+export const ModelSetup = vaultStory("empty", "model");
 
 // The host owns this list; the workbench has no host, so it shows a copy.
 const modelKeyProviderFixture = [

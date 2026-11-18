@@ -33,7 +33,12 @@ export const settingsLocationSchema = z.discriminatedUnion("category", [
   z.strictObject({ category: z.literal("computers") }),
   z.strictObject({
     category: z.literal("keys"),
-    target: z.enum(["all", "model", "media"]),
+    target: z.enum(["all", "media"]),
+  }),
+  /** Every stored key and credential; `model` opens on the model-key form. */
+  z.strictObject({
+    category: z.literal("vault"),
+    target: z.enum(["all", "model"]),
   }),
   z.strictObject({ category: z.literal("defaults") }),
   z.strictObject({ category: z.literal("channels") }),
@@ -145,15 +150,23 @@ export function createSettingsRouter() {
     loader: () =>
       ({ category: "keys", target: "all" }) satisfies SettingsLocation,
   });
-  const keySetup = createRoute({
+  const imageSetup = createRoute({
     getParentRoute: () => root,
-    path: "/keys/$target",
-    params: {
-      parse: (params) =>
-        z.object({ target: z.enum(["model", "media"]) }).parse(params),
-    },
-    loader: ({ params }) =>
-      ({ category: "keys", target: params.target }) satisfies SettingsLocation,
+    path: "/keys/media",
+    loader: () =>
+      ({ category: "keys", target: "media" }) satisfies SettingsLocation,
+  });
+  const vault = createRoute({
+    getParentRoute: () => root,
+    path: "/vault",
+    loader: () =>
+      ({ category: "vault", target: "all" }) satisfies SettingsLocation,
+  });
+  const modelSetup = createRoute({
+    getParentRoute: () => root,
+    path: "/vault/model",
+    loader: () =>
+      ({ category: "vault", target: "model" }) satisfies SettingsLocation,
   });
   const channels = createRoute({
     getParentRoute: () => root,
@@ -189,7 +202,9 @@ export function createSettingsRouter() {
     connectorAgent,
     computers,
     keys,
-    keySetup,
+    imageSetup,
+    vault,
+    modelSetup,
     channels,
   ]);
   const router: RouterCore<typeof routeTree, "never", false> = createRouter({
@@ -242,12 +257,13 @@ export function navigateSettings(
     case "computers":
       return router.navigate({ to: "/computers" });
     case "keys":
-      return location.target === "all"
-        ? router.navigate({ to: "/keys" })
-        : router.navigate({
-            to: "/keys/$target",
-            params: { target: location.target },
-          });
+      return router.navigate({
+        to: location.target === "all" ? "/keys" : "/keys/media",
+      });
+    case "vault":
+      return router.navigate({
+        to: location.target === "all" ? "/vault" : "/vault/model",
+      });
     case "apps":
       return location.appKey === null
         ? router.navigate({ to: "/apps" })

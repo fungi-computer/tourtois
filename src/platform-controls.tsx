@@ -53,6 +53,24 @@ export {
   type ConnectionsView,
 } from "./Connections.js";
 export {
+  agentModelsViewSchema,
+  vaultViewSchema,
+  VaultRefusal,
+  type AgentModelChoiceDraft,
+  type AgentModelsView,
+  type VaultCredential,
+  type VaultCredentialChange,
+  type VaultDestination,
+  type VaultModelKey,
+  type VaultModelKeyDraft,
+  type VaultPlacement,
+  type VaultPort,
+  type VaultSecretDraft,
+  type VaultSubject,
+  type VaultUse,
+  type VaultView,
+} from "./Vault.js";
+export {
   type KeyAppOption,
   type KeyGrantOption,
   type KeyGrantPreviewProps,

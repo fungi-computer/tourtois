@@ -16,10 +16,12 @@ export const oysterSetupSchema = z.strictObject({
 
 /** Where each need is fixed in this host's Settings. */
 export function settingsForNeed(need: SetupNeed): SettingsLocation {
-  // Model keys and image setup have separate destinations; runtimes live in Computers.
-  return need === "model" || need === "media"
-    ? { category: "keys", target: need }
-    : { category: "computers" };
+  // A model key lives in the Vault, image setup beside Keys and runtimes in Computers.
+  return need === "model"
+    ? { category: "vault", target: "model" }
+    : need === "media"
+      ? { category: "keys", target: "media" }
+      : { category: "computers" };
 }
 
 export type OysterSetupDeps = Readonly<{

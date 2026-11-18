@@ -212,6 +212,11 @@ function navigationGroups(
           location: { category: "computers" },
         },
         {
+          value: "vault",
+          label: "Vault",
+          location: { category: "vault", target: "all" },
+        },
+        {
           value: "keys",
           label: "Keys",
           location: { category: "keys", target: "all" },
@@ -248,6 +253,8 @@ function navigationValue(
       return "computers";
     case "keys":
       return "keys";
+    case "vault":
+      return "vault";
     case "channels":
       return "channels";
     case "apps":

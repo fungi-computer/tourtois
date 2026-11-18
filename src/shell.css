@@ -300,6 +300,10 @@
   color: var(--stipe-fg-muted);
   overflow-wrap: anywhere;
 }
+/* With no icon, the detail sits under the title at the same edge. */
+.tourtois-settings-item[data-plain] .tourtois-settings-item-detail {
+  padding-inline-start: 0;
+}
 .tourtois-settings-item-detail > p {
   margin: 0;
 }
@@ -313,6 +317,157 @@
 
 .tourtois-issued-key {
   word-break: break-all;
+}
+
+/* Vault: each section is a small heading over its list; rows open one
+   inline panel (rotate, scope, usage or revoke) under their line. */
+/* Every section starts at one left edge: its heading, then its explanation
+   at the secondary size, then its list and add form. */
+.tourtois-vault > .tourtois-settings-stack {
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--stipe-hairline);
+}
+.tourtois-vault-section-head {
+  display: grid;
+  gap: var(--spacing-2xs);
+}
+.tourtois-vault-section-title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 650;
+}
+.tourtois-vault-add {
+  display: flex;
+}
+.tourtois-vault-add-form {
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--stipe-hairline);
+}
+/* A short multi-select: checkboxes that wrap like words, selection by fill. */
+.tourtois-vault-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs) var(--spacing-md);
+}
+.tourtois-vault-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-sm);
+}
+.tourtois-vault-note {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--stipe-fg-muted);
+  font-size: var(--text-sm);
+}
+.tourtois-vault-item {
+  display: grid;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.list-row > .tourtois-vault-item {
+  grid-column: 1 / -1;
+}
+.tourtois-vault-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+.tourtois-vault-coverage {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-sm);
+}
+.tourtois-vault-coverage > p {
+  margin: 0;
+}
+.tourtois-vault-panel {
+  display: grid;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-field);
+  border: 1px solid var(--stipe-hairline);
+  background: var(--color-base-200);
+}
+.tourtois-vault-panel-copy {
+  max-width: 60ch;
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--stipe-fg-muted);
+}
+.tourtois-vault-panel-copy > strong {
+  color: var(--color-base-content);
+}
+.tourtois-vault-scope,
+.tourtois-vault-destinations,
+.tourtois-vault-sites {
+  display: grid;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.tourtois-vault-destination > .caps-fieldset-fields {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: var(--spacing-xs);
+}
+.tourtois-vault-methods {
+  font-family: var(--font-mono);
+}
+.tourtois-vault-usage {
+  display: grid;
+  gap: var(--spacing-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tourtois-vault-use {
+  display: grid;
+  grid-template-columns: minmax(9rem, auto) minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-xs) var(--spacing-sm);
+  min-width: 0;
+  padding-block: var(--spacing-2xs);
+  border-bottom: 1px solid var(--stipe-hairline);
+  font-size: var(--text-xs);
+}
+.tourtois-vault-use:last-child {
+  border-bottom: 0;
+}
+.tourtois-vault-use-who {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.tourtois-vault-use-where,
+.tourtois-vault-use-when {
+  min-width: 0;
+  color: var(--stipe-fg-muted);
+}
+.tourtois-vault-use-when {
+  white-space: nowrap;
+  text-align: end;
+}
+@container (max-width: 34rem) {
+  .tourtois-vault-use {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .tourtois-vault-use-who {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .tourtois-vault-use-where {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .tourtois-vault-use-when {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
 }
 
 .tourtois-settings-tabs-end {

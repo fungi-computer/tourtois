@@ -12,6 +12,10 @@ import {
   workbenchComputerDirectorySchema,
   workbenchDirectorySchema,
 } from "@fungi.computer/nacre/workbench-directory";
+import { SectionHeading } from "@fungi.computer/caps/blocks/section-heading";
+import { Button } from "@fungi.computer/caps/components/button";
+import { FormFooter } from "@fungi.computer/caps/components/field";
+import { Prose } from "@fungi.computer/caps/components/prose";
 import { toast } from "@fungi.computer/caps/components/toaster";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as S from "effect/Schema";
@@ -29,7 +33,13 @@ import {
   type KeysPort,
 } from "./platform-controls.js";
 import { createOysterSetupPort, oysterSetupSchema } from "./oyster-setup.js";
-import { modelKeysViewSchema, type ModelKeysPort } from "./ModelKeys.js";
+import {
+  agentModelsViewSchema,
+  vaultViewSchema,
+  VaultRefusal,
+  type VaultPort,
+  type VaultUse,
+} from "./Vault.js";
 import { WORKBENCH_NOTICES } from "./app-toast.js";
 import { settingsLocationSchema } from "./settings-routes.js";
 import type { PlatformControlsData } from "./platform-controls.js";
@@ -150,23 +160,40 @@ const modelKeyMessages = {
   model_unavailable: "That provider has no such model",
   invalid_model_choice: "That model choice is not valid",
 } as const;
-const modelKeyMessage = (code: string): string =>
-  new Map<string, string>(Object.entries(modelKeyMessages)).get(code) ?? code;
+const vaultMessages = {
+  not_found: "That credential was removed. Reload the Vault",
+  conflict: "That credential changed since you opened it. Reload the Vault",
+  denied: "You can't change this credential",
+  invalid_input: "Check the name, sites and value, then try again",
+  duplicate_name: "A secret with that reference already exists",
+  limit: "Revoke a secret before adding another",
+  invalid_endpoint:
+    "Bind it to public https hosts only: exact names, no addresses or wildcards",
+  unsupported_subject: "That can't be given a secret",
+} as const;
 
-/** A model-key request whose host refusal code reads as a sentence. */
-async function modelKeyRequest(
+/** A request whose host refusal code reads as a sentence. */
+async function sentenceRequest(
   path: string,
   init: RequestInit,
   refused: string,
+  messages: Readonly<Record<string, string>>,
 ) {
   try {
     return await ownerRequest(path, init, refused);
   } catch (cause) {
-    if (cause instanceof AppError)
-      throw new Error(modelKeyMessage(cause.message), { cause });
+    const sentence =
+      cause instanceof AppError
+        ? new Map(Object.entries(messages)).get(cause.message)
+        : undefined;
+    if (sentence !== undefined) throw new VaultRefusal(sentence, { cause });
     throw cause;
   }
 }
+const modelKeyRequest = (path: string, init: RequestInit, refused: string) =>
+  sentenceRequest(path, init, refused, modelKeyMessages);
+const vaultRequest = (path: string, init: RequestInit, refused: string) =>
+  sentenceRequest(path, init, refused, vaultMessages);
 
 const jsonInit = (method: string, body: string): RequestInit => ({
   method,
@@ -174,61 +201,234 @@ const jsonInit = (method: string, body: string): RequestInit => ({
   body,
 });
 
-/** Owner-direct model-key custody: a key goes in once and never comes back. */
-const modelKeys: ModelKeysPort = {
+/** The instance Vault as `/api/vault` lists it: no value, ever. */
+const oysterVaultWire = z.object({
+  modelKeys: z.array(
+    z.object({
+      keyId: z.string(),
+      provider: z.string(),
+      label: z.string(),
+      createdAt: z.number(),
+    }),
+  ),
+  credentials: z.array(z.unknown()),
+  coverage: z.unknown(),
+});
+const agentModelsWire = z.object({
+  agents: z.unknown(),
+  catalogs: z.unknown(),
+  models: z.unknown(),
+  providers: z.array(
+    z.object({ id: z.string(), label: z.string(), accountId: z.boolean() }),
+  ),
+});
+const subjectWire = z.object({
+  kind: z.enum(["agent", "computer", "app", "team-key"]),
+  id: z.string().min(1),
+});
+const credentialUsageWire = z.object({
+  usage: z.array(
+    z.object({
+      subject: subjectWire,
+      host: z.string().nullable(),
+      method: z.string(),
+      outcome: z.enum([
+        "placed",
+        "refused_destination",
+        "refused_grant",
+        "upstream_status",
+      ]),
+      status: z.number().nullable(),
+      lastAt: z.number(),
+      count: z.number().int().positive(),
+    }),
+  ),
+});
+const modelKeyUsageWire = z.object({
+  usage: z.array(
+    z.object({
+      subject: subjectWire.nullable(),
+      outcome: z.enum(["upstream_status", "failed"]),
+      status: z.number().nullable(),
+      lastAt: z.number(),
+      count: z.number().int().positive(),
+    }),
+  ),
+});
+const credentialPath = (connectionId: string, suffix = "") =>
+  `/api/vault/credentials/${encodeURIComponent(connectionId)}${suffix}`;
+const subjectPath = (
+  connectionId: string,
+  subject: Readonly<{ kind: string; id: string }>,
+) =>
+  credentialPath(
+    connectionId,
+    `/subjects/${encodeURIComponent(subject.kind)}/${encodeURIComponent(subject.id)}`,
+  );
+
+/**
+ * Owner-direct Vault: one page over the instance's model keys and Connection
+ * credentials. A value goes in once and never comes back. The owner is the
+ * only actor on an Oyster, so everything here is theirs to manage.
+ */
+const vault: VaultPort = {
   read: async () => {
-    const [keys, agents] = await Promise.all([
-      json("/api/model-keys"),
+    const [stored, agents, computers] = await Promise.all([
+      json("/api/vault"),
       json("/api/agent-models"),
+      oysterComputerTargets(),
     ]);
-    return modelKeysViewSchema.parse({
-      keys: z.object({ keys: z.unknown() }).parse(keys).keys,
-      ...z
-        .object({
-          agents: z.unknown(),
-          catalogs: z.unknown(),
-          models: z.unknown(),
-        })
-        .parse(agents),
+    const held = oysterVaultWire.parse(stored);
+    const models = agentModelsWire.parse(agents);
+    return vaultViewSchema.parse({
+      role: { manageTeam: true, managePersonal: true },
+      coverage: held.coverage,
+      providers: models.providers.map((provider) => ({
+        ...provider,
+        baseUrl: false,
+      })),
+      scopes: ["team"],
+      modelKeys: held.modelKeys.map((key) => ({
+        keyId: key.keyId,
+        provider: key.provider,
+        label: key.label,
+        scope: "team",
+        createdAt: key.createdAt,
+        baseUrl: null,
+      })),
+      credentials: held.credentials,
+      subjects: {
+        agents: agentModelsViewSchema.shape.agents
+          .parse(models.agents)
+          .map((agent) => ({ id: agent.agentId, name: agent.name })),
+        computers: computers.map((computer) => ({
+          id: computer.id,
+          name: computer.name,
+        })),
+      },
     });
   },
-  addKey: async (draft) => {
-    await modelKeyRequest(
-      "/api/model-keys",
+  addSecret: async (draft) => {
+    await vaultRequest(
+      "/api/vault/secrets",
       jsonInit("POST", JSON.stringify(draft)),
-      "The model key was refused",
+      "The secret was refused",
     );
   },
-  removeKey: async (keyId) => {
-    await modelKeyRequest(
-      `/api/model-keys/${encodeURIComponent(keyId)}`,
+  updateCredential: async (connectionId, change) => {
+    await vaultRequest(
+      credentialPath(connectionId),
+      jsonInit("PUT", JSON.stringify(change)),
+      "The change was refused",
+    );
+  },
+  revokeCredential: async (connectionId, expectedVersion) => {
+    await vaultRequest(
+      credentialPath(connectionId),
+      jsonInit("DELETE", JSON.stringify({ expectedVersion })),
+      "The credential could not be revoked",
+    );
+  },
+  grant: async (connectionId, subject) => {
+    await vaultRequest(
+      subjectPath(connectionId, subject),
+      { method: "PUT" },
+      "The grant was refused",
+    );
+  },
+  ungrant: async (connectionId, subject) => {
+    await vaultRequest(
+      subjectPath(connectionId, subject),
       { method: "DELETE" },
-      "The model key could not be removed",
+      "The grant could not be removed",
     );
   },
-  chooseModel: async (agentId, draft) => {
-    await modelKeyRequest(
-      `/api/agent-models/${encodeURIComponent(agentId)}`,
-      jsonInit(
-        "PUT",
-        JSON.stringify(
-          draft.keyId === null
-            ? {
-                keySource: "workers-ai",
-                model: {
-                  providerId: "cloudflare-workers-ai",
-                  modelId: "@cf/moonshotai/kimi-k2.6",
-                },
-              }
-            : {
-                keySource: "byok",
-                keyId: draft.keyId,
-                model: { providerId: draft.provider, modelId: draft.modelId },
-              },
+  credentialUsage: async (connectionId) =>
+    credentialUsageWire
+      .parse(await json(credentialPath(connectionId, "/usage")))
+      .usage.map((use): VaultUse => ({
+        subject: use.subject,
+        host: use.host,
+        method: use.method,
+        outcome: use.outcome,
+        status: use.status,
+        count: use.count,
+        lastAt: use.lastAt,
+      })),
+  modelKeys: {
+    add: async ({ provider, label, apiKey, accountId }) => {
+      await modelKeyRequest(
+        "/api/model-keys",
+        jsonInit(
+          "POST",
+          JSON.stringify({
+            provider,
+            label,
+            apiKey,
+            // JSON drops an absent account ID, as the strict door expects.
+            accountId,
+          }),
         ),
-      ),
-      "The model could not be saved",
-    );
+        "The model key was refused",
+      );
+    },
+    remove: async (keyId) => {
+      await modelKeyRequest(
+        `/api/model-keys/${encodeURIComponent(keyId)}`,
+        { method: "DELETE" },
+        "The model key could not be removed",
+      );
+    },
+    usage: async (keyId) =>
+      modelKeyUsageWire
+        .parse(
+          await json(
+            `/api/vault/model-keys/${encodeURIComponent(keyId)}/usage`,
+          ),
+        )
+        .usage.map((use): VaultUse => ({
+          subject: use.subject,
+          host: null,
+          method: null,
+          outcome: use.outcome,
+          status: use.status,
+          count: use.count,
+          lastAt: use.lastAt,
+        })),
+  },
+  agentModels: {
+    read: async () => {
+      const models = agentModelsWire.parse(await json("/api/agent-models"));
+      return agentModelsViewSchema.parse({
+        agents: models.agents,
+        catalogs: models.catalogs,
+        models: models.models,
+      });
+    },
+    choose: async (agentId, draft) => {
+      await modelKeyRequest(
+        `/api/agent-models/${encodeURIComponent(agentId)}`,
+        jsonInit(
+          "PUT",
+          JSON.stringify(
+            draft.keyId === null
+              ? {
+                  keySource: "workers-ai",
+                  model: {
+                    providerId: "cloudflare-workers-ai",
+                    modelId: "@cf/moonshotai/kimi-k2.6",
+                  },
+                }
+              : {
+                  keySource: "byok",
+                  keyId: draft.keyId,
+                  model: { providerId: draft.provider, modelId: draft.modelId },
+                },
+          ),
+        ),
+        "The model could not be saved",
+      );
+    },
   },
 };
 
@@ -449,6 +649,37 @@ const oysterWebsiteCopy: WebsiteChannelsCopy = {
     `Visitors talk to ${agentName} itself, with ${agentName}’s own tools and permissions. They cannot sign in to this Oyster or reach your account. The address list limits where the chat appears, not who can call it directly.`,
 };
 
+/** Image generation on this Oyster: Cloudflare Workers AI, set up once. */
+export function OysterImageModels() {
+  return (
+    <section className="tourtois-settings-stack" aria-label="Image models">
+      <SectionHeading>Image models</SectionHeading>
+      <p className="tourtois-settings-lede">
+        Flux images use Cloudflare Workers AI.
+      </p>
+      <Prose>
+        <p>Local trials can upload images. To generate:</p>
+        <ol>
+          <li>Enable Workers AI in your Cloudflare account.</li>
+          <li>Deploy this Oyster using the setup guide.</li>
+          <li>Open Prints at the deployed Oyster address.</li>
+        </ol>
+      </Prose>
+      <FormFooter divider={false}>
+        <Button asChild>
+          <a
+            href="https://docs.fungi.computer/guides/run-your-own-oyster/#image-models"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Set up Cloudflare Workers AI
+          </a>
+        </Button>
+      </FormFooter>
+    </section>
+  );
+}
+
 export const mountPlatformControls: MountPlatformControls = (root, input) => {
   const keys = createOysterKeysPort(input.keysWire);
   const requestAppAccess: NonNullable<
@@ -465,7 +696,15 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
         }),
     });
   const controls = createPlatformControls({
-    sections: ["home", "apps", "connectors", "computers", "keys", "channels"],
+    sections: [
+      "home",
+      "apps",
+      "connectors",
+      "computers",
+      "vault",
+      "keys",
+      "channels",
+    ],
   });
   const computersPort = createOysterComputersPort(
     new URL(window.location.origin),
@@ -496,15 +735,18 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
     subscribeSettingsClosed: controls.subscribeSettingsClosed,
   });
   // A key added or removed changes what is ready before Settings closes.
-  const trackedModelKeys: ModelKeysPort = {
-    ...modelKeys,
-    addKey: async (draft) => {
-      await modelKeys.addKey(draft);
-      setup.changed();
-    },
-    removeKey: async (keyId) => {
-      await modelKeys.removeKey(keyId);
-      setup.changed();
+  const trackedVault: VaultPort = {
+    ...vault,
+    modelKeys: {
+      ...vault.modelKeys,
+      add: async (draft) => {
+        await vault.modelKeys.add(draft);
+        setup.changed();
+      },
+      remove: async (keyId) => {
+        await vault.modelKeys.remove(keyId);
+        setup.changed();
+      },
     },
   };
   const client = createQueryClient();
@@ -520,7 +762,8 @@ export const mountPlatformControls: MountPlatformControls = (root, input) => {
           computers,
           channels,
           keys,
-          modelKeys: trackedModelKeys,
+          imageModels: OysterImageModels,
+          vault: trackedVault,
           requestAppAccess,
           appPermissions: OysterAppPermissions,
         }}

@@ -151,6 +151,19 @@ export function SettingsHome({
             />
           </DataRow>
         ) : null}
+        {offers("vault") ? (
+          <DataRow className="p-0">
+            <ActionRow
+              aria-label="Vault"
+              icon={<Sigil name="restricted" />}
+              label="Vault"
+              description="Model keys and credentials, write-only."
+              onClick={() => {
+                onNavigate({ category: "vault", target: "all" });
+              }}
+            />
+          </DataRow>
+        ) : null}
         {offers("computers") ? (
           <DataRow className="p-0">
             <ActionRow

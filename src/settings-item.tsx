@@ -12,19 +12,24 @@ export function SettingsItem({
   actions,
 }: {
   /** A Sigil at 16px; decorative, the title names the item. */
-  icon: ReactNode;
+  icon?: ReactNode;
   title: ReactNode;
   detail?: ReactNode;
   /** Compact keycaps or a status dot. */
   actions?: ReactNode;
 }) {
   return (
-    <div className="tourtois-settings-item">
+    <div
+      className="tourtois-settings-item"
+      data-plain={icon === undefined || undefined}
+    >
       <div className="tourtois-settings-item-copy">
         <h3 className="tourtois-settings-item-title">
-          <span className="tourtois-settings-item-icon" aria-hidden="true">
-            {icon}
-          </span>
+          {icon === undefined ? null : (
+            <span className="tourtois-settings-item-icon" aria-hidden="true">
+              {icon}
+            </span>
+          )}
           <span className="tourtois-settings-item-name">{title}</span>
         </h3>
         {detail ? (

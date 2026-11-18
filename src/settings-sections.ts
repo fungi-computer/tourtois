@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import type { ConnectionsPort } from "./Connections.js";
 import type { KeysPort } from "./Keys.js";
-import type { ModelKeysPort } from "./ModelKeys.js";
+import type { VaultPort } from "./Vault.js";
 import type { MemberAvatarReader, MemberAvatarSave } from "./member-avatar.js";
 import {
   settingsLocationSchema,
@@ -37,8 +37,10 @@ export type SettingsSectionPorts = Readonly<{
   computers?: ComponentType;
   /** Keys settings: the host's owner-direct Keys custody. */
   keys?: KeysPort;
-  /** Model keys beside Keys: the host's sealed provider keys and per-Agent models. */
-  modelKeys?: ModelKeysPort;
+  /** Image model setup beside Keys, on a host that generates images itself. */
+  imageModels?: ComponentType;
+  /** The Vault: every model key and credential the host holds, write-only. */
+  vault?: VaultPort;
   /** The Team's role defaults. */
   defaults?: ComponentType<{ onAccepted: Accepted }>;
   /** Channels and website assistants. */
@@ -79,7 +81,8 @@ export function offeredSettings(
     avatar: ports.avatar !== undefined,
     connectors: ports.connections !== undefined,
     computers: ports.computers !== undefined,
-    keys: ports.keys !== undefined || ports.modelKeys !== undefined,
+    keys: ports.keys !== undefined || ports.imageModels !== undefined,
+    vault: ports.vault !== undefined,
     defaults: ports.defaults !== undefined,
     channels: ports.channels !== undefined,
     selling: ports.selling !== undefined,

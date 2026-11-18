@@ -1080,14 +1080,7 @@ function createFixtureHost(
               <GroveApp
                 {...grove}
                 connection={groveConnection}
-                {...(chatFirst
-                  ? {
-                      funding: {
-                        resourceFunding: "setup" as const,
-                        setupCredit: "$1.00",
-                      },
-                    }
-                  : {})}
+                {...(chatFirst ? { credit: "$1.00" } : {})}
               />
             </QueryClientProvider>
           ) : prints && queryClient ? (
