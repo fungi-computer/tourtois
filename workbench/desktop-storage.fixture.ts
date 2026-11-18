@@ -8,7 +8,7 @@ import {
 
 const storedLayer = z.object({ value: z.json(), revision: z.number() });
 
-/** Faithful AppStorage seam: member resolution, owner admission, revision CAS and notifications. */
+/** Faithful AppStorage seam: member resolution, owner admission, revision CAS, claims and notifications. */
 export function createDesktopStorageFixture({
   canWriteTeam = true,
   team = null,
@@ -80,6 +80,15 @@ export function createDesktopStorageFixture({
         layersOf(key)[scope] = null;
         notify(key);
         return { revision: ++revision };
+      }),
+    claim: ({ key, scope, value }) =>
+      Promise.resolve().then(() => {
+        const current = layersOf(key)[scope];
+        admit(key, scope, current?.revision ?? null);
+        if (current) return { ...current, claimed: false };
+        layersOf(key)[scope] = { value, revision: ++revision };
+        notify(key);
+        return { value, revision, claimed: true };
       }),
     watch: (key): Promise<AppStorageWatch> => {
       const subscriptions = new Set<(value: ResolvedAppStorage) => void>();

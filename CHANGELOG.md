@@ -1,5 +1,21 @@
 # @fungi.computer/tourtois
 
+## 0.27.0
+
+### Minor Changes
+
+- Changes since 0.26.0:
+
+  - feat(agar): claim an absent App storage layer in every host
+
+### Patch Changes
+
+- Updated dependencies
+  - @fungi.computer/agar@0.23.0
+  - @fungi.computer/nacre@0.8.3
+  - @fungi.computer/parakeet@0.14.2
+  - @fungi.computer/shiitake@0.21.2
+
 ## 0.26.0
 
 ### Minor Changes
