@@ -16,7 +16,6 @@ import { Badge } from "@fungi.computer/caps/components/badge";
 import { Loader } from "@fungi.computer/caps/components/loader";
 import { starterItem } from "./starter-item.js";
 import { GillFrame } from "./gill-frame.js";
-import { FirstRunWelcome, useWelcome } from "./welcome.js";
 import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
 
 const installDocs = "https://docs.fungi.computer/oyster-quickstart/";
@@ -57,7 +56,6 @@ export function LauncherGill({
   onRetryInstall?: ((installationId: string) => Promise<void>) | undefined;
 }) {
   const [editing, setEditing] = useState(false);
-  const welcome = useWelcome();
   const stateFor = (id: string) =>
     preferences.hidden.includes(id)
       ? "Hidden"
@@ -155,9 +153,6 @@ export function LauncherGill({
       ) : null}
       {ready ? (
         <>
-          {welcome.visible && shown.length > 0 ? (
-            <FirstRunWelcome items={items} onDismiss={welcome.dismiss} />
-          ) : null}
           {items.length === 0 ? (
             <EmptyState
               variant="hint"

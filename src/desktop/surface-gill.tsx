@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AppGillDesktopSize } from "@fungi.computer/gills";
 import { ResultState } from "@fungi.computer/caps/blocks/result-state";
 import { Button } from "@fungi.computer/caps/components/button";
-import { GillFrame } from "./gill-frame.js";
+import { Card } from "@fungi.computer/caps/components/card";
 
 /** The placed surface tile whose App frame the host mounts. */
 export type SurfaceTarget = Readonly<{
@@ -23,25 +23,24 @@ export type SurfaceMount = (
 ) => Promise<SurfaceHandle>;
 
 /**
- * A surface Gill: the App renders itself in its tile. While arranging, a shield
- * covers the frame so a drag over it never reaches the App's document.
+ * A surface Gill: the App renders itself, its own header included, in a plain
+ * card, so the host adds no second title bar. While arranging, a shield covers
+ * the frame so a drag over it never reaches the App's document.
  */
 export function SurfaceGill({
   title,
-  appHeader,
+  appName,
   size,
   target,
   mount,
   editing,
-  editHandle,
 }: {
   title: string;
-  appHeader: Readonly<{ name: string; icon: ReactNode }>;
+  appName: string;
   size: AppGillDesktopSize;
   target: SurfaceTarget;
   mount: SurfaceMount;
   editing: boolean;
-  editHandle?: ReactNode;
 }) {
   const slot = useRef<HTMLDivElement>(null);
   const latest = useRef(mount);
@@ -73,11 +72,11 @@ export function SurfaceGill({
     };
   }, [itemId, surfaceId, gillId, attempt]);
   return (
-    <GillFrame
-      title={title}
-      appHeader={appHeader}
-      size={size}
-      editHandle={editHandle}
+    <Card
+      aria-label={`${title}, ${appName}`}
+      className="tourtois-surface-card"
+      data-gill-size={size}
+      role="region"
     >
       <div className="tourtois-surface-body">
         <div ref={slot} className="tourtois-surface-frame" />
@@ -87,7 +86,7 @@ export function SurfaceGill({
               tone="failed"
               headingLevel={3}
               title="This widget could not open"
-              description={`${appHeader.name} didn't start in its tile.`}
+              description={`${appName} didn't start in its tile.`}
               actions={
                 <Button
                   size="sm"
@@ -106,7 +105,7 @@ export function SurfaceGill({
           <div data-surface-shield="" className="tourtois-surface-shield" />
         ) : null}
       </div>
-    </GillFrame>
+    </Card>
   );
 }
 

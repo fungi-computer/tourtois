@@ -2,7 +2,6 @@
 @import "./spa.css";
 @import "./settings-navigation.css";
 @import "./desktop/arrange.css";
-@import "./desktop/welcome.css";
 
 /* SH-1: a 32px desktop menu bar on desktop widths, matching the window
    title bar and footer so the three chrome bars read as one system.
@@ -864,13 +863,11 @@
   padding: 8px;
 }
 
-/* A surface Gill's App fills its tile; the App scrolls itself. */
-.tourtois-gill-body:has(> .tourtois-gill-content > .tourtois-surface-body) {
-  overflow: hidden;
-}
-.tourtois-gill-body:has(> .tourtois-gill-content > .tourtois-surface-body)
-  > .tourtois-gill-content {
+/* A surface Gill's App fills its card and draws its own header and scrolling. */
+.tourtois-surface-card {
   height: 100%;
+  overflow: hidden;
+  padding: 0;
 }
 .tourtois-surface-body {
   position: relative;
@@ -1016,6 +1013,38 @@
 }
 
 /* Keep the launcher keys' existing material at a compact widget scale. */
+/* The install guide is a quiet footer row under the grid, not an App tile. */
+.tourtois-launcher-more {
+  display: flex;
+  justify-content: flex-end;
+  /* Keep the keyboard outline inside the Gill body's scroll boundary: the
+     button below pulls 0.75rem outward, so reserve that plus the outline. */
+  padding: var(--spacing-sm);
+  padding-inline-end: calc(0.75rem + var(--spacing-sm));
+  margin-block-start: var(--spacing-sm);
+}
+/* The ghost button's text, not its padding, lines up with Edit launcher. */
+.tourtois-launcher-more > .btn {
+  margin-inline-end: -0.75rem;
+}
+
+/* Trial starter Apps that failed or need a runtime stack under the grid. */
+.tourtois-install-notes {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin-block-start: var(--spacing-md);
+}
+.tourtois-install-notes:empty {
+  display: none;
+}
+/* One-line failures centre the Retry button on the text. */
+.tourtois-install-notes .caps-failure-line {
+  align-items: center;
+}
+.tourtois-install-notes .caps-failure-line > .caps-status {
+  margin-block-start: 0;
+}
+
 .tourtois-launcher-grid[data-size="lg"] {
   grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
 }

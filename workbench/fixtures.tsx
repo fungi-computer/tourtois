@@ -23,7 +23,7 @@ import { createRoot } from "react-dom/client";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { InboxApp } from "../../grove/src/inbox.js";
+import { GroveApp } from "../../grove/src/chat-gill.js";
 import { createGroveFixture } from "../../grove/workbench/fixtures.js";
 import "@fungi.computer/parakeet/styles.css";
 import { InkcapApp } from "../../inkcap/src/InkcapApp.js";
@@ -97,6 +97,13 @@ const surfaceStoryLayout = {
   launcher: { pinned: [], hidden: [] },
 };
 
+/** A member's saved dashboard after removing every widget. */
+const emptyDesktopLayout = {
+  version: 1,
+  items: [],
+  launcher: { pinned: [], hidden: [] },
+};
+
 const computers = [
   {
     computerId: "workbench-laptop",
@@ -160,6 +167,7 @@ function appDirectory(
   withWorkflows = false,
   computerChoice = false,
   withSurface = false,
+  withChat = false,
 ): AppDirectory["apps"] {
   const workflowsDeclaration = Schema.decodeUnknownSync(appDeclarationSchema)(
     workflowsManifest.fungi.app,
@@ -259,7 +267,10 @@ function appDirectory(
     commands: [...(declarations.get(app.appId) ?? [])],
     gills:
       app.appId === "grove"
-        ? [...(groveDeclaration.gills ?? [])]
+        ? // Grove's chat tile joins the desktop only where a scenario asks for it.
+          (groveDeclaration.gills ?? []).filter(
+            (gill) => withChat || gill.id !== "chat",
+          )
         : app.appId === "inkcap" && computerChoice
           ? [recentFilesGill.declaration]
           : app.appId === "canvas"
@@ -328,17 +339,23 @@ export function createDesktopFixture(
     | "pages"
     | "surface"
     | "surface-error"
+    | "chat-first"
+    | "chat-empty"
     | "layers"
     | "hero" = "ready",
 ) {
   // A fresh Team has its Apps but no conversations yet.
   const surfaced = scenario === "surface" || scenario === "surface-error";
+  // A fresh dashboard opens on Grove's one chat widget; the empty variant is
+  // the same Team after its owner removed it.
+  const chatFirst = scenario === "chat-first" || scenario === "chat-empty";
   const noSessions =
     scenario === "empty" ||
     scenario === "fresh" ||
     scenario === "fresh-no-model" ||
     scenario === "no-agents" ||
-    scenario === "games";
+    scenario === "games" ||
+    chatFirst;
   let apps = appDirectory(
     scenario === "games",
     scenario === "pages",
@@ -346,6 +363,7 @@ export function createDesktopFixture(
     scenario === "trellis" || scenario === "workflows-missing-icon",
     scenario === "computer-choice",
     surfaced,
+    chatFirst,
   );
   const chosenRoles = new Map<string, string>();
   let avatar: MemberAvatar = defaultMemberAvatar;
@@ -418,7 +436,9 @@ export function createDesktopFixture(
   // The surface story opens with Canvas's tile already placed.
   const seeded = surfaced
     ? { member: { value: surfaceStoryLayout, revision: 1 } }
-    : {};
+    : scenario === "chat-empty"
+      ? { member: { value: emptyDesktopLayout, revision: 1 } }
+      : {};
   const storage = createDesktopStorageFixture(
     sessionStorage.getItem("tourtois-fixture:persist") === "1"
       ? { ...seeded, persist: sessionStorage }
@@ -444,6 +464,7 @@ export function createDesktopFixture(
         scenario === "trellis" || scenario === "workflows-missing-icon",
         scenario === "computer-choice",
         surfaced,
+        chatFirst,
       );
       chosenRoles.clear();
       avatar = defaultMemberAvatar;
@@ -458,6 +479,7 @@ export function createDesktopFixture(
         scenario === "computer-choice",
         scenario === "hero",
         scenario === "fresh-no-model",
+        chatFirst,
       ),
     handlers: [
       msw.http.get("/api/account", () =>
@@ -853,6 +875,7 @@ function createFixtureHost(
   computerChoice = false,
   hero = false,
   noModel = false,
+  chatFirst = false,
 ): TourtoisAppSurfaceHost {
   const commands = createAppSurfaceCommandHost();
   return {
@@ -1004,7 +1027,13 @@ function createFixtureHost(
       const grove =
         initialLaunch.appId === "grove"
           ? createGroveFixture(
-              hero ? "timeline" : noModel ? "empty" : "inbox",
+              hero
+                ? "timeline"
+                : chatFirst
+                  ? "starter"
+                  : noModel
+                    ? "empty"
+                    : "inbox",
               // The hero shot opens Grove's own richer conversation.
               hero ? heroGroveOpenRequest : initialLaunch.openRequest,
               missingSession ? ["gone-session"] : [],
@@ -1048,7 +1077,18 @@ function createFixtureHost(
             <PagesDemo navigation={pages} />
           ) : grove && queryClient ? (
             <QueryClientProvider client={queryClient}>
-              <InboxApp {...grove} connection={groveConnection} />
+              <GroveApp
+                {...grove}
+                connection={groveConnection}
+                {...(chatFirst
+                  ? {
+                      funding: {
+                        resourceFunding: "setup" as const,
+                        setupCredit: "$1.00",
+                      },
+                    }
+                  : {})}
+              />
             </QueryClientProvider>
           ) : prints && queryClient ? (
             <QueryClientProvider client={queryClient}>

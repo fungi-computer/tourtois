@@ -1,10 +1,10 @@
 {
   "name": "@fungi.computer/tourtois",
-  "version": "0.24.1",
+  "version": "0.25.0",
   "scripts": {
     "clean": "node --input-type=module --eval \"import { rm } from 'node:fs/promises'; await rm('dist', { recursive: true, force: true });\"",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.workbench.json && tsc -p backend/tsconfig.json && tsc -p test/workerd/tsconfig.json",
-    "build": "pnpm run clean && tsc -p tsconfig.build.json && cp src/shell.css src/chrome.css src/spa.css src/settings-navigation.css dist/ && mkdir -p dist/desktop && cp src/desktop/arrange.css src/desktop/welcome.css dist/desktop/",
+    "build": "pnpm run clean && tsc -p tsconfig.build.json && cp src/shell.css src/chrome.css src/spa.css src/settings-navigation.css dist/ && mkdir -p dist/desktop && cp src/desktop/arrange.css dist/desktop/",
     "build:spa": "vite build",
     "dev": "vite",
     "workbench": "ladle serve --host 127.0.0.1 --port 61001",
@@ -17,9 +17,9 @@
     "@fungi.computer/ear-tag": "0.1.0",
     "@fungi.computer/gills": "0.4.0",
     "@fungi.computer/maosaico": "0.1.2",
-    "@fungi.computer/parakeet": "0.13.3",
+    "@fungi.computer/parakeet": "0.14.0",
     "@fungi.computer/puffball": "0.12.0",
-    "@fungi.computer/shiitake": "0.20.4",
+    "@fungi.computer/shiitake": "0.21.0",
     "@fungi.computer/sigils": "0.3.2",
     "@fungi.computer/sprite": "0.2.2",
     "@fungi.computer/sprite-zdog": "0.3.2",
@@ -37,10 +37,10 @@
     "@fungi.computer/nacre": "0.8.2"
   },
   "devDependencies": {
-    "@fungi.computer/oyster": "0.38.1",
+    "@fungi.computer/oyster": "0.39.0",
     "@cloudflare/workers-types": "5.20260828.1",
     "@fungi.computer/forage": "0.3.13",
-    "@fungi.computer/mycelium": "0.4.6",
+    "@fungi.computer/mycelium": "0.4.7",
     "@ladle/react": "5.1.1",
     "@types/react": "18.3.3",
     "@vitejs/plugin-react": "6.1.1",

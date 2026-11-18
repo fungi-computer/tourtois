@@ -303,6 +303,16 @@ const freshNoModel = createDesktopFixture("fresh-no-model");
 export const FirstRunNoModel: Story = () => <Desktop fixture={freshNoModel} />;
 FirstRunNoModel.msw = freshNoModel.handlers;
 
+// A new Team's dashboard: Grove's one chat widget, centred, as the whole desktop.
+const chatFirst = createDesktopFixture("chat-first");
+export const FreshDashboard: Story = () => <Desktop fixture={chatFirst} />;
+FreshDashboard.msw = chatFirst.handlers;
+
+// The same Team after removing the chat widget: one quiet line, Add widget to return.
+const chatEmpty = createDesktopFixture("chat-empty");
+export const EmptyDashboard: Story = () => <Desktop fixture={chatEmpty} />;
+EmptyDashboard.msw = chatEmpty.handlers;
+
 const noAgents = createDesktopFixture("no-agents");
 export const NoAgentsYet: Story = () => <Desktop fixture={noAgents} />;
 NoAgentsYet.msw = noAgents.handlers;

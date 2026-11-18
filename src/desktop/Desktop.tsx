@@ -1,6 +1,6 @@
 import type { AppOpenInput } from "@fungi.computer/agar/apps";
 import { GillParamPicker } from "./gill-param-picker.js";
-import type { DesktopGill, DesktopLayout } from "../desktop-layout.js";
+import type { DesktopGill } from "../desktop-layout.js";
 import type { DesktopMethods, DesktopMutation } from "../desktop-api.js";
 import type { WhistleJsonValue } from "@fungi.computer/whistle";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -146,8 +146,6 @@ function refusalMessage(code: string): string {
       return "The desktop changed elsewhere. Try your change again.";
     case "too_large":
       return "This desktop arrangement is too large to save. Remove some widgets or Launcher preferences and try again.";
-    case "last_launcher":
-      return "Your desktop needs one Launcher.";
     case "quota_exceeded":
       return "The App's storage quota is full. Free some storage before saving again.";
     default:
@@ -188,15 +186,6 @@ function ArrangedDesktop({
     };
   }, []);
   const columns = props.phone ? 1 : 4;
-  const isLauncher = (item: DesktopLayout["items"][number]) =>
-    catalog.some(
-      (gill) =>
-        gill.kind === "launcher" &&
-        gill.surfaceId === item.surfaceId &&
-        gill.gillId === item.gillId,
-    );
-  const onlyLauncher = visibleItems.filter(isLauncher).length <= 1;
-  const launcherGill = catalog.find((gill) => gill.kind === "launcher");
   useEffect(() => {
     setContentHeights((previous) => {
       const current = new Map(
@@ -207,6 +196,40 @@ function ArrangedDesktop({
       return current.size === previous.size ? previous : current;
     });
   }, [snapshot.layout.items]);
+  // A lone surface widget, such as the first dashboard's chat, fills the
+  // height below the app bar. Presentation only: the stored size and cell stay
+  // the canonical four-column ones.
+  const [fill, setFill] = useState(0);
+  const loneSurface =
+    visibleItems.length === 1 &&
+    catalog.some(
+      (gill) =>
+        gill.kind === "surface" &&
+        gill.surfaceId === visibleItems[0]?.surfaceId &&
+        gill.gillId === visibleItems[0].gillId,
+    );
+  useEffect(() => {
+    const node = stage.current;
+    const scroller = node?.closest<HTMLElement>(".tourtois-desktop");
+    if (!loneSurface || !node || !scroller) {
+      setFill(0);
+      return undefined;
+    }
+    const measure = () => {
+      const top =
+        node.getBoundingClientRect().top -
+        scroller.getBoundingClientRect().top +
+        scroller.scrollTop;
+      const below = parseFloat(getComputedStyle(scroller).paddingBottom) || 0;
+      setFill(Math.max(0, Math.floor(scroller.clientHeight - top - below)));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(scroller);
+    return () => {
+      observer.disconnect();
+    };
+  }, [loneSurface]);
   const projected = desktopPlacements(snapshot.layout)
     .filter((cell) => visibleItems.some((item) => item.id === cell.id))
     .map((cell) => {
@@ -281,7 +304,11 @@ function ArrangedDesktop({
               );
             // Launchers grow to show their Apps; row Gills stay bounded and
             // scroll once populated. Both fit their content when it is short.
-            const height = isLauncher ? natural : Math.min(natural, canonical);
+            const height = isLauncher
+              ? natural
+              : loneSurface
+                ? Math.max(canonical, fill)
+                : Math.min(natural, canonical);
             return Math.max(0, height - (item.h - 1) * gap) / item.h;
           }),
       ),
@@ -474,28 +501,9 @@ function ArrangedDesktop({
       {visibleItems.length === 0 ? (
         <div className="tourtois-desktop-empty">
           <EmptyState
-            variant="panel"
-            title="Your desktop is empty"
-            description="Restore the Launcher to get back to your Apps."
-            actions={
-              <Button
-                disabled={saving}
-                onClick={() => {
-                  const size = launcherGill?.sizes.includes("M")
-                    ? "M"
-                    : launcherGill?.sizes[0];
-                  if (launcherGill && size)
-                    void save("layout.place", {
-                      surfaceId: launcherGill.surfaceId,
-                      gillId: launcherGill.gillId,
-                      size,
-                    });
-                  else void save("layout.reset", {});
-                }}
-              >
-                Restore Launcher
-              </Button>
-            }
+            variant="hint"
+            title="Your dashboard is empty"
+            description="Add a widget from Layout."
           />
         </div>
       ) : null}
@@ -545,25 +553,16 @@ function ArrangedDesktop({
                   />
                 ))}
               </div>
-              {/* A disabled button fires no pointer events, so the reason sits on its wrapper. */}
-              <span
-                title={
-                  onlyLauncher && isLauncher(item)
-                    ? "Your desktop needs one Launcher"
-                    : undefined
-                }
-              >
-                <IconButton
-                  size="responsive"
-                  aria-label={`Remove ${gill.title}`}
-                  title={`Remove ${gill.title}`}
-                  icon={<Trash2 />}
-                  disabled={saving || (onlyLauncher && isLauncher(item))}
-                  onClick={() => {
-                    void save("layout.remove", { id: item.id });
-                  }}
-                />
-              </span>
+              <IconButton
+                size="responsive"
+                aria-label={`Remove ${gill.title}`}
+                title={`Remove ${gill.title}`}
+                icon={<Trash2 />}
+                disabled={saving}
+                onClick={() => {
+                  void save("layout.remove", { id: item.id });
+                }}
+              />
             </div>
           ) : undefined;
           const onContentHeight = (height: number) => {
@@ -672,10 +671,7 @@ function ArrangedDesktop({
                 ) : declaration?.view === "surface" && app ? (
                   <SurfaceGill
                     title={declaration.title}
-                    appHeader={{
-                      name: app.displayName ?? "App",
-                      icon: <DeclaredAppIcon icon={app.icon} />,
-                    }}
+                    appName={app.displayName ?? "App"}
                     size={item.size}
                     target={{
                       itemId: item.id,
@@ -684,9 +680,6 @@ function ArrangedDesktop({
                     }}
                     mount={props.mountSurface}
                     editing={editing}
-                    editHandle={
-                      editing ? <span aria-hidden="true" /> : undefined
-                    }
                   />
                 ) : null}
               </div>

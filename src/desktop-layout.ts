@@ -110,7 +110,6 @@ export const desktopArrangeResultSchema = z.discriminatedUnion("kind", [
       "unknown_app",
       "size_not_allowed",
       "unknown_item",
-      "last_launcher",
       "too_many",
       "conflict",
       "too_large",
@@ -178,10 +177,37 @@ export function availableDesktopLayout(
     ),
   };
 }
+/**
+ * The default desktop for anyone without a saved or Team layout: one centred
+ * chat from the surface that holds the inbox role. Without that chat, the
+ * Launcher and a compact Inbox.
+ */
 export function initialDesktopLayout(
   catalog: readonly DesktopGill[],
   inboxSurfaceId: string | null,
 ): DesktopLayout {
+  const chat = catalog.find(
+    (gill) =>
+      gill.kind === "surface" &&
+      gill.surfaceId === inboxSurfaceId &&
+      gill.gillId === "chat" &&
+      gill.sizes.includes("L"),
+  );
+  if (chat)
+    return {
+      version: 1,
+      items: [
+        {
+          id: "chat",
+          surfaceId: chat.surfaceId,
+          gillId: chat.gillId,
+          size: "L",
+          col: 1,
+          row: 0,
+        },
+      ],
+      launcher: { pinned: [], hidden: [] },
+    };
   const inbox = catalog.find(
     (gill) =>
       gill.kind === "app" &&
@@ -280,19 +306,6 @@ export function applyDesktopOps(
     const item = layout.items.find((entry) => entry.id === op.id);
     if (!item) return { kind: "rejected", code: "unknown_item" };
     if (op.kind === "remove") {
-      // The Launcher is the desktop's one route to every App.
-      const isLauncher = (entry: DesktopLayout["items"][number]) =>
-        catalog.some(
-          (gill) =>
-            gill.kind === "launcher" &&
-            gill.surfaceId === entry.surfaceId &&
-            gill.gillId === entry.gillId,
-        );
-      if (
-        isLauncher(item) &&
-        !layout.items.some((entry) => entry.id !== item.id && isLauncher(entry))
-      )
-        return { kind: "rejected", code: "last_launcher" };
       layout = compactDesktopLayout({
         ...layout,
         items: layout.items.filter((entry) => entry.id !== op.id),

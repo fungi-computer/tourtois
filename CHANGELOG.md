@@ -1,5 +1,25 @@
 # @fungi.computer/tourtois
 
+## 0.25.0
+
+### Minor Changes
+
+- Changes since 0.24.1:
+
+  - fix(tourtois): make the one-chat layout the default desktop
+  - fix(tourtois): show a surface widget in one frame and let a lone one fill
+    the landing
+  - fix(tourtois): open the one-chat landing only for people new to the
+    dashboard
+  - feat(tourtois): open a fresh dashboard on one centred Grove chat widget
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/parakeet@0.14.0
+  - @fungi.computer/shiitake@0.21.0
+
 ## 0.24.1
 
 ### Patch Changes

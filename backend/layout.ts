@@ -95,17 +95,22 @@ function saved(value: unknown): DesktopLayout | null {
   if (!parsed.success) return null;
   return compactDesktopLayout(parsed.data);
 }
-function resolved(
-  value: ResolvedAppStorage,
-  apps: AppCatalog,
-  widgets: readonly DesktopGill[],
-) {
+async function resolve(context: LayoutContext) {
+  const [value, available] = await Promise.all([
+    read(context),
+    catalog(context),
+  ]);
   const stored = value.source === "none" ? null : saved(value.value);
   const layout =
     stored ??
     (value.team === null ? null : saved(value.team.value)) ??
-    initialDesktopLayout(widgets, apps.roles.inbox?.surfaceId ?? null);
+    initialDesktopLayout(
+      available.widgets,
+      available.apps.roles.inbox?.surfaceId ?? null,
+    );
   return {
+    value,
+    available,
     layout,
     notice:
       value.source !== "none" && stored === null
@@ -114,13 +119,10 @@ function resolved(
   };
 }
 export async function layoutGet(context: LayoutContext) {
-  const [value, available] = await Promise.all([
-    read(context),
-    catalog(context),
-  ]);
-  const current = resolved(value, available.apps, available.widgets);
+  const { value, layout, notice } = await resolve(context);
   return {
-    ...current,
+    layout,
+    notice,
     source: value.source,
     memberRevision: value.member?.revision ?? null,
     teamRevision: value.team?.revision ?? null,
@@ -133,15 +135,11 @@ export async function layoutWrite(
   input: LayoutWrite,
   edit: DesktopArrange["ops"] | { layout: DesktopLayout },
 ): Promise<DesktopArrangeResult> {
-  const [value, available] = await Promise.all([
-    read(context),
-    catalog(context),
-  ]);
+  const { value, available, layout: current } = await resolve(context);
   if (input.scope === "team" && !value.canWriteTeam)
     return { kind: "rejected", code: "owner_required" };
   if (input.basedOn !== (value[input.scope]?.revision ?? null))
     return { kind: "rejected", code: "conflict" };
-  const current = resolved(value, available.apps, available.widgets).layout;
   if (
     "layout" in edit &&
     edit.layout.items.some(
