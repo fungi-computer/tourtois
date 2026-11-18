@@ -278,6 +278,7 @@ function createOysterKeysPort(
   return {
     scope: "oyster",
     expiry: "optional",
+    tracksUse: true,
     options: async (apps) => {
       const targets = apps.map((app) => ({
         id: app.installationId,

@@ -1,5 +1,18 @@
 # @fungi.computer/tourtois
 
+## 0.26.0
+
+### Minor Changes
+
+- Changes since 0.25.0:
+
+  - feat(oyster): record a named key's last use on every admitted call
+
+### Patch Changes
+
+- @fungi.computer/shiitake@0.21.1
+  - @fungi.computer/parakeet@0.14.1
+
 ## 0.25.0
 
 ### Minor Changes

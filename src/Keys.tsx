@@ -68,6 +68,8 @@ export type KeyGrantPreviewProps = Readonly<{
 export type KeysPort = Readonly<{
   scope: string;
   expiry: "required" | "optional";
+  /** The host stamps each key's last use, so a key with none has never been used. */
+  tracksUse?: true;
   options(
     apps: readonly KeyAppOption[],
     signal: AbortSignal,
@@ -216,7 +218,9 @@ function KeysContent({
                       : `${key.expiresAt <= Date.now() ? "Expired" : "Expires"} ${new Date(key.expiresAt).toLocaleString()}`}{" "}
                     ·{" "}
                     {key.lastUsedAt === null
-                      ? "Use not recorded"
+                      ? port.tracksUse === true
+                        ? "Never used"
+                        : "Use not recorded"
                       : `Last used ${new Date(key.lastUsedAt).toLocaleString()}`}
                   </p>
                 </>
