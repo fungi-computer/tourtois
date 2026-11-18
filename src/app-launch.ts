@@ -74,6 +74,39 @@ export const composeOpenRequests = defineIdFamily({
 
 export type ComputerOption = Readonly<{ computerId: string; name: string }>;
 
+/**
+ * The launch for one surface tile: the App's ordinary frame, owned by the tile
+ * rather than the App's window, told which Gill it renders through the
+ * existing navigate params.
+ */
+export function launchForSurfaceGill(
+  launch: AppLaunchDescriptor,
+  target: Readonly<{ itemId: string; gillId: string }>,
+  requestId: string,
+): AppLaunchDescriptor {
+  return {
+    ...launch,
+    windowId: "gill:" + target.itemId,
+    commandScope: "gill:" + target.itemId,
+    openRequest: {
+      kind: "navigate",
+      requestId,
+      params: [{ key: "gill", value: target.gillId }],
+    },
+  };
+}
+
+/**
+ * The command and focus scope of one mount. A window of an App is its surface;
+ * a surface tile has its own, so a tile and a window of the same App never
+ * share a command mount or a focus.
+ */
+export function commandScopeOf(
+  launch: Pick<AppLaunchDescriptor, "surfaceId" | "commandScope">,
+): string {
+  return launch.commandScope ?? launch.surfaceId;
+}
+
 /** Build the owner-issued launch descriptor for one currently available surface. */
 export function createAppLaunchDescriptor(
   installation: AppDirectoryApp,

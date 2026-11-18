@@ -8,7 +8,10 @@ import { AppError } from "@fungi.computer/agar";
 import { createQueryClient } from "@fungi.computer/agar/query";
 import type { KeyWire } from "@fungi.computer/ear-tag/keys";
 import type { MountPlatformControls } from "@fungi.computer/nacre/shell-module";
-import { workbenchDirectorySchema } from "@fungi.computer/nacre/workbench-directory";
+import {
+  workbenchComputerDirectorySchema,
+  workbenchDirectorySchema,
+} from "@fungi.computer/nacre/workbench-directory";
 import { toast } from "@fungi.computer/caps/components/toaster";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as S from "effect/Schema";
@@ -22,6 +25,7 @@ import {
   createPlatformControls,
   PlatformControlsView,
   type ConnectionsPort,
+  type KeyTargetOption,
   type KeysPort,
 } from "./platform-controls.js";
 import { createOysterSetupPort, oysterSetupSchema } from "./oyster-setup.js";
@@ -228,6 +232,37 @@ const modelKeys: ModelKeysPort = {
   },
 };
 
+const directory = async () =>
+  workbenchDirectorySchema.parse(await json("/api/workbench/directory"));
+
+/**
+ * The Computers a key can be limited to: the owner's fleet, page by page, or
+ * the one Computer a host without a fleet serves.
+ */
+async function oysterComputerTargets(): Promise<readonly KeyTargetOption[]> {
+  const current = await directory();
+  if (current.computerContext !== "owner-fleet")
+    return current.computer === undefined
+      ? []
+      : [{ id: current.computer.computerId, name: current.computer.name }];
+  const targets: KeyTargetOption[] = [];
+  let offset: number | null = 0;
+  while (offset !== null) {
+    const page = workbenchComputerDirectorySchema.parse(
+      await json(
+        `/api/workbench/computers?${new URLSearchParams({
+          limit: "100",
+          offset: String(offset),
+        })}`,
+      ),
+    );
+    for (const computer of page.computers)
+      targets.push({ id: computer.computerId, name: computer.name });
+    offset = page.nextOffset;
+  }
+  return targets;
+}
+
 /** Owner-direct Keys custody; a plaintext secret comes back only once, on issue. */
 function createOysterKeysPort(
   oysterKeysWire: Pick<KeyWire<string>, "issue" | "revoke" | "summary">,
@@ -243,12 +278,12 @@ function createOysterKeysPort(
   return {
     scope: "oyster",
     expiry: "optional",
-    options: (apps) => {
+    options: async (apps) => {
       const targets = apps.map((app) => ({
         id: app.installationId,
         name: app.displayName,
       }));
-      return Promise.resolve([
+      return [
         {
           capability: "apps.read",
           label: "Read Apps",
@@ -265,11 +300,12 @@ function createOysterKeysPort(
         },
         {
           capability: "computer.use",
-          label: "Use the Computer",
+          label: "Use Computers",
           icon: "computer",
-          hint: "Files and commands",
+          hint: "Files and commands. Pick Computers to keep the key on them; all follows the Computer you select.",
+          targets: await oysterComputerTargets(),
         },
-      ]);
+      ];
     },
     list: async () => oysterKeysView.parse(await json("/api/keys")),
     issue: async (draft) => {
@@ -301,9 +337,6 @@ function createOysterKeysPort(
     },
   };
 }
-
-const directory = async () =>
-  workbenchDirectorySchema.parse(await json("/api/workbench/directory"));
 
 const permissionFrameMessage = z.strictObject({
   type: z.literal("oyster.permissions"),

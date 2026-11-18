@@ -321,6 +321,18 @@ const chrome = createDesktopFixture();
 export const TouchChrome: Story = () => <Desktop fixture={chrome} />;
 TouchChrome.msw = chrome.handlers;
 
+// A neutral App draws its own surface Gill in a tile through the window mount.
+const surfaceGill = createDesktopFixture("surface");
+export const SurfaceGill: Story = () => <Desktop fixture={surfaceGill} />;
+SurfaceGill.msw = surfaceGill.handlers;
+
+// The same tile when the App's frame cannot start: a styled failure with retry.
+const surfaceGillUnavailable = createDesktopFixture("surface-error");
+export const SurfaceGillUnavailable: Story = () => (
+  <Desktop fixture={surfaceGillUnavailable} />
+);
+SurfaceGillUnavailable.msw = surfaceGillUnavailable.handlers;
+
 const needsUpdate = createDesktopFixture("needs-update");
 export const AppNeedsUpdate: Story = () => <Desktop fixture={needsUpdate} />;
 AppNeedsUpdate.msw = needsUpdate.handlers;

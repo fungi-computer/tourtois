@@ -36,6 +36,7 @@ import { createPrintsFixture } from "../../prints/workbench/fixtures.js";
 import { createAppSurfaceCommandHost } from "@fungi.computer/nacre/command-host";
 import { mountLocalCommands } from "./local-commands.js";
 import { PagesDemo } from "./pages-demo.js";
+import { mountCanvasFrame } from "./canvas-frame.js";
 import type {
   AppBackHandler,
   AppForwardHandler,
@@ -59,11 +60,42 @@ import {
 import * as Schema from "effect/Schema";
 import type { TourtoisAppSurfaceHost } from "../src/app-surface.js";
 import type { AppLaunchDescriptor } from "../src/app-windows.js";
-import { launchComputerId } from "../src/app-launch.js";
+import { commandScopeOf, launchComputerId } from "../src/app-launch.js";
 import { workbenchPermission } from "./settings-fixtures.js";
 import { buildAppDeclaration } from "@fungi.computer/agar/backend-declaration";
 import { appBackend as chatBackend } from "../../grove/backend/methods.js";
 const groveDeclaration = buildAppDeclaration(chatBackend, groveApp);
+
+/** Canvas's one surface Gill, rendered by the App itself. */
+const surfaceStoryGill = {
+  view: "surface" as const,
+  id: "board",
+  title: "Board",
+  desktop: { sizes: ["M" as const, "L" as const] },
+};
+/** Launcher beside Canvas's Board tile, as a member would arrange them. */
+const surfaceStoryLayout = {
+  version: 1,
+  items: [
+    {
+      id: "launcher",
+      surfaceId: "tourtois",
+      gillId: "launcher",
+      size: "M",
+      col: 0,
+      row: 0,
+    },
+    {
+      id: "board",
+      surfaceId: "canvas",
+      gillId: "board",
+      size: "L",
+      col: 2,
+      row: 0,
+    },
+  ],
+  launcher: { pinned: [], hidden: [] },
+};
 
 const computers = [
   {
@@ -127,6 +159,7 @@ function appDirectory(
   withLayers = false,
   withWorkflows = false,
   computerChoice = false,
+  withSurface = false,
 ): AppDirectory["apps"] {
   const workflowsDeclaration = Schema.decodeUnknownSync(appDeclarationSchema)(
     workflowsManifest.fungi.app,
@@ -217,6 +250,10 @@ function appDirectory(
           roles: [],
         }))
       : []),
+    // A neutral App that declares one surface Gill and renders it itself.
+    ...(withSurface
+      ? [{ appId: "canvas", displayName: "Canvas", icon: "read", roles: [] }]
+      : []),
   ].map((app) => ({
     ...app,
     commands: [...(declarations.get(app.appId) ?? [])],
@@ -225,7 +262,9 @@ function appDirectory(
         ? [...(groveDeclaration.gills ?? [])]
         : app.appId === "inkcap" && computerChoice
           ? [recentFilesGill.declaration]
-          : [],
+          : app.appId === "canvas"
+            ? [surfaceStoryGill]
+            : [],
     address: { kind: "default" as const, appId: app.appId },
     installationId: null,
     surfaceId: app.appId,
@@ -287,10 +326,13 @@ export function createDesktopFixture(
     | "no-agents"
     | "games"
     | "pages"
+    | "surface"
+    | "surface-error"
     | "layers"
     | "hero" = "ready",
 ) {
   // A fresh Team has its Apps but no conversations yet.
+  const surfaced = scenario === "surface" || scenario === "surface-error";
   const noSessions =
     scenario === "empty" ||
     scenario === "fresh" ||
@@ -303,6 +345,7 @@ export function createDesktopFixture(
     scenario === "layers",
     scenario === "trellis" || scenario === "workflows-missing-icon",
     scenario === "computer-choice",
+    surfaced,
   );
   const chosenRoles = new Map<string, string>();
   let avatar: MemberAvatar = defaultMemberAvatar;
@@ -372,10 +415,14 @@ export function createDesktopFixture(
       });
     },
   };
+  // The surface story opens with Canvas's tile already placed.
+  const seeded = surfaced
+    ? { member: { value: surfaceStoryLayout, revision: 1 } }
+    : {};
   const storage = createDesktopStorageFixture(
     sessionStorage.getItem("tourtois-fixture:persist") === "1"
-      ? { persist: sessionStorage }
-      : {},
+      ? { ...seeded, persist: sessionStorage }
+      : seeded,
   );
   return {
     storage,
@@ -396,6 +443,7 @@ export function createDesktopFixture(
         scenario === "layers",
         scenario === "trellis" || scenario === "workflows-missing-icon",
         scenario === "computer-choice",
+        surfaced,
       );
       chosenRoles.clear();
       avatar = defaultMemberAvatar;
@@ -405,7 +453,7 @@ export function createDesktopFixture(
     },
     host: () =>
       createFixtureHost(
-        scenario === "mount-error",
+        scenario === "mount-error" || scenario === "surface-error",
         scenario === "missing-session",
         scenario === "computer-choice",
         scenario === "hero",
@@ -827,7 +875,7 @@ function createFixtureHost(
         });
       const commandMount = await mountLocalCommands(
         commands,
-        initialLaunch.surfaceId,
+        commandScopeOf(initialLaunch),
         initialLaunch.commands,
       );
       try {
@@ -835,6 +883,26 @@ function createFixtureHost(
       } catch (error) {
         commandMount.dispose();
         throw error;
+      }
+      if (initialLaunch.appId === "canvas") {
+        // A real sandboxed frame: the App draws itself and forwards the leader.
+        const frame = mountCanvasFrame(
+          container,
+          initialLaunch.openRequest?.kind === "navigate"
+            ? (initialLaunch.openRequest.params.find(
+                (param) => param.key === "gill",
+              )?.value ?? null)
+            : null,
+          ({ id, repeat }) =>
+            commandMount.handlers.invokeReservedChord({ id, repeat }),
+        );
+        return {
+          ...frame,
+          dispose: async () => {
+            await frame.dispose();
+            commandMount.dispose();
+          },
+        };
       }
       let currentLaunch = initialLaunch;
       const root = createRoot(container);

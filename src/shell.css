@@ -864,6 +864,47 @@
   padding: 8px;
 }
 
+/* A surface Gill's App fills its tile; the App scrolls itself. */
+.tourtois-gill-body:has(> .tourtois-gill-content > .tourtois-surface-body) {
+  overflow: hidden;
+}
+.tourtois-gill-body:has(> .tourtois-gill-content > .tourtois-surface-body)
+  > .tourtois-gill-content {
+  height: 100%;
+}
+.tourtois-surface-body {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+}
+.tourtois-surface-frame {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+.tourtois-surface-frame > iframe {
+  border: 0;
+  display: block;
+  flex: 1 1 auto;
+  height: 100%;
+  min-width: 0;
+  width: 100%;
+}
+/* While arranging, the tile is dragged: no pointer reaches the App's frame. */
+.tourtois-surface-shield {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+}
+.tourtois-surface-failure {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--spacing-md);
+  background: var(--color-base-100);
+}
+
 /* Touch controls share the title row; reserve their height before arranging so
    entering edit mode leaves the Gill content's viewport unchanged. */
 @media (max-width: 640px), (any-pointer: coarse) {

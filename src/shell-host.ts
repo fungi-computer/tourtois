@@ -36,6 +36,7 @@ import {
   type AppOpenInput,
 } from "@fungi.computer/agar/apps";
 import type { AppLaunchDescriptor, AppWindowHost } from "./app-windows.js";
+import { commandScopeOf } from "./app-launch.js";
 import type { TourtoisAppSurfaceHost } from "./app-surface.js";
 import {
   workbenchDirectorySchema,
@@ -267,7 +268,8 @@ export function createTourtoisShell(
       onFocus,
     },
   ): Promise<AppWindowHost> => {
-    const commandMount = commands.mount(launch.surfaceId, launch.commands);
+    const scope = commandScopeOf(launch);
+    const commandMount = commands.mount(scope, launch.commands);
     let resolveHandle: (handle: WorkbenchChildHandle) => void = () => undefined;
     const handleReady = new Promise<WorkbenchChildHandle>((resolve) => {
       resolveHandle = resolve;
@@ -312,7 +314,7 @@ export function createTourtoisShell(
       },
       onFocus: (focused) => {
         if (focused) {
-          commands.focus(launch.surfaceId);
+          commands.focus(scope);
           onFocus?.();
         }
         return Promise.resolve();

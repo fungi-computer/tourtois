@@ -9,7 +9,23 @@ Tourtois is the shell of [Oyster](https://github.com/fungi-computer/oyster), the
 open App host that runs on your own Cloudflare account. When you sign in to an
 Oyster, Tourtois is what you see, and every other App opens inside it.
 
-## What you can do
+## Quick start
+
+In a Fungi monorepo checkout with dependencies installed, run the component
+workbench from the root:
+
+```sh
+pnpm workbench:prepare
+pnpm exec ladle serve --port 61983
+```
+
+Open
+<http://localhost:61983/?story=desktop--workspace&mode=preview&theme=light>.
+This is Tourtois's real UI with local fixture data (a sample Team desktop with
+the launcher and a Grove window), not a live Oyster. To run Tourtois on a real
+Oyster, see [Get it](#get-it).
+
+## Common tasks
 
 - Launch Apps from the **Launcher** on the desktop or from the top bar.
 - Arrange windows **Tiled** or **Floating** from the **Layout** menu: drag,
@@ -30,7 +46,9 @@ cross-origin frame, but Tourtois runs in the host's own page with your
 permissions there. Pick a shell you trust: it can do anything you can on that
 host.
 
-## Get it
+## Reference
+
+### Get it
 
 Tourtois installs with the other starter Apps, first of all. On a deployed
 Oyster (see the
@@ -48,7 +66,7 @@ Oyster with `git push`, builds them on your Computer and installs them. Sign in
 at `$OYSTER_URL/login` with the owner key and your Oyster opens on Tourtois. Run
 `install-apps` again to update; each App keeps its data.
 
-## Change it
+### Change it
 
 Every installed App is also a template you can fork on your own Oyster,
 including the desktop. Fork Tourtois into a Bonsai repository and clone it with
@@ -73,7 +91,7 @@ your forks with `--repositories <base URL>` and `--ref <branch or tag>`. The
 installer reads all seven starter Apps from that base, so fork them under one
 account.
 
-## How a host mounts it
+### How a host mounts it
 
 A Tourtois Release ships `shell.js` beside its `index.html`. The host imports
 that module from its own origin and calls
@@ -89,7 +107,7 @@ page, also available without a shell; the changed Oyster and Tourtois ship
 together. Other Settings sections still use their existing host-backed ports:
 this repair does not frame Keys, MCP servers, Computers or the consent dialog.
 
-## Agent tools
+### Agent tools
 
 Agents can arrange your desktop. Through Oyster's MCP endpoint, or at
 `POST $OYSTER_URL/apps/tourtois/methods/<name>` with a key (see
@@ -106,7 +124,7 @@ Each change names the revision it is based on, and a stale revision is refused
 rather than overwriting a newer arrangement. In a connected browser, an agent's
 change shows **Your Agent arranged the desktop** with **Undo** for ten seconds.
 
-## Build and check
+### Build and check
 
 Tourtois is React and TypeScript. Windows and tiling come from
 [Maosaico](https://github.com/fungi-computer/maosaico) and the controls from
@@ -126,7 +144,7 @@ layout. [src/shell-module.ts](src/shell-module.ts) is the `mountShell` entry,
 can supply. The agent tools are in [backend/methods.ts](backend/methods.ts), and
 [package.json](package.json) declares what the shell asks of its host.
 
-### Open windows and new versions
+#### Open windows and new versions
 
 The directory refreshes every 15 seconds while the desktop is visible, as well
 as on host change notifications. A changed active Release leaves the existing
@@ -145,7 +163,7 @@ With the Tourtois workbench running, `pnpm test:window-new-version` exercises
 the directory change, footer action and reopen at desktop and phone widths.
 `test/window-status-bar.test.tsx` proves the Reload close veto.
 
-## License
+### License
 
 MIT. See [LICENSE](LICENSE).
 

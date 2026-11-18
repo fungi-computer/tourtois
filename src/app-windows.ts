@@ -20,6 +20,12 @@ export type AppLaunchDescriptor = Readonly<{
   title: string;
   href: string;
   openRequest: AppOpenRequest | null;
+  /**
+   * Names this mount's own command and focus scope when it is not the App's
+   * window, as a surface tile is not. Absent for a window, whose scope is its
+   * surface id.
+   */
+  commandScope?: string;
   /** Roles the App's Release declares; the shell's mark follows them. */
   roles: readonly string[];
   /** Digest-covered command declarations shown before the App is opened. */

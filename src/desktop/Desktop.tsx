@@ -34,6 +34,7 @@ import type { InstallingApp } from "@fungi.computer/nacre/workbench-directory";
 import { LauncherGill } from "./launcher-gill.js";
 import type { WidgetChoice } from "./widget-picker.js";
 import { RowGill, type DesktopGillTransport } from "./row-gill.js";
+import { SurfaceGill, type SurfaceMount } from "./surface-gill.js";
 
 export type DesktopProps = {
   phone: boolean;
@@ -53,6 +54,8 @@ export type DesktopProps = {
   installing?: readonly InstallingApp[] | undefined;
   onRetryInstall?: ((installationId: string) => Promise<void>) | undefined;
   onOpen: (target: AppOpenInput) => void;
+  /** Mount an App's own frame in a surface tile; the host owns its authority. */
+  mountSurface: SurfaceMount;
   computersForGill?:
     | ((surfaceId: string) => readonly { computerId: string; name: string }[])
     | undefined;
@@ -665,6 +668,25 @@ function ArrangedDesktop({
                       editing ? <span aria-hidden="true" /> : undefined
                     }
                     onContentHeight={onContentHeight}
+                  />
+                ) : declaration?.view === "surface" && app ? (
+                  <SurfaceGill
+                    title={declaration.title}
+                    appHeader={{
+                      name: app.displayName ?? "App",
+                      icon: <DeclaredAppIcon icon={app.icon} />,
+                    }}
+                    size={item.size}
+                    target={{
+                      itemId: item.id,
+                      surfaceId: item.surfaceId,
+                      gillId: item.gillId,
+                    }}
+                    mount={props.mountSurface}
+                    editing={editing}
+                    editHandle={
+                      editing ? <span aria-hidden="true" /> : undefined
+                    }
                   />
                 ) : null}
               </div>

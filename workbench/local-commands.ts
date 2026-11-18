@@ -53,6 +53,8 @@ export async function mountLocalCommands(
   };
   return {
     commands,
+    /** The shell-facing handlers, such as the leader chord an App frame forwards. */
+    handlers: mount.handlers,
     dispose: () => {
       disposed = true;
       registrations.clear();

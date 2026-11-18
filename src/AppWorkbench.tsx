@@ -37,6 +37,7 @@ import { tileGap } from "./tile-gap.js";
 import {
   appForRole,
   composeOpenRequests,
+  launchForSurfaceGill,
   createAppLaunchDescriptor,
   attachWindowComputer,
   launchComputerId,
@@ -69,7 +70,11 @@ import { OwnSprite } from "./member-avatar.js";
 import { Desktop } from "./desktop/Desktop.js";
 import type { DesktopLayoutClient } from "./desktop-client.js";
 import { useAppOpenUrlHandoff } from "./useAppOpenUrlHandoff.js";
-import { useAppWindowManager } from "./useAppWindowManager.js";
+import {
+  useAppTileMount,
+  useAppWindowManager,
+  type WindowEvents,
+} from "./useAppWindowManager.js";
 import { useWindowSession } from "./window-session.js";
 
 import { useDirectoryCommands } from "./useDirectoryCommands.js";
@@ -220,7 +225,7 @@ export function AppWorkbench({
   const { activeId, focus, mode, order } = layout;
   const appSurfaceHost = useAppSurfaceHost();
   const selectionRefreshes = useRef(new Map<string, number>());
-  const appWindows = useAppWindowManager(appSurfaceHost, teamId, {
+  const shellEvents: WindowEvents = {
     onNavigation: (input) => openNavigation(input),
     onAppOpen: (input) => openApp(input),
     onAppRole: (role) => {
@@ -238,7 +243,9 @@ export function AppWorkbench({
     onAppFocus: (launch) => {
       focus(launch.windowId);
     },
-  });
+  };
+  const appWindows = useAppWindowManager(appSurfaceHost, teamId, shellEvents);
+  const mountAppTile = useAppTileMount(appSurfaceHost, teamId, shellEvents);
   const appProjection = useSyncExternalStore(
     appWindows.subscribe,
     appWindows.read,
@@ -961,6 +968,25 @@ export function AppWorkbench({
             }}
             installing={installingApps(appsQuery.data)}
             onRetryInstall={platform.retryInstall}
+            mountSurface={(container, target, signal) => {
+              const app = windowApps.find(
+                (app) => app.surfaceId === target.surfaceId,
+              );
+              const launch = app ? launchFor(app) : null;
+              if (!launch)
+                return Promise.reject(
+                  new Error("The widget's App is unavailable."),
+                );
+              return mountAppTile(
+                container,
+                launchForSurfaceGill(
+                  launch,
+                  target,
+                  composeOpenRequests.request.generate(),
+                ),
+                signal,
+              );
+            }}
             paused={covered}
             apps={windowApps}
             needsUpdate={needsUpdate}
