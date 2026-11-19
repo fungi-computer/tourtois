@@ -1,5 +1,20 @@
 # @fungi.computer/tourtois
 
+## 0.29.2
+
+### Patch Changes
+
+- Changes since 0.29.1:
+
+  - fix(tourtois): tell the owner once, in a toast, why a computer failed to
+    start
+
+- Updated dependencies
+  - @fungi.computer/agar@0.23.2
+  - @fungi.computer/nacre@0.8.5
+  - @fungi.computer/parakeet@0.16.1
+  - @fungi.computer/shiitake@0.21.10
+
 ## 0.29.1
 
 ### Patch Changes

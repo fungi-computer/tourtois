@@ -34,6 +34,7 @@ import {
 import { workbenchDirectorySchema } from "@fungi.computer/nacre/workbench-directory";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -91,7 +92,7 @@ export type OysterComputersPort = Readonly<{
    */
   stop?(computerId: string): Promise<void>;
   /** Hosts that can stop a Computer also read whether it is running. */
-  state?(computerId: string): Promise<ComputerRunState>;
+  state?(computerId: string): Promise<ComputerRunReading>;
   internetAccess(computerId: string): Promise<boolean>;
   setInternetAccess(computerId: string, enabled: boolean): Promise<boolean>;
   keepAwake(computerId: string): Promise<boolean>;
@@ -110,8 +111,14 @@ export type OysterComputersPort = Readonly<{
 /** Whether a Computer's runtime is up, as the host reads it without waking it. */
 export type ComputerRunState =
   "running" | "sleeping" | "starting" | "queued" | "start_failed";
+/** A failed start says why when its host knows; older hosts send no reason. */
+export type ComputerRunReading = Readonly<{
+  state: ComputerRunState;
+  reason?: string | undefined;
+}>;
 const computerRunStateSchema = z.looseObject({
   state: z.enum(["running", "sleeping", "starting", "queued", "start_failed"]),
+  reason: z.string().min(1).max(1_024).optional(),
 });
 
 /** The durable per-Computer switches an owner manages. */
@@ -228,7 +235,10 @@ export function createOysterComputersPort(origin: URL): OysterComputersPort {
       const response = await read(
         `/api/computers/${encodeURIComponent(computerId)}/state`,
       );
-      return computerRunStateSchema.parse(await response.json()).state;
+      const { state, reason } = computerRunStateSchema.parse(
+        await response.json(),
+      );
+      return { state, reason };
     },
     selection: {
       selected: async () => {
@@ -477,7 +487,8 @@ function useComputerRunState(
         ? Promise.reject(new Error("This host cannot read Computer state"))
         : read(computer.computerId),
     refetchInterval: (query) =>
-      query.state.data === "starting" || query.state.data === "queued"
+      query.state.data?.state === "starting" ||
+      query.state.data?.state === "queued"
         ? 2000
         : false,
   });
@@ -493,16 +504,30 @@ function ComputerRunStatus({
   computer: TeamComputer;
   port: OysterComputersPort;
 }) {
-  const run = useComputerRunState(teamId, computer, port);
-  if (run.data === undefined) return null;
-  const { label, tone } = stateDisplay[run.data];
+  const run = useComputerRunState(teamId, computer, port).data;
+  const failure = run?.state === "start_failed" ? (run.reason ?? "") : null;
+  useEffect(() => {
+    if (failure === null) return;
+    // One toast per failure: its id holds while the state is re-read.
+    toast.error(
+      failure === ""
+        ? `${computer.name} didn't start. Start it again.`
+        : `${computer.name} didn't start: ${failure}. Start it again.`,
+      {
+        toasterId: WORKBENCH_NOTICES,
+        id: `start-failed:${computer.computerId}:${failure}`,
+      },
+    );
+  }, [failure, computer.name, computer.computerId]);
+  if (run === undefined) return null;
+  const { label, tone } = stateDisplay[run.state];
   return (
     <Status
       size="compact"
       tone={tone}
       label={label}
       motion={
-        run.data === "starting" || run.data === "queued" ? "pulse" : "none"
+        run.state === "starting" || run.state === "queued" ? "pulse" : "none"
       }
     />
   );
@@ -532,7 +557,7 @@ function ComputerLifecycleKeys({
   const run = useComputerRunState(teamId, computer, port);
   const [confirming, setConfirming] = useState(false);
   const canStop = port.stop !== undefined && port.state !== undefined;
-  if (canStop && run.data === "running")
+  if (canStop && run.data?.state === "running")
     return (
       <>
         <KeycapButton
@@ -593,7 +618,10 @@ function ComputerLifecycleKeys({
       icon={<Sigil name="run" />}
       aria-label={`Start ${computer.name}`}
       disabled={
-        disabled || busy || run.data === "starting" || run.data === "queued"
+        disabled ||
+        busy ||
+        run.data?.state === "starting" ||
+        run.data?.state === "queued"
       }
       onClick={onStart}
     />
