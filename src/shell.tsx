@@ -1,4 +1,5 @@
 import { tourtoisQueryKeys } from "./queries.js";
+import { BootCurtain } from "@fungi.computer/parakeet/agent-head";
 import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { createQueryClient } from "@fungi.computer/agar/query";
@@ -74,7 +75,15 @@ function MountedTourtois({
   );
   if (directory.isError)
     return <CanonicalStatus message="This Team dashboard is unavailable." />;
-  if (!connection) return <CanonicalStatus message="Connecting…" />;
+  if (!connection)
+    return (
+      <main
+        className="tourtois-shell tourtois-team-desktop"
+        data-tourtois-shell
+      >
+        <BootCurtain message="Opening your desktop" />
+      </main>
+    );
   return (
     <AppSurfaceHostProvider value={connection.workbench.host}>
       <MemberAvatarSource read={() => connection.workbench.memberAvatar()}>

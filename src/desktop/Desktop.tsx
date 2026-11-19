@@ -10,7 +10,7 @@ import type { AppBarItem } from "@fungi.computer/caps/blocks/app-bar";
 import type { AppGridItem } from "@fungi.computer/caps/blocks/launcher-grid";
 import { Alert } from "@fungi.computer/caps/components/alert";
 import { EmptyState } from "@fungi.computer/caps/blocks/empty-state";
-import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
+import { BootCurtain } from "@fungi.computer/parakeet/agent-head";
 import { Button } from "@fungi.computer/caps/components/button";
 import { IconButton } from "@fungi.computer/caps/components/icon-button";
 import { GripVertical, Trash2 } from "lucide-react";
@@ -131,9 +131,7 @@ export function Desktop(props: DesktopProps) {
           }
         />
       ) : null}
-      {!owner && !error ? (
-        <LoadingState message="Loading your desktop…" />
-      ) : null}
+      {!owner && !error ? <BootCurtain message="Opening your desktop" /> : null}
       {owner ? <ArrangedDesktop {...props} owner={owner} /> : null}
     </div>
   );

@@ -1,5 +1,24 @@
 # @fungi.computer/tourtois
 
+## 0.29.0
+
+### Minor Changes
+
+- Changes since 0.28.5:
+
+  - fix(hub): keep the curtain proof, API docs and Desktop tests green
+  - fix(tourtois): keep the boot curtain up while the desktop connects
+  - feat(hub): one boot curtain and a Team name at sign-up
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.23.1
+  - @fungi.computer/parakeet@0.16.0
+  - @fungi.computer/nacre@0.8.4
+  - @fungi.computer/shiitake@0.21.9
+
 ## 0.28.5
 
 ### Patch Changes
