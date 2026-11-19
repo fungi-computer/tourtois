@@ -1,5 +1,18 @@
 # @fungi.computer/tourtois
 
+## 0.28.1
+
+### Patch Changes
+
+- Changes since 0.28.0:
+
+  - fix(caps): keep window rows at 32px at every width
+
+- Updated dependencies
+  - @fungi.computer/caps@0.12.2
+  - @fungi.computer/parakeet@0.14.6
+  - @fungi.computer/shiitake@0.21.5
+
 ## 0.28.0
 
 ### Minor Changes

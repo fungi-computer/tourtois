@@ -137,7 +137,7 @@
 
 /* Each button's touch hit area reaches 7px past its face, so neighbours
    need 14px between faces or one steals the other's edge. */
-@media (max-width: 640px), (any-pointer: coarse) {
+@media (pointer: coarse) {
   .tourtois-arrange-controls,
   .tourtois-arrange-controls .tourtois-gill-sizes {
     gap: var(--spacing-lg);

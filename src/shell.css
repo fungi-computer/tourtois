@@ -1059,7 +1059,7 @@
 
 /* Touch controls share the title row; reserve their height before arranging so
    entering edit mode leaves the Gill content's viewport unchanged. */
-@media (max-width: 640px), (any-pointer: coarse) {
+@media (pointer: coarse) {
   .tourtois-gill-frame .caps-section-card-heading-row {
     min-height: 44px;
   }
@@ -1075,7 +1075,7 @@
   display: flow-root;
 }
 
-@media (max-width: 640px), (any-pointer: coarse) {
+@media (pointer: coarse) {
   /* Reset Caps join composition when its expanded touch targets apply. */
   .tourtois-gill-sizes > .join-item {
     --join-ss: initial;
