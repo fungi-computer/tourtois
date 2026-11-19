@@ -79,6 +79,7 @@ function MountedTourtois({
     return (
       <main
         className="tourtois-shell tourtois-team-desktop"
+        data-connecting
         data-tourtois-shell
       >
         <BootCurtain message="Opening your desktop" />

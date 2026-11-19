@@ -1,5 +1,14 @@
 # @fungi.computer/tourtois
 
+## 0.29.1
+
+### Patch Changes
+
+- Changes since 0.29.0:
+
+  - fix(tourtois): give the connecting shell a box so waiting for it still means
+    it is mounted
+
 ## 0.29.0
 
 ### Minor Changes

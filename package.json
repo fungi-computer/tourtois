@@ -1,6 +1,6 @@
 {
   "name": "@fungi.computer/tourtois",
-  "version": "0.29.0",
+  "version": "0.29.1",
   "scripts": {
     "clean": "node --input-type=module --eval \"import { rm } from 'node:fs/promises'; await rm('dist', { recursive: true, force: true });\"",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.workbench.json && tsc -p backend/tsconfig.json && tsc -p test/workerd/tsconfig.json",
@@ -37,7 +37,7 @@
     "@fungi.computer/nacre": "0.8.4"
   },
   "devDependencies": {
-    "@fungi.computer/oyster": "0.47.2",
+    "@fungi.computer/oyster": "0.47.3",
     "@cloudflare/workers-types": "5.20260828.1",
     "@fungi.computer/forage": "0.3.13",
     "@fungi.computer/mycelium": "0.4.7",

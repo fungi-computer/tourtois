@@ -38,6 +38,13 @@
   min-height: 100%;
 }
 
+/* While it connects the shell holds only the boot curtain, which is fixed to
+ * the viewport; give the shell a box so "the shell is on the page" stays true
+ * for the proofs that wait for it to be visible. */
+.tourtois-shell[data-connecting] {
+  min-height: 100dvh;
+}
+
 .tourtois-workbench {
   box-sizing: border-box;
   flex: 1;
