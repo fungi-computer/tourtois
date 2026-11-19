@@ -1,5 +1,12 @@
 # @fungi.computer/tourtois
 
+## 0.28.4
+
+### Patch Changes
+
+- @fungi.computer/shiitake@0.21.8
+  - @fungi.computer/parakeet@0.14.9
+
 ## 0.28.3
 
 ### Patch Changes
