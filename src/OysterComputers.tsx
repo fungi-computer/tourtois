@@ -125,6 +125,11 @@ const computerRunStateSchema = z.looseObject({
 export type ComputerSwitchSetting = "internet-access" | "keep-awake";
 const missingRuntime = z.strictObject({ error: z.literal("no_runtime") });
 const switchUnavailable = z.strictObject({ error: z.literal("unavailable") });
+/** The Team already runs its limit of Computers; `reason` says what lifts it. */
+const capacityRefusal = z.looseObject({
+  error: z.literal("capacity"),
+  reason: z.string().min(1).max(1_024),
+});
 
 /**
  * The host answered that this Computer has no such switch (a local trial's
@@ -160,6 +165,14 @@ async function request(url: URL, init?: RequestInit): Promise<Response> {
     switchUnavailable.safeParse(await response.clone().json()).success
   )
     throw new SwitchUnavailable();
+  if (response.status === 429) {
+    const refused = capacityRefusal.safeParse(await response.clone().json());
+    if (refused.success)
+      throw new AppError(refused.data.reason, {
+        code: "HOST_FAILURE",
+        retryable: false,
+      });
+  }
   if (!response.ok)
     throw new AppError(
       `Computer request refused (${String(response.status)}).`,

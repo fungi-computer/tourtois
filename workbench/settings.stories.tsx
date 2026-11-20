@@ -543,14 +543,14 @@ function vaultFixture(state: "full" | "empty" | "member"): VaultPort {
         ? []
         : [
             {
-              connectionId: "conn_stripe",
-              name: "stripe",
-              label: "Stripe",
+              connectionId: "conn_weather",
+              name: "weather",
+              label: "Weather",
               kind: "secret",
-              origin: "https://api.stripe.com",
+              origin: "https://api.weather.example",
               destinations: [
                 {
-                  host: "api.stripe.com",
+                  host: "api.weather.example",
                   pathPrefix: "/v1/",
                   methods: ["GET", "POST"],
                 },
@@ -618,7 +618,7 @@ function vaultFixture(state: "full" | "empty" | "member"): VaultPort {
   const uses: readonly VaultUse[] = [
     {
       subject: { kind: "agent", id: "gardener" },
-      host: "api.stripe.com",
+      host: "api.weather.example",
       method: "POST",
       outcome: "upstream_status",
       status: 200,

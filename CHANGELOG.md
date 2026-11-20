@@ -1,5 +1,14 @@
 # @fungi.computer/tourtois
 
+## 0.30.0
+
+### Minor Changes
+
+- Changes since 0.29.3:
+
+  - feat(hub): show the running limit when a start is refused, in words that
+    read right
+
 ## 0.29.3
 
 ### Patch Changes
