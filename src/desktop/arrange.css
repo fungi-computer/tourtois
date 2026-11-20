@@ -14,9 +14,13 @@
   border-radius: var(--radius-box);
   pointer-events: none;
 }
-/* Room for the overlay beside the title; only truncation changes. */
+/* Room for the overlay beside the title; only truncation changes, with a
+   mouse as with touch, so a long title never wraps and grows the header. */
 .tourtois-desktop-stage[data-arranging] .tourtois-gill-frame .caps-card-title {
   padding-inline-end: 9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tourtois-arrange-controls {
@@ -119,7 +123,12 @@
     inset-block-end: 100%;
     margin-block-end: var(--spacing-xs);
   }
-  /* Five touch targets and the title share one row: keep them tight. */
+}
+
+/* Five touch targets and the title share one 44px row: keep them tight. A
+   narrow window driven by a mouse keeps its 32px controls where they sit on
+   a desktop (52f8bb42b6). */
+@media (max-width: 640px) and (pointer: coarse) {
   .tourtois-arrange-controls {
     inset-block-start: var(--spacing-xl);
   }

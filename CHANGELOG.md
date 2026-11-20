@@ -1,5 +1,23 @@
 # @fungi.computer/tourtois
 
+## 0.30.8
+
+### Patch Changes
+
+- Changes since 0.30.7:
+
+  - fix(tourtois): end a bounded Gill's body on a whole row
+  - fix(tourtois): stop the Launcher title wrapping in a narrow arrange view
+  - fix(tourtois): say who else can use a granted vault secret
+
+- Updated dependencies
+  - @fungi.computer/caps@0.12.5
+  - @fungi.computer/parakeet@0.16.9
+  - @fungi.computer/agar@0.25.1
+  - @fungi.computer/puffball@0.13.1
+  - @fungi.computer/shiitake@0.21.16
+  - @fungi.computer/nacre@0.8.8
+
 ## 0.30.7
 
 ### Patch Changes

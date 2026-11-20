@@ -1866,6 +1866,10 @@ function ScopePanel({
         {group("agent", "Agents", view.subjects.agents)}
         {group("computer", "Computers", view.subjects.computers)}
         <p className="tourtois-vault-panel-copy">
+          Anyone who can run commands on the Computer this Agent works on can
+          use this secret while it works, only on the sites you allow.
+        </p>
+        <p className="tourtois-vault-panel-copy">
           A grant to an Agent never reaches the visitors its channels talk to.
         </p>
         <EditDestinations

@@ -51,6 +51,51 @@ export function GillFrame({
       observer.disconnect();
     };
   }, [measuring]);
+  const scroller = useRef<HTMLDivElement>(null);
+  // A bounded Gill scrolls its rows. At rest its body ends on a row boundary,
+  // so the last visible row is whole and the rest wait below the scroll.
+  useLayoutEffect(() => {
+    const root = card.current;
+    const viewport = scroller.current;
+    const body = content.current;
+    const header = root?.firstElementChild;
+    const section = body?.parentElement?.parentElement;
+    if (!root || !viewport || !body || !header || !section) return;
+    const fit = () => {
+      const sectionStyle = getComputedStyle(section);
+      // The room the card leaves for its body, read from the card so a
+      // limit set here never feeds back into it.
+      const room =
+        root.clientHeight -
+        header.getBoundingClientRect().height -
+        parseFloat(sectionStyle.paddingTop) -
+        parseFloat(sectionStyle.paddingBottom);
+      const top = body.getBoundingClientRect().top;
+      // A row is cut when the body ends inside its content; losing only its
+      // bottom padding leaves the row whole.
+      const cut = [...body.querySelectorAll(".list-row")]
+        .map((row) => {
+          const box = row.getBoundingClientRect();
+          return {
+            top: box.top - top,
+            content:
+              box.bottom -
+              top -
+              parseFloat(getComputedStyle(row).paddingBottom),
+          };
+        })
+        .find((row) => row.top < room && row.content > room + 0.5);
+      viewport.style.maxHeight = cut ? `${String(Math.floor(cut.top))}px` : "";
+    };
+    const observer = new ResizeObserver(fit);
+    observer.observe(root);
+    observer.observe(header);
+    observer.observe(body);
+    fit();
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
   return (
     <SectionCard
       ref={card}
@@ -69,7 +114,7 @@ export function GillFrame({
       data-gill-size={size}
       actions={editHandle}
     >
-      <div className="tourtois-gill-body">
+      <div ref={scroller} className="tourtois-gill-body">
         <div ref={content} className="tourtois-gill-content">
           {children}
         </div>
