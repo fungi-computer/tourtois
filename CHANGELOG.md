@@ -1,5 +1,17 @@
 # @fungi.computer/tourtois
 
+## 0.30.6
+
+### Patch Changes
+
+- Changes since 0.30.5:
+
+  - fix(tourtois): keep the menu bar at 32px with a mouse on narrow screens
+
+- Updated dependencies
+  - @fungi.computer/shiitake@0.21.15
+  - @fungi.computer/parakeet@0.16.7
+
 ## 0.30.5
 
 ### Patch Changes

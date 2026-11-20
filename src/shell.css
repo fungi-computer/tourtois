@@ -3,14 +3,14 @@
 @import "./settings-navigation.css";
 @import "./desktop/arrange.css";
 
-/* SH-1: a 32px desktop menu bar on desktop widths, matching the window
-   title bar and footer so the three chrome bars read as one system.
-   chrome.css keeps its documented 48px/40px-mascot base (Caps' own
+/* SH-1: a 32px desktop menu bar, matching the window title bar and footer
+   so the three chrome bars read as one system, at every width. chrome.css
+   keeps its documented 48px/40px-mascot base (Caps' own
    `.caps-app-bar-launcher-button` default) for every other caller; this
    override lives only here, scoped to the Tourtois desktop shell, and never
-   touches packages/caps. Phone keeps the existing 48px bar and its
-   touch-target launcher sizing below, untouched. */
-@media (min-width: 541px) {
+   touches packages/caps. Only a touch-first device (`pointer: coarse`) keeps
+   the 48px bar and its 44px launcher; a narrow window is not a phone. */
+@media not (pointer: coarse) {
   .tourtois-desktop-menu {
     flex: 0 0 var(--spacing-2xl);
     height: var(--spacing-2xl);
@@ -692,7 +692,10 @@
   .tourtois-desktop-menu .tourtois-team-name {
     display: none;
   }
-  /* The running-App menu and mascot each occupy one phone touch slot. */
+}
+/* On a touch-first device the running-App menu and mascot each occupy one
+   touch slot. With a mouse they stay in the 32px bar at every width. */
+@media (pointer: coarse) {
   .tourtois-desktop-menu > .caps-app-bar {
     min-inline-size: calc(var(--caps-touch-target) + var(--spacing-sm));
   }
