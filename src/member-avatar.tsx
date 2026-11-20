@@ -6,7 +6,7 @@ import {
 } from "@fungi.computer/sprite-zdog/avatar";
 import type { RenderStyle } from "@fungi.computer/sprite";
 import { toast } from "@fungi.computer/caps/components/toaster";
-import { WORKBENCH_NOTICES } from "./app-toast.js";
+import { WORKBENCH_NOTICES, failureNotice } from "./app-toast.js";
 import { AvatarPreview } from "./AvatarPreview.js";
 import { AvatarPicker } from "./AvatarPicker.js";
 import {
@@ -111,8 +111,8 @@ function useSaveMemberAvatar(save: MemberAvatarSave) {
       return { previous, local, optimistic };
     },
     mutationFn: save,
-    onError: (_cause, _next, snapshot) => {
-      toast.error("Your avatar could not be saved. Try again.", {
+    onError: (cause, _next, snapshot) => {
+      toast.error(failureNotice("Your avatar could not be saved", cause), {
         toasterId: WORKBENCH_NOTICES,
       });
       if (

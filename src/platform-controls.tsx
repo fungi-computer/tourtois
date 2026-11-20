@@ -2,7 +2,7 @@ import type { WorkbenchHostControls } from "@fungi.computer/nacre/workbench";
 import type { WorkbenchDirectory } from "@fungi.computer/nacre/workbench-directory";
 import { AppError } from "@fungi.computer/agar";
 import { Button } from "@fungi.computer/caps/components/button";
-import { toast } from "@fungi.computer/caps/components/toaster";
+import { Toaster, toast } from "@fungi.computer/caps/components/toaster";
 import {
   OverlayRoot,
   type OverlayContainers,
@@ -14,6 +14,7 @@ import {
   type WorkbenchDesktopRegistration,
 } from "@fungi.computer/nacre/workbench";
 import { tourtoisQueryKeys } from "./queries.js";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
 import { useQuery } from "@tanstack/react-query";
 import type {
   AppPermissionOutcome,
@@ -424,10 +425,17 @@ export function PlatformControlsView({
   teamId,
   controls,
   data,
+  notices = false,
 }: {
   teamId: string;
   controls: PlatformControlsHost;
   data: PlatformControlsData;
+  /**
+   * Mount the workbench notice toaster that Settings pages report failures
+   * to. A host whose page has no Tourtois workbench in this bundle (Hub)
+   * sets it; inside the Tourtois shell the workbench already mounts it.
+   */
+  notices?: boolean;
 }) {
   const location = useRouterState({
     router: controls.router,
@@ -483,6 +491,7 @@ export function PlatformControlsView({
   const settings = (
     <>
       <RouterProvider router={controls.router} />
+      {notices ? <Toaster id={WORKBENCH_NOTICES} closeButton /> : null}
       <AppAccessConsent request={consent} />
       <DeferredSystemSettings
         location={location}
