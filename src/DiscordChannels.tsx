@@ -32,7 +32,7 @@ import {
   type WebsiteTranscript,
 } from "@fungi.computer/nacre/website-channels";
 import { ChannelConversations } from "./ChannelConversations.js";
-import { WORKBENCH_NOTICES } from "./app-toast.js";
+import { WORKBENCH_NOTICES, failureNotice } from "./app-toast.js";
 import { tourtoisQueryKeys } from "./queries.js";
 import { requestIds } from "./team-directory.js";
 
@@ -627,8 +627,8 @@ function DiscordRow({
         throw new Error("Discord unavailable. Reload before changing it.");
       return port.update(binding.bindingId, current.authorityVersion, change);
     },
-    onError: () => {
-      toast.error("Couldn't update Discord. Please try again.", {
+    onError: (cause) => {
+      toast.error(failureNotice("Couldn't update Discord", cause), {
         toasterId: WORKBENCH_NOTICES,
         closeButton: true,
       });
@@ -637,11 +637,14 @@ function DiscordRow({
   });
   const register = useMutation({
     mutationFn: () => port.registerCommands(binding.bindingId),
-    onError: () => {
-      toast.error("Couldn't register the Discord commands. Please try again.", {
-        toasterId: WORKBENCH_NOTICES,
-        closeButton: true,
-      });
+    onError: (cause) => {
+      toast.error(
+        failureNotice("Couldn't register the Discord commands", cause),
+        {
+          toasterId: WORKBENCH_NOTICES,
+          closeButton: true,
+        },
+      );
     },
   });
   const { applicationId, guildIds, channelIds } = binding.selector;

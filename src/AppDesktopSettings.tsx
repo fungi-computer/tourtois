@@ -1,12 +1,11 @@
 import { DataListHeading } from "@fungi.computer/caps/components/data-list";
 import { useEffect, useRef, useState } from "react";
-import { AppError } from "@fungi.computer/agar";
 import type { WorkbenchDesktopSettings } from "@fungi.computer/nacre/workbench";
 import { Button } from "@fungi.computer/caps/components/button";
 import { DataList, DataRow } from "@fungi.computer/caps/components/data-list";
 import { toast } from "@fungi.computer/caps/components/toaster";
 import { Select } from "@fungi.computer/caps/components/select";
-import { WORKBENCH_NOTICES } from "./app-toast.js";
+import { WORKBENCH_NOTICES, failureNotice } from "./app-toast.js";
 import type {
   AppDirectoryEntry,
   AppDirectoryGill,
@@ -72,10 +71,9 @@ function GillOption({
         });
         if (!retired) {
           setUnavailable(true);
-          toast.error(
-            "Your desktop could not be read. Reopen Settings to try again.",
-            { toasterId: WORKBENCH_NOTICES },
-          );
+          toast.error(failureNotice("Your desktop could not be read", cause), {
+            toasterId: WORKBENCH_NOTICES,
+          });
         }
         return { kind: "failed", cause };
       });
@@ -102,12 +100,9 @@ function GillOption({
         cause,
       });
       setUnavailable(true);
-      toast.error(
-        cause instanceof AppError
-          ? cause.message
-          : "The widget could not be changed. Reopen Settings to try again.",
-        { toasterId: WORKBENCH_NOTICES },
-      );
+      toast.error(failureNotice("The widget could not be changed", cause), {
+        toasterId: WORKBENCH_NOTICES,
+      });
       // A refusal may mean another tab changed the saved layout. Never keep an optimistic membership flag.
       setSaved(null);
       return { kind: "failed", cause };

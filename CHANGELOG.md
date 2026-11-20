@@ -1,5 +1,22 @@
 # @fungi.computer/tourtois
 
+## 0.30.4
+
+### Patch Changes
+
+- Changes since 0.30.3:
+
+  - fix(tourtois): name the cause when a settings change fails
+  - fix(hub): show settings failures in Hub-hosted System Settings
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.25.0
+  - @fungi.computer/puffball@0.13.0
+  - @fungi.computer/nacre@0.8.7
+  - @fungi.computer/parakeet@0.16.6
+  - @fungi.computer/shiitake@0.21.14
+
 ## 0.30.3
 
 ### Patch Changes
