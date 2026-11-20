@@ -1,5 +1,15 @@
 # @fungi.computer/tourtois
 
+## 0.30.5
+
+### Patch Changes
+
+- Changes since 0.30.4:
+
+  - fix(tourtois): keep the restore's manager shape inside its signature
+  - fix(tourtois): keep the launched App in front when windows restore
+  - fix(tourtois): keep the App you open while your windows come back
+
 ## 0.30.4
 
 ### Patch Changes

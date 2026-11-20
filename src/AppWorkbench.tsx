@@ -75,7 +75,7 @@ import {
   useAppWindowManager,
   type WindowEvents,
 } from "./useAppWindowManager.js";
-import { useWindowSession } from "./window-session.js";
+import { useWindowSession, type FocusRequest } from "./window-session.js";
 
 import { useDirectoryCommands } from "./useDirectoryCommands.js";
 
@@ -314,8 +314,11 @@ export function AppWorkbench({
   const reconciledDirectoryRef = useRef<readonly AppDirectoryApp[] | null>(
     null,
   );
+  // The stored-window restore yields to the latest request in this page.
+  const focusRequest = useRef<FocusRequest>(null);
   const focusWindow = useCallback(
     (id: string) => {
+      focusRequest.current = { windowId: id };
       focus(id);
       requestAnimationFrame(() => {
         // Focus the person moved into an open App dial since this request must
@@ -679,6 +682,7 @@ export function AppWorkbench({
     phone,
     onTiledChange: onLayoutChange,
     focusWindow,
+    focusRequest: () => focusRequest.current,
     onError: setAppStatus,
   });
   /** An App that is already open comes forward instead of opening twice. */

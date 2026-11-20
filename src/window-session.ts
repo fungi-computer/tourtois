@@ -105,6 +105,42 @@ export function restorableLaunches<
   });
 }
 
+/** The workbench's latest focus request in this page, or null for none yet. */
+export type FocusRequest = Readonly<{ windowId: string }> | null;
+
+/**
+ * Reopen the stored windows one by one and name the window to focus. The
+ * restore runs once per page and waits for the stored session, so the person
+ * may open or bring forward an App before it starts or while it runs; their
+ * latest choice in this page keeps focus over the stored active window.
+ */
+export async function restoreWindows<
+  Launch extends Readonly<{ windowId: string }>,
+>(
+  launches: readonly Readonly<{ launch: Launch; minimized: boolean }>[],
+  storedActive: string | null,
+  manager: Readonly<{
+    read: () => Readonly<{
+      windows: readonly Readonly<{ windowId: string }>[];
+    }>;
+    open: (launch: Launch) => Promise<void>;
+    minimize: (windowId: string) => Promise<void>;
+  }>,
+  focusRequest: () => FocusRequest,
+): Promise<string | null> {
+  const isOpen = (windowId: string) =>
+    manager.read().windows.some((item) => item.windowId === windowId);
+  for (const { launch, minimized } of launches) {
+    if (isOpen(launch.windowId)) continue;
+    await manager.open(launch);
+    if (minimized) await manager.minimize(launch.windowId);
+  }
+  const chosen = focusRequest();
+  if (chosen !== null && isOpen(chosen.windowId)) return chosen.windowId;
+  const active = storedActive && windowIdFor(storedActive);
+  return active && isOpen(active) ? active : null;
+}
+
 /** Reads and writes the session through the member's storage layer. */
 export function createWindowSessionStore(storage: AppStorage) {
   let revision: number | null = null;
@@ -160,6 +196,8 @@ export type WindowSessionInput = Readonly<{
   phone: boolean;
   onTiledChange: ((tiled: boolean) => void) | undefined;
   focusWindow: (windowId: string) => void;
+  /** The workbench's latest focus request, mid-restore ones included. */
+  focusRequest: () => FocusRequest;
   /** Shown to the person as a toast; the session is never lost silently. */
   onError: (message: string) => void;
 }>;
@@ -194,22 +232,13 @@ export function useWindowSession(input: WindowSessionInput) {
         );
         for (const { launch, frame } of launches)
           seeds.current.set(launch.windowId, frame);
-        for (const { launch, minimized } of launches) {
-          if (
-            current.manager
-              .read()
-              .windows.some((item) => item.windowId === launch.windowId)
-          )
-            continue;
-          await current.manager.open(launch);
-          if (minimized) await current.manager.minimize(launch.windowId);
-        }
-        const active = session.active && windowIdFor(session.active);
-        if (
-          active &&
-          current.manager.read().windows.some((w) => w.windowId === active)
-        )
-          latest.current.focusWindow(active);
+        const focused = await restoreWindows(
+          launches,
+          session.active,
+          current.manager,
+          current.focusRequest,
+        );
+        if (focused) latest.current.focusWindow(focused);
       } catch (cause) {
         console.error("Open windows could not be restored", cause);
         latest.current.onError("Your open windows could not be restored.");
