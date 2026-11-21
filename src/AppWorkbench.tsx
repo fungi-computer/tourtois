@@ -7,6 +7,7 @@ import { ResizeHandle } from "@fungi.computer/caps/components/resize-handle";
 import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
 import { toast, Toaster } from "@fungi.computer/caps/components/toaster";
 import { WORKBENCH_NOTICES } from "./app-toast.js";
+import { failureMessage } from "@fungi.computer/agar/errors";
 import { WindowSnapPreview } from "@fungi.computer/caps/components/window";
 import {
   MaosaicoRegion,
@@ -81,6 +82,7 @@ import { useDirectoryCommands } from "./useDirectoryCommands.js";
 
 type AppDirectoryReconciliationFailure = {
   action: "close" | "replace" | null;
+  cause?: unknown;
 };
 
 const emptyAppBarLabel = (loading: boolean, failed: boolean): ReactNode => {
@@ -126,7 +128,7 @@ function arrangeDesktop(
   }
   void hiding.then(arrange).catch((cause: unknown) => {
     console.error("Arrange desktop could not show the desktop", cause);
-    onFailure("The desktop could not be shown. Try again.");
+    onFailure(failureMessage("The desktop could not be shown", cause));
   });
 }
 
@@ -180,12 +182,14 @@ function phoneShowDesktop(
       .then((outcome) => {
         if (outcome.status !== "handled") {
           console.error("Phone Show desktop refused", outcome);
-          onFailure("The desktop could not be shown. Try again.");
+          onFailure(
+            `The desktop could not be shown: the host answered ${outcome.status}.`,
+          );
         }
       })
       .catch((cause: unknown) => {
         console.error("Phone Show desktop failed", cause);
-        onFailure("The desktop could not be shown. Try again.");
+        onFailure(failureMessage("The desktop could not be shown", cause));
       });
   };
 }
@@ -500,8 +504,9 @@ export function AppWorkbench({
       apps,
       launchFor,
       { kind: "selection-changed" },
-      (action) => {
+      (action, cause) => {
         failure.action = action;
+        failure.cause = cause;
       },
     );
     if (!replaced && failure.action === null)
@@ -510,9 +515,12 @@ export function AppWorkbench({
       );
     else if (!replaced)
       setAppStatus(
-        failure.action === "close"
-          ? "App could not be closed."
-          : "App could not be replaced.",
+        failureMessage(
+          failure.action === "close"
+            ? "App could not be closed"
+            : "App could not be replaced",
+          failure.cause,
+        ),
       );
     return replaced;
   };
@@ -654,13 +662,21 @@ export function AppWorkbench({
       reconciledDirectoryRef.current = null;
       return;
     }
-    void reconcileAppDirectory(appWindows, listedApps, launchFor, (action) => {
-      setAppStatus(
-        action === "close"
-          ? "App could not be closed."
-          : "App could not be replaced.",
-      );
-    });
+    void reconcileAppDirectory(
+      appWindows,
+      listedApps,
+      launchFor,
+      (action, cause) => {
+        setAppStatus(
+          failureMessage(
+            action === "close"
+              ? "App could not be closed"
+              : "App could not be replaced",
+            cause,
+          ),
+        );
+      },
+    );
   }, [appWindows, listedApps, initialComputerId, computers]);
 
   const directory = useMemo(() => listedApps ?? [], [listedApps]);

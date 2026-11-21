@@ -1,3 +1,6 @@
+import { toast } from "@fungi.computer/caps/components/toaster";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
+import { failureMessage } from "@fungi.computer/agar/errors";
 import type {
   AgentAccessOperation,
   AppPermissionOutcome,
@@ -110,11 +113,9 @@ export function AppAccessConsent({
   request: AppAccessRequest | null;
 }) {
   const [saving, setSaving] = useState(false);
-  const [failed, setFailed] = useState(false);
   const approve = useRef<HTMLButtonElement>(null);
   const settle = (outcome: AppPermissionOutcome) => {
     setSaving(false);
-    setFailed(false);
     request?.settle(outcome);
   };
   return (
@@ -152,9 +153,6 @@ export function AppAccessConsent({
               {request.refusal.message}
             </p>
           ) : null}
-          {failed ? (
-            <p role="alert">Access could not be saved. Try again.</p>
-          ) : null}
           <DialogFooter className="tourtois-app-consent-footer">
             <Button
               variant="ghost"
@@ -184,14 +182,16 @@ export function AppAccessConsent({
                 onClick={() => {
                   if (request === null || request.refusal !== undefined) return;
                   setSaving(true);
-                  setFailed(false);
                   void request.allow().then(
                     (saved) => {
                       settle(saved ? "granted" : "declined");
                     },
-                    () => {
+                    (cause: unknown) => {
                       setSaving(false);
-                      setFailed(true);
+                      toast.error(
+                        failureMessage("Access could not be saved", cause),
+                        { toasterId: WORKBENCH_NOTICES },
+                      );
                     },
                   );
                 }}

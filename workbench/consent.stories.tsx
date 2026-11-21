@@ -1,4 +1,6 @@
 import type { Story, StoryDefault } from "@ladle/react";
+import { Toaster } from "@fungi.computer/caps/components/toaster";
+import { WORKBENCH_NOTICES } from "../src/app-toast.js";
 import { useEffect, useRef, useState } from "react";
 import {
   AppAccessConsent,
@@ -22,7 +24,7 @@ function consent(
           '[role="dialog"] button',
         );
         const allow = [...buttons].find(
-          (button) => button.textContent.trim() === "Allow",
+          (button) => button.textContent.trim() === "Approve",
         );
         if (!allow || allow.disabled) return false;
         attempted.current = true;
@@ -54,18 +56,23 @@ function consent(
           ? []
           : ["computer.list", "computer.readFile", "computer.writeFile"],
       // A refused save resolves false and declines; only a rejected save keeps
-      // the dialog open with its "could not be saved" notice.
+      // the dialog open and toasts why it could not be saved.
       allow: () =>
         outcome === "saving"
           ? new Promise<boolean>(() => undefined)
           : outcome === "failed"
-            ? Promise.reject(new Error("Access could not be saved"))
+            ? Promise.reject(new Error("Your Team did not answer"))
             : Promise.resolve(true),
       settle: () => {
         setOpen(false);
       },
     };
-    return <AppAccessConsent request={open ? request : null} />;
+    return (
+      <>
+        <AppAccessConsent request={open ? request : null} />
+        <Toaster id={WORKBENCH_NOTICES} closeButton />
+      </>
+    );
   };
   return Story;
 }

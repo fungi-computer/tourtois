@@ -24,7 +24,8 @@ import type { ConnectorsTarget, Navigate } from "./settings-sections.js";
 import * as z from "zod";
 import { SettingsItem } from "./settings-item.js";
 import { toast } from "@fungi.computer/caps/components/toaster";
-import { WORKBENCH_NOTICES, failureNotice } from "./app-toast.js";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
+import { failureMessage } from "@fungi.computer/agar/errors";
 
 /** What an Agent may do with one connection: everything, only reads, or named tools. */
 const connectionAccessSchema = z.union([
@@ -153,9 +154,12 @@ export function Connections({
     mutationFn: (connectionId: string) => port.remove(connectionId),
     onSuccess: refresh,
     onError: (cause) => {
-      toast.error(failureNotice("The connection could not be removed", cause), {
-        toasterId: WORKBENCH_NOTICES,
-      });
+      toast.error(
+        failureMessage("The connection could not be removed", cause),
+        {
+          toasterId: WORKBENCH_NOTICES,
+        },
+      );
     },
   });
   const agents = view.data?.agents ?? [];
@@ -302,7 +306,7 @@ function AgentAccess({
     },
     onSuccess: onChanged,
     onError: (cause) => {
-      toast.error(failureNotice("The access could not be changed", cause), {
+      toast.error(failureMessage("The access could not be changed", cause), {
         toasterId: WORKBENCH_NOTICES,
       });
     },

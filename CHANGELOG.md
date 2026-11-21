@@ -1,5 +1,24 @@
 # @fungi.computer/tourtois
 
+## 0.31.1
+
+### Patch Changes
+
+- Changes since 0.31.0:
+
+  - fix(agar): end a failure message with a period
+  - fix(agar): one source of failure wording that punctuates once and names a
+    dropped request
+  - fix(grove): chat widget names its start failure once, in a toast
+  - fix(grove): every launch App failure toast names its real cause
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.27.1
+  - @fungi.computer/parakeet@0.17.1
+  - @fungi.computer/nacre@0.9.2
+  - @fungi.computer/shiitake@0.22.3
+
 ## 0.31.0
 
 ### Minor Changes
