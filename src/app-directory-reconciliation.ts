@@ -13,7 +13,7 @@ export async function reconcileAppDirectory<A extends { surfaceId: string }>(
     app: A,
     currentLaunch?: AppLaunchDescriptor,
   ) => AppLaunchDescriptor | null,
-  onFailure: (action: "close" | "replace") => void,
+  onFailure: (action: "close" | "replace", cause: unknown) => void,
 ): Promise<void> {
   await Promise.all(
     appWindows.read().windows.map(async (open) => {
@@ -41,7 +41,7 @@ export async function reconcileAppWindowFromDirectory<
     currentLaunch?: AppLaunchDescriptor,
   ) => AppLaunchDescriptor | null,
   trigger: AppWindowReconciliationTrigger,
-  onFailure: (action: "close" | "replace") => void,
+  onFailure: (action: "close" | "replace", cause: unknown) => void,
 ): Promise<boolean> {
   const current = appWindows
     .read()
@@ -87,7 +87,7 @@ export async function reconcileAppWindowFromDirectory<
   } catch (cause) {
     console.error("App directory reconciliation failed", cause);
 
-    onFailure(next ? "replace" : "close");
+    onFailure(next ? "replace" : "close", cause);
     return false;
   }
 

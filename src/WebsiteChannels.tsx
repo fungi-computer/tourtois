@@ -37,7 +37,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import * as z from "zod";
 import { ChannelConversations } from "./ChannelConversations.js";
-import { WORKBENCH_NOTICES, failureNotice } from "./app-toast.js";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
+import { failureMessage } from "@fungi.computer/agar/errors";
 import { tourtoisQueryKeys } from "./queries.js";
 import { requestIds } from "./team-directory.js";
 
@@ -595,7 +596,7 @@ function WebsiteRow({
       return port.update(site.bindingId, current.authorityVersion, change);
     },
     onError: (cause) => {
-      toast.error(failureNotice("Couldn't save the website", cause), {
+      toast.error(failureMessage("Couldn't save the website", cause), {
         toasterId: WORKBENCH_NOTICES,
         closeButton: true,
       });

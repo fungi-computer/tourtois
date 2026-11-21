@@ -27,7 +27,8 @@ import * as z from "zod";
 import { Sigil, type SigilName } from "@fungi.computer/sigils";
 import { SettingsItem } from "./settings-item.js";
 import { toast } from "@fungi.computer/caps/components/toaster";
-import { WORKBENCH_NOTICES, failureNotice } from "./app-toast.js";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
+import { failureMessage } from "@fungi.computer/agar/errors";
 
 export type KeyAppOption = Readonly<{
   installationId: string;
@@ -141,7 +142,7 @@ function KeysContent({
       await refresh();
     } catch (cause) {
       console.error("Key change failed", pending.kind, cause);
-      toast.error(failureNotice("The key change failed", cause), {
+      toast.error(failureMessage("The key change failed", cause), {
         toasterId: WORKBENCH_NOTICES,
       });
     } finally {

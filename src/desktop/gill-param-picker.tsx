@@ -1,3 +1,4 @@
+import { failureMessage } from "@fungi.computer/agar/errors";
 import type { GillRequest } from "@fungi.computer/gills";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -63,11 +64,19 @@ export function GillParamPicker({
             void onSave(values)
               .then((accepted) => {
                 if (accepted) onClose();
-                else setError("Your widget could not be saved. Try again.");
+                else
+                  setError(
+                    "The host did not accept your widget, and gave no reason.",
+                  );
               })
               .catch((cause: unknown) => {
                 console.error("Gill placement could not be confirmed", cause);
-                setError("Your widget placement could not be confirmed.");
+                setError(
+                  failureMessage(
+                    "Your widget placement could not be confirmed",
+                    cause,
+                  ),
+                );
               })
               .finally(() => {
                 setSaving(false);

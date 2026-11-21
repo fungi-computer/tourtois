@@ -5,7 +5,8 @@ import { Button } from "@fungi.computer/caps/components/button";
 import { DataList, DataRow } from "@fungi.computer/caps/components/data-list";
 import { toast } from "@fungi.computer/caps/components/toaster";
 import { Select } from "@fungi.computer/caps/components/select";
-import { WORKBENCH_NOTICES, failureNotice } from "./app-toast.js";
+import { WORKBENCH_NOTICES } from "./app-toast.js";
+import { failureMessage } from "@fungi.computer/agar/errors";
 import type {
   AppDirectoryEntry,
   AppDirectoryGill,
@@ -71,7 +72,7 @@ function GillOption({
         });
         if (!retired) {
           setUnavailable(true);
-          toast.error(failureNotice("Your desktop could not be read", cause), {
+          toast.error(failureMessage("Your desktop could not be read", cause), {
             toasterId: WORKBENCH_NOTICES,
           });
         }
@@ -100,7 +101,7 @@ function GillOption({
         cause,
       });
       setUnavailable(true);
-      toast.error(failureNotice("The widget could not be changed", cause), {
+      toast.error(failureMessage("The widget could not be changed", cause), {
         toasterId: WORKBENCH_NOTICES,
       });
       // A refusal may mean another tab changed the saved layout. Never keep an optimistic membership flag.
