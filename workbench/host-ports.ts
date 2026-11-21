@@ -2,6 +2,7 @@ import {
   memberAvatarSchema,
   type MemberAvatar,
 } from "@fungi.computer/sprite-zdog/avatar";
+import { Option, Schema } from "effect";
 import * as z from "zod";
 import { teamComputerDirectorySchema } from "@fungi.computer/nacre/workbench";
 import type { SettingsSectionPorts } from "../src/settings-sections.js";
@@ -11,7 +12,17 @@ import {
 } from "@fungi.computer/nacre/workbench-directory";
 
 async function hostJson<T>(response: Response, schema: z.ZodType<T>) {
-  if (!response.ok) throw new Error(`HTTP ${String(response.status)}`);
+  if (!response.ok) {
+    // Name the host's stated cause, as Hub's own requests do.
+    const stated = Schema.decodeUnknownOption(
+      Schema.fromJsonString(Schema.Struct({ error: Schema.NonEmptyString })),
+    )(await response.text());
+    throw new Error(
+      Option.isSome(stated)
+        ? stated.value.error
+        : `HTTP ${String(response.status)}`,
+    );
+  }
   return schema.parse(await response.json());
 }
 
