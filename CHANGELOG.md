@@ -1,5 +1,27 @@
 # @fungi.computer/tourtois
 
+## 0.30.11
+
+### Patch Changes
+
+- Changes since 0.30.10:
+
+  - fix(tourtois): label the dashboard changes in plain words
+  - fix(tourtois): export the app type the window session names
+  - fix(tourtois): save windows opened while the stored ones reopen
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.26.0
+  - @fungi.computer/caps@0.12.8
+  - @fungi.computer/nacre@0.9.0
+  - @fungi.computer/parakeet@0.16.12
+  - @fungi.computer/puffball@0.14.0
+  - @fungi.computer/shiitake@0.22.1
+
 ## 0.30.10
 
 ### Patch Changes

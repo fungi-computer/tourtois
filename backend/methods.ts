@@ -49,7 +49,7 @@ export const appBackend = defineAppBackend<LayoutContext>({
       handler: (_input, context) => widgetsAvailable(context),
     }),
     "layout.place": defineAppMethod({
-      description: "Place an available widget with compare-and-set.",
+      description: "Add a widget to your dashboard.",
       effect: "write",
       requires,
       input: ops[0].omit({ kind: true }).extend(mutation),
@@ -71,7 +71,7 @@ export const appBackend = defineAppBackend<LayoutContext>({
       },
     }),
     "layout.move": defineAppMethod({
-      description: "Move one desktop item with compare-and-set.",
+      description: "Move an item on your dashboard.",
       effect: "write",
       requires,
       input: ops[1].omit({ kind: true }).extend(mutation),
@@ -82,7 +82,7 @@ export const appBackend = defineAppBackend<LayoutContext>({
         ]),
     }),
     "layout.resize": defineAppMethod({
-      description: "Change a widget to a declared size with compare-and-set.",
+      description: "Resize a widget on your dashboard.",
       effect: "write",
       requires,
       input: ops[2].omit({ kind: true }).extend(mutation),
@@ -93,7 +93,7 @@ export const appBackend = defineAppBackend<LayoutContext>({
         ]),
     }),
     "layout.remove": defineAppMethod({
-      description: "Remove a desktop item with compare-and-set.",
+      description: "Remove an item from your dashboard.",
       effect: "write",
       requires,
       input: ops[3].omit({ kind: true }).extend(mutation),
@@ -104,8 +104,7 @@ export const appBackend = defineAppBackend<LayoutContext>({
         ]),
     }),
     "layout.launcher": defineAppMethod({
-      description:
-        "Show, pin or hide an available launcher with compare-and-set.",
+      description: "Show, pin or hide a launcher on your dashboard.",
       effect: "write",
       requires,
       input: z.strictObject({
@@ -120,8 +119,7 @@ export const appBackend = defineAppBackend<LayoutContext>({
         ]),
     }),
     "layout.set": defineAppMethod({
-      description:
-        "Replace one complete desktop layer with compare-and-set, including Undo.",
+      description: "Replace your whole dashboard layout.",
       effect: "write",
       requires,
       input: z.strictObject({ ...mutation, layout: desktopLayoutSchema }),
@@ -134,8 +132,7 @@ export const appBackend = defineAppBackend<LayoutContext>({
         ),
     }),
     "layout.reset": defineAppMethod({
-      description:
-        "Remove a layer and inherit the Team or compiled default with compare-and-set.",
+      description: "Reset your dashboard to the default layout.",
       effect: "write",
       requires,
       input: z.strictObject(mutation),

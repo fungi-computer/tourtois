@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { AppStorageError, type AppStorage } from "@fungi.computer/agar/storage";
 import type { AppDirectoryApp } from "./app-launch.js";
-import type { AppLaunchDescriptor, AppWindowManager } from "./app-windows.js";
+import type { AppLaunchDescriptor } from "./app-windows.js";
 
 /** The member's own storage key for the windows they had open. */
 export const windowSessionKey = "windows";
@@ -77,6 +77,35 @@ export function windowSessionFrom(
         ? active.surfaceId
         : null,
     windows: windows.slice(0, 16),
+  });
+}
+
+/**
+ * The session to store while the stored windows are still reopening. A reopen
+ * waits for each App to get ready, so a save that held back until the restore
+ * ended lost whatever the person opened meanwhile if the page reloaded first.
+ * Storing the windows not back yet beside the open ones keeps both: stored
+ * order first, then the new windows, with open windows at their current frame.
+ */
+export function sessionWhileRestoring(
+  current: WindowSession,
+  stored: WindowSession,
+): WindowSession {
+  const open = new Map(current.windows.map((item) => [item.surfaceId, item]));
+  const storedIds = new Set(stored.windows.map((item) => item.surfaceId));
+  const merged = [
+    ...stored.windows.map((item) => open.get(item.surfaceId) ?? item),
+    ...current.windows.filter((item) => !storedIds.has(item.surfaceId)),
+  ];
+  // Over the limit, the windows not back yet go first; the open ones stay.
+  for (let index = 0; merged.length > 16 && index < merged.length;) {
+    if (open.has(merged[index]?.surfaceId ?? "")) index += 1;
+    else merged.splice(index, 1);
+  }
+  return windowSessionSchema.parse({
+    tiled: current.tiled,
+    active: current.active ?? stored.active,
+    windows: merged.slice(0, 16),
   });
 }
 
@@ -185,33 +214,53 @@ export function createWindowSessionStore(storage: AppStorage) {
   };
 }
 
-export type WindowSessionInput = Readonly<{
-  storage: AppStorage;
-  manager: AppWindowManager;
-  apps: readonly AppDirectoryApp[] | undefined;
-  launchFor: (app: AppDirectoryApp) => AppLaunchDescriptor | null;
-  snapshot: Omit<WindowSessionSnapshot, "frames">;
-  interacting: boolean;
-  /** A phone is always tiled, so it neither reads nor overwrites the choice. */
-  phone: boolean;
-  onTiledChange: ((tiled: boolean) => void) | undefined;
-  focusWindow: (windowId: string) => void;
-  /** The workbench's latest focus request, mid-restore ones included. */
-  focusRequest: () => FocusRequest;
-  /** Shown to the person as a toast; the session is never lost silently. */
-  onError: (message: string) => void;
+/** The part of an App the restore reads to find its stored window. */
+export type RestorableApp = Readonly<{
+  surfaceId: string;
+  roles: readonly string[];
 }>;
+
+export type WindowSessionInput<App extends RestorableApp = AppDirectoryApp> =
+  Readonly<{
+    storage: AppStorage;
+    /** What the restore needs of the window manager. */
+    manager: Readonly<{
+      read: () => Readonly<{
+        windows: readonly Readonly<{ windowId: string }>[];
+      }>;
+      open: (launch: AppLaunchDescriptor) => Promise<void>;
+      minimize: (windowId: string) => Promise<void>;
+    }>;
+    apps: readonly App[] | undefined;
+    launchFor: (app: App) => AppLaunchDescriptor | null;
+    snapshot: Omit<WindowSessionSnapshot, "frames">;
+    interacting: boolean;
+    /** A phone is always tiled, so it neither reads nor overwrites the choice. */
+    phone: boolean;
+    onTiledChange: ((tiled: boolean) => void) | undefined;
+    focusWindow: (windowId: string) => void;
+    /** The workbench's latest focus request, mid-restore ones included. */
+    focusRequest: () => FocusRequest;
+    /** Shown to the person as a toast; the session is never lost silently. */
+    onError: (message: string) => void;
+  }>;
 
 /**
  * Restore the member's windows once the App directory is known, then keep
  * the stored session current. Frames seed panes as they register.
  */
-export function useWindowSession(input: WindowSessionInput) {
+export function useWindowSession<App extends RestorableApp>(
+  input: WindowSessionInput<App>,
+) {
   const latest = useRef(input);
   latest.current = input;
   const seeds = useRef(new Map<string, WindowPlacement>());
   const [store] = useState(() => createWindowSessionStore(input.storage));
   const [restored, setRestored] = useState(false);
+  // The stored session is known; saving starts here, not when the restore ends.
+  const [loaded, setLoaded] = useState(false);
+  // The stored windows, until their reopening has finished.
+  const pendingStored = useRef<WindowSession | null>(null);
   const started = useRef(false);
   const preferredTiled = useRef(true);
   const ready = input.apps !== undefined;
@@ -221,6 +270,8 @@ export function useWindowSession(input: WindowSessionInput) {
     void (async () => {
       try {
         const session = await store.load();
+        pendingStored.current = session;
+        setLoaded(true);
         const current = latest.current;
         if (!session || !current.apps) return;
         preferredTiled.current = session.tiled;
@@ -243,6 +294,8 @@ export function useWindowSession(input: WindowSessionInput) {
         console.error("Open windows could not be restored", cause);
         latest.current.onError("Your open windows could not be restored.");
       } finally {
+        pendingStored.current = null;
+        setLoaded(true);
         setRestored(true);
       }
     })();
@@ -273,12 +326,15 @@ export function useWindowSession(input: WindowSessionInput) {
     frames: new Map([...seeds.current, ...reported]),
     tiled: phone ? preferredTiled.current : snapshot.tiled,
   });
-  const body = JSON.stringify(session);
-  const pending = useRef(session);
-  pending.current = session;
+  // Until the stored windows are back, store them beside the open ones.
+  const stored = restored ? null : pendingStored.current;
+  const toSave = stored ? sessionWhileRestoring(session, stored) : session;
+  const body = JSON.stringify(toSave);
+  const pending = useRef(toSave);
+  pending.current = toSave;
   const saved = useRef<string | null>(null);
   useEffect(() => {
-    if (!restored || interacting || saved.current === body) return;
+    if (!loaded || interacting || saved.current === body) return;
     const timer = setTimeout(() => {
       saved.current = body;
       void store.save(pending.current).catch((cause: unknown) => {
@@ -290,7 +346,7 @@ export function useWindowSession(input: WindowSessionInput) {
     return () => {
       clearTimeout(timer);
     };
-  }, [body, interacting, restored, store]);
+  }, [body, interacting, loaded, store]);
   return {
     reportFrame,
     seedFrame: (windowId: string): WindowPlacement | undefined =>
