@@ -1,5 +1,6 @@
 /** Layout reads and CAS writes against the installation's existing storage owner. */
 import * as Schema from "effect/Schema";
+import * as z from "zod";
 import {
   appStorageReadResultSchema,
   appStorageMutationResultSchema,
@@ -206,4 +207,61 @@ export async function layoutWrite(
     default:
       throw new Error(`Desktop storage update failed: ${result.code}`);
   }
+}
+
+/** What a placement check answers: fine, or why it cannot work, in plain words. */
+export const placementCheckSchema = z.union([
+  z.strictObject({ ok: z.literal(true) }),
+  z.strictObject({ ok: z.literal(false), reason: z.string().min(1).max(300) }),
+]);
+const joinWords = (words: readonly string[]) =>
+  words.length < 3
+    ? words.join(" and ")
+    : `${words.slice(0, -1).join(", ")} and ${words.at(-1) ?? ""}`;
+/**
+ * Whether `layout.place` would accept this input, answered without writing, so
+ * the Hub can refuse a doomed call before it asks a person to approve it.
+ */
+export async function layoutCheckPlace(
+  context: LayoutContext,
+  input: Readonly<{
+    surfaceId: string;
+    gillId: string;
+    size: string;
+    params?: Readonly<Record<string, string>> | undefined;
+  }>,
+): Promise<z.output<typeof placementCheckSchema>> {
+  const { widgets } = await catalog(context);
+  const widget = widgets.find(
+    (entry) =>
+      entry.surfaceId === input.surfaceId && entry.gillId === input.gillId,
+  );
+  if (widget === undefined)
+    return {
+      ok: false,
+      reason: `That widget is not available. Read widgets.available for the ones you can add.`,
+    };
+  if (!widget.sizes.some((size) => size === input.size))
+    return {
+      ok: false,
+      reason: `${widget.title} comes in ${joinWords(widget.sizes)}, not ${input.size}.`,
+    };
+  const declared = widget.params ?? [];
+  if (validDesktopGillParams(input.params, declared)) return { ok: true };
+  const given = input.params ?? {};
+  const missing = declared.filter(
+    (param) => param.required && !given[param.key],
+  );
+  if (missing.length > 0)
+    return {
+      ok: false,
+      reason: `${widget.title} needs ${joinWords(missing.map((param) => `a ${param.label}`))}. Pass params: { ${missing.map((param) => `${param.key}: <id>`).join(", ")} }.`,
+    };
+  const unknown = Object.keys(given).filter(
+    (key) => !declared.some((param) => param.key === key),
+  );
+  return {
+    ok: false,
+    reason: `${widget.title} takes no parameter named ${unknown.join(", ")}.`,
+  };
 }

@@ -11,6 +11,8 @@ import {
   type DesktopArrange,
 } from "../src/desktop-layout.js";
 import {
+  layoutCheckPlace,
+  placementCheckSchema,
   layoutGet,
   layoutWrite,
   widgetsAvailable,
@@ -48,9 +50,21 @@ export const appBackend = defineAppBackend<LayoutContext>({
       output: desktopWidgetsSchema,
       handler: (_input, context) => widgetsAvailable(context),
     }),
+    "layout.checkPlace": defineAppMethod({
+      description:
+        "Check whether a widget can be placed, before anyone is asked.",
+      effect: "read",
+      hidden: true,
+      requires,
+      input: ops[0].omit({ kind: true }).extend(mutation),
+      output: placementCheckSchema,
+      handler: (input, context) => layoutCheckPlace(context, input),
+    }),
     "layout.place": defineAppMethod({
       description: "Add a widget to your dashboard.",
+      precheck: "layout.checkPlace",
       effect: "write",
+      label: "Add a widget to your dashboard",
       requires,
       input: ops[0].omit({ kind: true }).extend(mutation),
       output: desktopArrangeResultSchema,
@@ -73,6 +87,7 @@ export const appBackend = defineAppBackend<LayoutContext>({
     "layout.move": defineAppMethod({
       description: "Move an item on your dashboard.",
       effect: "write",
+      label: "Move a dashboard item",
       requires,
       input: ops[1].omit({ kind: true }).extend(mutation),
       output: desktopArrangeResultSchema,
@@ -84,6 +99,7 @@ export const appBackend = defineAppBackend<LayoutContext>({
     "layout.resize": defineAppMethod({
       description: "Resize a widget on your dashboard.",
       effect: "write",
+      label: "Resize a dashboard widget",
       requires,
       input: ops[2].omit({ kind: true }).extend(mutation),
       output: desktopArrangeResultSchema,
@@ -95,6 +111,7 @@ export const appBackend = defineAppBackend<LayoutContext>({
     "layout.remove": defineAppMethod({
       description: "Remove an item from your dashboard.",
       effect: "write",
+      label: "Remove a dashboard item",
       requires,
       input: ops[3].omit({ kind: true }).extend(mutation),
       output: desktopArrangeResultSchema,
@@ -106,6 +123,7 @@ export const appBackend = defineAppBackend<LayoutContext>({
     "layout.launcher": defineAppMethod({
       description: "Show, pin or hide a launcher on your dashboard.",
       effect: "write",
+      label: "Change your launcher",
       requires,
       input: z.strictObject({
         ...mutation,
@@ -121,6 +139,7 @@ export const appBackend = defineAppBackend<LayoutContext>({
     "layout.set": defineAppMethod({
       description: "Replace your whole dashboard layout.",
       effect: "write",
+      label: "Replace your dashboard layout",
       requires,
       input: z.strictObject({ ...mutation, layout: desktopLayoutSchema }),
       output: desktopArrangeResultSchema,
@@ -134,6 +153,7 @@ export const appBackend = defineAppBackend<LayoutContext>({
     "layout.reset": defineAppMethod({
       description: "Reset your dashboard to the default layout.",
       effect: "write",
+      label: "Reset your dashboard layout",
       requires,
       input: z.strictObject(mutation),
       output: desktopArrangeResultSchema,

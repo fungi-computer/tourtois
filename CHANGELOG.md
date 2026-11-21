@@ -1,5 +1,26 @@
 # @fungi.computer/tourtois
 
+## 0.31.0
+
+### Minor Changes
+
+- Changes since 0.30.11:
+
+  - feat(agar): approval cards read a method's own short label
+  - fix(hub): refuse a widget placement that cannot work before asking anyone to
+    approve it
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.27.0
+  - @fungi.computer/parakeet@0.17.0
+  - @fungi.computer/puffball@0.15.0
+  - @fungi.computer/nacre@0.9.1
+  - @fungi.computer/shiitake@0.22.2
+
 ## 0.30.11
 
 ### Patch Changes
