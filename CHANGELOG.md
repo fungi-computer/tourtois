@@ -1,5 +1,15 @@
 # @fungi.computer/tourtois
 
+## 0.31.5
+
+### Patch Changes
+
+- Updated dependencies
+  - @fungi.computer/agar@0.28.1
+  - @fungi.computer/nacre@0.9.5
+  - @fungi.computer/parakeet@0.17.5
+  - @fungi.computer/shiitake@0.22.7
+
 ## 0.31.4
 
 ### Patch Changes
