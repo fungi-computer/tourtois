@@ -1,5 +1,15 @@
 # @fungi.computer/tourtois
 
+## 0.31.12
+
+### Patch Changes
+
+- Updated dependencies
+  - @fungi.computer/ear-tag@0.3.0
+  - @fungi.computer/nacre@0.9.11
+  - @fungi.computer/parakeet@0.17.12
+  - @fungi.computer/shiitake@0.22.13
+
 ## 0.31.11
 
 ### Patch Changes

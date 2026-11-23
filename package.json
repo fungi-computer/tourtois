@@ -1,6 +1,6 @@
 {
   "name": "@fungi.computer/tourtois",
-  "version": "0.31.11",
+  "version": "0.31.12",
   "scripts": {
     "clean": "node --input-type=module --eval \"import { rm } from 'node:fs/promises'; await rm('dist', { recursive: true, force: true });\"",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.workbench.json && tsc -p backend/tsconfig.json && tsc -p test/workerd/tsconfig.json",
@@ -14,12 +14,12 @@
     "@fungi.computer/agar": "0.29.0",
     "@fungi.computer/cairn": "0.1.0",
     "@fungi.computer/caps": "0.14.0",
-    "@fungi.computer/ear-tag": "0.2.0",
+    "@fungi.computer/ear-tag": "0.3.0",
     "@fungi.computer/gills": "0.4.0",
     "@fungi.computer/maosaico": "0.1.2",
-    "@fungi.computer/parakeet": "0.17.11",
+    "@fungi.computer/parakeet": "0.17.12",
     "@fungi.computer/puffball": "0.15.1",
-    "@fungi.computer/shiitake": "0.22.12",
+    "@fungi.computer/shiitake": "0.22.13",
     "@fungi.computer/sigils": "0.3.2",
     "@fungi.computer/sprite": "0.2.2",
     "@fungi.computer/sprite-zdog": "0.3.2",
@@ -34,13 +34,13 @@
     "lucide-react": "0.460.0",
     "react-dom": "18.3.1",
     "zod": "4.4.3",
-    "@fungi.computer/nacre": "0.9.10"
+    "@fungi.computer/nacre": "0.9.11"
   },
   "devDependencies": {
-    "@fungi.computer/oyster": "0.58.2",
+    "@fungi.computer/oyster": "0.58.3",
     "@cloudflare/workers-types": "5.20260828.1",
     "@fungi.computer/forage": "0.5.3",
-    "@fungi.computer/mycelium": "0.4.13",
+    "@fungi.computer/mycelium": "0.4.14",
     "@ladle/react": "5.1.1",
     "@types/react": "18.3.3",
     "@vitejs/plugin-react": "6.1.1",
