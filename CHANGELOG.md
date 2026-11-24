@@ -1,5 +1,23 @@
 # @fungi.computer/tourtois
 
+## 0.31.16
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/cairn@0.1.1
+  - @fungi.computer/ear-tag@0.3.1
+  - @fungi.computer/puffball@0.15.2
+  - @fungi.computer/agar@0.29.1
+  - @fungi.computer/parakeet@0.17.16
+  - @fungi.computer/shiitake@0.23.1
+  - @fungi.computer/sprite@0.2.3
+  - @fungi.computer/nacre@0.9.14
+  - @fungi.computer/caps@0.14.2
+  - @fungi.computer/sprite-zdog@0.3.3
+
 ## 0.31.15
 
 ### Patch Changes
