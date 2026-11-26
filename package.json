@@ -37,7 +37,7 @@
     "@fungi.computer/nacre": "0.9.19"
   },
   "devDependencies": {
-    "@fungi.computer/oyster": "0.61.9",
+    "@fungi.computer/oyster": "0.62.0",
     "@cloudflare/workers-types": "5.20260828.1",
     "@fungi.computer/forage": "0.6.2",
     "@fungi.computer/mycelium": "0.5.8",
