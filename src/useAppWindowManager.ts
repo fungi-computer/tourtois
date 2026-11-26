@@ -34,6 +34,8 @@ function mountWithShellEvents(
   launch: AppLaunchDescriptor,
   signal: AbortSignal,
   projectionEvents: MountEvents,
+  /** Replaces the window raise: a tile reports use instead of raising anything. */
+  onFocus?: () => void,
 ) {
   if (!host) throw new Error("App host unavailable");
   return host.mount(container, launch, signal, {
@@ -52,7 +54,8 @@ function mountWithShellEvents(
     onAppRole: (role) => latest.current.onAppRole(role),
     onSelectionChanged: () => latest.current.onSelectionChanged(launch),
     onFocus: () => {
-      latest.current.onAppFocus(launch);
+      if (onFocus) onFocus();
+      else latest.current.onAppFocus(launch);
     },
     ...(projectionEvents.onNavigationState && {
       onNavigationState: projectionEvents.onNavigationState,
@@ -79,6 +82,8 @@ export function useAppTileMount(
 ) {
   // A tile is not a window: it neither raises one nor replaces one when the
   // App's selection changes. The shell's command focus follows the frame itself.
+  // The App's own focus report, the only sign of use that crosses its sandboxed
+  // frame, goes to the tile as `onUse` instead.
   const latest = useRef(events);
   latest.current = {
     ...events,
@@ -90,6 +95,7 @@ export function useAppTileMount(
       container: Parameters<TourtoisAppSurfaceHost["mount"]>[0],
       launch: AppLaunchDescriptor,
       signal: AbortSignal,
+      onUse: () => void,
     ) =>
       await mountWithShellEvents(
         host,
@@ -99,6 +105,7 @@ export function useAppTileMount(
         launch,
         signal,
         {},
+        onUse,
       ),
     [host, teamId],
   );

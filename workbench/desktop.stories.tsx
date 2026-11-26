@@ -1,6 +1,6 @@
 import type { Story, StoryDefault } from "@ladle/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { DropdownMenuItem } from "@fungi.computer/caps/components/dropdown-menu";
 import { toast } from "@fungi.computer/caps/components/toaster";
 import { TeamTourtois } from "../src/TeamDesktop.js";
@@ -16,6 +16,10 @@ import {
 import { MaosaicoRoot } from "@fungi.computer/maosaico";
 import { AppPane } from "../src/AppPane.js";
 import { TourtoisLayers } from "../src/layers.js";
+import {
+  SurfaceGill as SurfaceGillTile,
+  type SurfaceMount,
+} from "../src/desktop/surface-gill.js";
 import { useAppWindowManager } from "../src/useAppWindowManager.js";
 import { attachWindowComputer } from "../src/app-launch.js";
 import {
@@ -342,6 +346,76 @@ export const SurfaceGillUnavailable: Story = () => (
   <Desktop fixture={surfaceGillUnavailable} />
 );
 SurfaceGillUnavailable.msw = surfaceGillUnavailable.handlers;
+
+/**
+ * A real sandboxed frame with an opaque origin, as an App's frame is: its
+ * clicks and keys never reach this page. With `reports`, it also sends the
+ * focus report the host forwards to the tile; without, only the browser's own
+ * window blur and active element show that it was used.
+ */
+const mountBoard =
+  (reports: boolean): SurfaceMount =>
+  (container, _target, _signal, onUse) => {
+    const frame = document.createElement("iframe");
+    frame.setAttribute("sandbox", "allow-scripts allow-forms");
+    frame.dataset.board = "";
+    const report = reports
+      ? "<script>addEventListener('focusin',()=>parent.postMessage('board-used','*'))</script>"
+      : "";
+    frame.srcdoc = `<body style='font:14px sans-serif;padding:12px'><b>Seed board</b><p><label>Reply draft <input aria-label='Reply draft'></label></p>${report}`;
+    const heard = (event: MessageEvent) => {
+      if (event.source === frame.contentWindow && event.data === "board-used")
+        onUse();
+    };
+    window.addEventListener("message", heard);
+    container.append(frame);
+    return Promise.resolve({
+      dispose: () => {
+        window.removeEventListener("message", heard);
+        frame.remove();
+      },
+    });
+  };
+
+function UpdateBoard({ reports }: { reports: boolean }) {
+  const [releaseId, setReleaseId] = useState("rel_board_1");
+  const mount = useMemo(() => mountBoard(reports), [reports]);
+  return (
+    <div style={{ width: 480, height: 360, padding: 16 }}>
+      <button
+        type="button"
+        onClick={() => {
+          setReleaseId("rel_board_2");
+        }}
+      >
+        Promote release
+      </button>
+      <SurfaceGillTile
+        title="Board"
+        appName="Canvas"
+        size="M"
+        target={{
+          itemId: "item",
+          surfaceId: "installation:canvas",
+          gillId: "board",
+        }}
+        releaseId={releaseId}
+        editing={false}
+        mount={mount}
+      />
+    </div>
+  );
+}
+
+/**
+ * A widget the person uses inside its real sandboxed frame while a newer
+ * release lands: the frame stays as it is and one quiet row offers Update. Here
+ * the host learns of the use from the window blur alone.
+ */
+export const SurfaceGillUpdate: Story = () => <UpdateBoard reports={false} />;
+
+/** The same, where the App also reports its own focus to the host. */
+export const SurfaceGillUpdateReported: Story = () => <UpdateBoard reports />;
 
 const needsUpdate = createDesktopFixture("needs-update");
 export const AppNeedsUpdate: Story = () => <Desktop fixture={needsUpdate} />;

@@ -988,7 +988,7 @@ export function AppWorkbench({
             }}
             installing={installingApps(appsQuery.data)}
             onRetryInstall={platform.retryInstall}
-            mountSurface={(container, target, signal) => {
+            mountSurface={(container, target, signal, onUse) => {
               const app = windowApps.find(
                 (app) => app.surfaceId === target.surfaceId,
               );
@@ -997,6 +997,16 @@ export function AppWorkbench({
                 return Promise.reject(
                   new Error("The widget's App is unavailable."),
                 );
+              // Which release the widget mounts on, and when the directory
+              // was read, so a first load on an older release can be traced.
+              console.debug("Widget mounting", {
+                surfaceId: target.surfaceId,
+                releaseId: launch.releaseId,
+                directoryReadAt: new Date(
+                  appsQuery.dataUpdatedAt,
+                ).toISOString(),
+                mountedAt: new Date().toISOString(),
+              });
               return mountAppTile(
                 container,
                 launchForSurfaceGill(
@@ -1005,6 +1015,7 @@ export function AppWorkbench({
                   composeOpenRequests.request.generate(),
                 ),
                 signal,
+                onUse,
               );
             }}
             paused={covered}

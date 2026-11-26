@@ -676,6 +676,7 @@ function ArrangedDesktop({
                       surfaceId: item.surfaceId,
                       gillId: item.gillId,
                     }}
+                    releaseId={app.releaseId}
                     mount={props.mountSurface}
                     editing={editing}
                   />

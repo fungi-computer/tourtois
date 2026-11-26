@@ -1,5 +1,17 @@
 # @fungi.computer/tourtois
 
+## 0.31.31
+
+### Patch Changes
+
+- Changes since 0.31.30:
+
+  - fix(tourtois): satisfy lint in the widget use proof
+  - fix(tourtois): notice use inside a widget's sandboxed frame
+  - fix(tourtois): offer Update instead of swapping a widget the person used
+  - fix(tourtois): swap a widget's release only when nobody is using it
+  - fix(tourtois): remount a dashboard widget when its App's release changes
+
 ## 0.31.30
 
 ### Patch Changes

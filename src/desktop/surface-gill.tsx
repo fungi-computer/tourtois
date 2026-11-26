@@ -20,6 +20,12 @@ export type SurfaceMount = (
   container: HTMLElement,
   target: SurfaceTarget,
   signal: AbortSignal,
+  /**
+   * Called when the person uses the App inside the frame. The frame is
+   * sandboxed, so its clicks and keys never reach this document; the App's own
+   * focus report is the signal to forward.
+   */
+  onUse: () => void,
 ) => Promise<SurfaceHandle>;
 
 /**
@@ -32,6 +38,7 @@ export function SurfaceGill({
   appName,
   size,
   target,
+  releaseId,
   mount,
   editing,
 }: {
@@ -39,6 +46,12 @@ export function SurfaceGill({
   appName: string;
   size: AppGillDesktopSize;
   target: SurfaceTarget;
+  /**
+   * The App Release the Team's directory names now. An unused or failed widget
+   * moves to it at once; a widget the person has used offers an Update row
+   * instead, so what they typed or scrolled is never thrown away.
+   */
+  releaseId: string | null;
   mount: SurfaceMount;
   editing: boolean;
 }) {
@@ -48,29 +61,62 @@ export function SurfaceGill({
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const { itemId, surfaceId, gillId } = target;
+  // The release the live frame was mounted with. A newer one swaps in at once
+  // only when that loses nothing: the widget failed, or the person never used
+  // it. Otherwise it waits for the person's own Update, as App windows do, for
+  // a draft or a half-filled form stays in the frame whatever has focus.
+  const [mountedRelease, setMountedRelease] = useState(releaseId);
+  const [touched, setTouched] = useState(false);
+  const newer = releaseId !== mountedRelease;
+  useEffect(() => {
+    if (newer && (failed || !touched)) setMountedRelease(releaseId);
+  }, [newer, failed, touched, releaseId]);
+  useEffect(() => {
+    // A click or key inside the sandboxed frame never reaches this document,
+    // but it moves focus into the frame: the window blurs and the frame becomes
+    // the active element. Look one task later, once focus has settled.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onBlur = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const node = slot.current;
+        if (node?.contains(document.activeElement)) setTouched(true);
+      }, 0);
+    };
+    window.addEventListener("blur", onBlur);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, []);
   useEffect(() => {
     const node = slot.current;
     if (!node) return;
     setFailed(false);
+    setTouched(false);
     const abort = new AbortController();
     let handle: SurfaceHandle | undefined;
-    latest.current(node, { itemId, surfaceId, gillId }, abort.signal).then(
-      (mounted) => {
-        handle = mounted;
-        if (abort.signal.aborted) void release(mounted);
-      },
-      (cause: unknown) => {
-        if (abort.signal.aborted) return;
-        console.error("Surface Gill could not be mounted", cause);
-        setFailed(true);
-      },
-    );
+    latest
+      .current(node, { itemId, surfaceId, gillId }, abort.signal, () => {
+        setTouched(true);
+      })
+      .then(
+        (mounted) => {
+          handle = mounted;
+          if (abort.signal.aborted) void release(mounted);
+        },
+        (cause: unknown) => {
+          if (abort.signal.aborted) return;
+          console.error("Surface Gill could not be mounted", cause);
+          setFailed(true);
+        },
+      );
     return () => {
       if (handle) void release(handle);
       else abort.abort();
       handle = undefined;
     };
-  }, [itemId, surfaceId, gillId, attempt]);
+  }, [itemId, surfaceId, gillId, mountedRelease, attempt]);
   return (
     <Card
       aria-label={`${title}, ${appName}`}
@@ -99,6 +145,20 @@ export function SurfaceGill({
                 </Button>
               }
             />
+          </div>
+        ) : null}
+        {newer && !failed ? (
+          <div className="tourtois-surface-update" role="status">
+            <span>A newer version is ready.</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setMountedRelease(releaseId);
+              }}
+            >
+              Update
+            </Button>
           </div>
         ) : null}
         {editing ? (
