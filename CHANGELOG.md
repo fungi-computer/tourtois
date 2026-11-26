@@ -1,5 +1,18 @@
 # @fungi.computer/tourtois
 
+## 0.31.32
+
+### Patch Changes
+
+- Changes since 0.31.31:
+
+  - fix(grove): repair the tourtois workbench import and the empty-dist message
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/parakeet@0.19.6
+  - @fungi.computer/shiitake@0.24.2
+
 ## 0.31.31
 
 ### Patch Changes

@@ -23,7 +23,7 @@ import { createRoot } from "react-dom/client";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { GroveApp } from "../../grove/src/chat-gill.js";
+import { GroveApp } from "../../grove/src/grove-app.js";
 import { createGroveFixture } from "../../grove/workbench/fixtures.js";
 import "@fungi.computer/parakeet/styles.css";
 import { InkcapApp } from "../../inkcap/src/InkcapApp.js";
