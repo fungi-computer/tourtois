@@ -33,6 +33,7 @@ import { ArrangeToolbar } from "./arrange-toolbar.js";
 import type { InstallingApp } from "@fungi.computer/nacre/workbench-directory";
 import { LauncherGill } from "./launcher-gill.js";
 import type { WidgetChoice } from "./widget-picker.js";
+import type { SetupChatPlacement } from "../window-session.js";
 import { RowGill, type DesktopGillTransport } from "./row-gill.js";
 import { SurfaceGill, type SurfaceMount } from "./surface-gill.js";
 
@@ -60,6 +61,14 @@ export type DesktopProps = {
     | ((surfaceId: string) => readonly { computerId: string; name: string }[])
     | undefined;
   onOwner?: (owner: DesktopLayoutClient | null) => void;
+  /**
+   * Where the chat stands when it is the whole desktop (what an unarranged
+   * desktop shows by default), null when the desktop is anything else.
+   * Reported once the desktop has loaded and the tile has settled, so a
+   * restored window can keep clear of it. This is a layout fact, not a sign
+   * that anyone's setup is unfinished.
+   */
+  onSetupChat?: ((chat: SetupChatPlacement | null) => void) | undefined;
   /** Arrange mode is a Layout-menu command, so the Workbench owns it. */
   editing: boolean;
   onEditingChange: (editing: boolean) => void;
@@ -228,6 +237,58 @@ function ArrangedDesktop({
       observer.disconnect();
     };
   }, [loneSurface]);
+  const { onSetupChat } = props;
+  useEffect(() => {
+    const node = stage.current;
+    const scroller = node?.closest<HTMLElement>(".tourtois-desktop");
+    if (!loneSurface || !node || !scroller) {
+      onSetupChat?.(null);
+      return undefined;
+    }
+    // Where the chat stands in the desktop, so a restored window can take the
+    // free column beside it. The tile finds its place over the first frames, so
+    // a placement counts once two frames in a row agree.
+    let last: SetupChatPlacement | null = null;
+    let frame = 0;
+    // The search gives up after the restore's own 3 s wait is over.
+    const giveUpAt = performance.now() + 3_000;
+    const settle = () => {
+      const tile = scroller.querySelector<HTMLElement>("[data-desktop-gill]");
+      if (!tile) {
+        // The bento renders before it is measured: look again next frame.
+        if (performance.now() < giveUpAt) frame = requestAnimationFrame(settle);
+        return;
+      }
+      const area = scroller.getBoundingClientRect();
+      const box = tile.getBoundingClientRect();
+      const placement = {
+        left: Math.round(box.left - area.left),
+        right: Math.round(box.right - area.left),
+        width: Math.round(area.width),
+      };
+      if (
+        last?.left === placement.left &&
+        last.right === placement.right &&
+        last.width === placement.width
+      ) {
+        onSetupChat?.(placement);
+        return;
+      }
+      last = placement;
+      frame = requestAnimationFrame(settle);
+    };
+    frame = requestAnimationFrame(settle);
+    const observer = new ResizeObserver(() => {
+      last = null;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(settle);
+    });
+    observer.observe(scroller);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [loneSurface, onSetupChat]);
   const projected = desktopPlacements(snapshot.layout)
     .filter((cell) => visibleItems.some((item) => item.id === cell.id))
     .map((cell) => {

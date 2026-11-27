@@ -1,5 +1,29 @@
 # @fungi.computer/tourtois
 
+## 0.31.37
+
+### Patch Changes
+
+- Changes since 0.31.36:
+
+  - fix(tourtois): tighten the restore's unsaved-move check and bound the chat
+    search
+  - fix(tourtois): move only windows that cover the lone chat and never save the
+    move
+  - fix(tourtois): seat a restored window in the free column beside setup's
+    chat, or minimise it
+  - fix(tourtois): restore windows beside setup's chat and fit the Apps bar
+    items to the bar
+  - fix(tourtois): restore a maximised window at normal size while setup's chat
+    is the dashboard
+
+- Updated dependencies
+  - @fungi.computer/puffball@0.18.2
+  - @fungi.computer/agar@0.30.3
+  - @fungi.computer/nacre@0.9.21
+  - @fungi.computer/parakeet@0.19.11
+  - @fungi.computer/shiitake@0.24.6
+
 ## 0.31.36
 
 ### Patch Changes

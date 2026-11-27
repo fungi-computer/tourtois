@@ -21,6 +21,27 @@
     height: var(--spacing-xl);
     padding: var(--spacing-2xs);
   }
+  /* Running-App items fit the bar too (Caps' 40px default overflowed it by
+     4px at the top, under any banner the page puts above the shell). Like the
+     launcher above, the item keeps a roughly 20px icon, and its close badge is
+     a small one confined to the item's corner, clear of its centre, which is
+     where a click restores the window. */
+  .tourtois-desktop-menu .caps-app-bar-button {
+    width: var(--spacing-xl);
+    height: var(--spacing-xl);
+    padding: var(--spacing-2xs);
+  }
+  .tourtois-desktop-menu .caps-app-bar-close {
+    top: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    padding: 0;
+  }
+  .tourtois-desktop-menu .caps-app-bar-close svg {
+    width: 8px;
+    height: 8px;
+  }
 }
 
 .tourtois-shell {

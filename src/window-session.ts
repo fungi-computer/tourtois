@@ -55,6 +55,93 @@ export const cascade = (index: number): WindowPlacement => ({
   height: 480,
 });
 
+/** Where setup's chat stands in the desktop, in the desktop's own pixels. */
+export type SetupChatPlacement = Readonly<{
+  left: number;
+  right: number;
+  width: number;
+}>;
+
+/** Space kept between the chat, a window and the desktop's edge. */
+const besideGap = 16;
+/** The narrowest column a window can sensibly take beside the chat. */
+const besideMinimum = 360;
+
+/** Whether a stored session has anything on screen that a chat could be under. */
+function couldCoverChat(session: WindowSession): boolean {
+  return session.windows.some((window) => !window.minimized);
+}
+
+/**
+ * Seat the windows that would cover the chat, the only chat this knows of being
+ * the lone widget of an unarranged desktop: they float in the larger free
+ * column beside it, sized to fit and never over it, or are minimised in the bar
+ * when no column is 360px wide. A tiled session covers it by construction, so
+ * it floats. Windows clear of the chat stay as stored. Returns null when
+ * nothing covers the chat. The result is for display: the hook never writes it
+ * back over the stored session.
+ */
+export function sessionBesideSetupChat(
+  session: WindowSession,
+  chat: SetupChatPlacement,
+): WindowSession | null {
+  // The chat fills the desktop's height, so only horizontal overlap matters.
+  const covers = (window: WindowSession["windows"][number]) =>
+    !window.minimized &&
+    (session.tiled ||
+      (window.frame.x < chat.right &&
+        window.frame.x + window.frame.width > chat.left));
+  if (!session.windows.some(covers)) return null;
+  const leftColumn = chat.left - 2 * besideGap;
+  const rightColumn = chat.width - chat.right - 2 * besideGap;
+  const useRight = rightColumn > leftColumn;
+  const width = Math.max(leftColumn, rightColumn);
+  const x = useRight ? chat.right + besideGap : besideGap;
+  let seated = 0;
+  return {
+    ...session,
+    tiled: false,
+    windows: session.windows.map((window) => {
+      if (!covers(window)) return window;
+      const index = seated++;
+      return width >= besideMinimum
+        ? {
+            ...window,
+            frame: {
+              x: x + index * 12,
+              y: 24 + index * 12,
+              width: width - index * 12,
+              height: Math.min(window.frame.height, 560),
+            },
+          }
+        : { ...window, minimized: true };
+    }),
+  };
+}
+
+/** Whether two sessions arrange the windows alike, give or take rounding. */
+export function sameArrangement(a: WindowSession, b: WindowSession): boolean {
+  // Rounding only: a window the person moved differs by far more.
+  const near = (x: number, y: number) => Math.abs(x - y) <= 2;
+  return (
+    a.tiled === b.tiled &&
+    a.windows.length === b.windows.length &&
+    a.windows.every((window, index) => {
+      const other = b.windows[index];
+      if (other === undefined) return false;
+      return (
+        window.surfaceId === other.surfaceId &&
+        window.minimized === other.minimized &&
+        (window.minimized ||
+          (near(window.frame.x, other.frame.x) &&
+            near(window.frame.y, other.frame.y) &&
+            near(window.frame.width, other.frame.width) &&
+            near(window.frame.height, other.frame.height)))
+      );
+    })
+  );
+}
+
 /** Pure projection of the live desktop into the stored shape. */
 export function windowSessionFrom(
   snapshot: WindowSessionSnapshot,
@@ -237,6 +324,12 @@ export type WindowSessionInput<App extends RestorableApp = AppDirectoryApp> =
     interacting: boolean;
     /** A phone is always tiled, so it neither reads nor overwrites the choice. */
     phone: boolean;
+    /**
+     * Where the desktop's lone chat stands, null when the desktop is not just
+     * that chat; absent until the desktop has said. A restore with windows on
+     * screen waits briefly for it, so none comes back covering the chat.
+     */
+    setupChat?: SetupChatPlacement | null | undefined;
     onTiledChange: ((tiled: boolean) => void) | undefined;
     focusWindow: (windowId: string) => void;
     /** The workbench's latest focus request, mid-restore ones included. */
@@ -263,18 +356,40 @@ export function useWindowSession<App extends RestorableApp>(
   const pendingStored = useRef<WindowSession | null>(null);
   const started = useRef(false);
   const preferredTiled = useRef(true);
+  // The windows as seated beside setup's chat for display, with what is stored.
+  // While the arrangement is untouched the stored session is what gets saved.
+  const seated = useRef<{ stored: WindowSession; shown: WindowSession } | null>(
+    null,
+  );
   const ready = input.apps !== undefined;
   useEffect(() => {
     if (!ready || started.current) return;
     started.current = true;
     void (async () => {
       try {
-        const session = await store.load();
-        pendingStored.current = session;
+        const stored = await store.load();
+        const chatKnown = () => latest.current.setupChat !== undefined;
+        pendingStored.current = stored;
         setLoaded(true);
+        // Only a person with something on screen waits (briefly) to learn where
+        // setup's chat stands; an empty session, a phone and minimised windows
+        // restore at once.
+        if (
+          stored &&
+          couldCoverChat(stored) &&
+          !latest.current.phone &&
+          !chatKnown()
+        )
+          for (let waited = 0; waited < 3_000 && !chatKnown(); waited += 50)
+            await new Promise<void>((resolve) => setTimeout(resolve, 50));
         const current = latest.current;
+        const beside =
+          stored && current.setupChat && !current.phone
+            ? sessionBesideSetupChat(stored, current.setupChat)
+            : null;
+        const session = beside ?? stored;
         if (!session || !current.apps) return;
-        preferredTiled.current = session.tiled;
+        preferredTiled.current = stored?.tiled ?? session.tiled;
         current.onTiledChange?.(session.tiled);
         const launches = restorableLaunches(
           session,
@@ -283,6 +398,22 @@ export function useWindowSession<App extends RestorableApp>(
         );
         for (const { launch, frame } of launches)
           seeds.current.set(launch.windowId, frame);
+        // What is compared with later is only what actually reopened: an App
+        // that is no longer available is not a change the person made.
+        if (stored && beside) {
+          const reopened = new Set(
+            launches.map(({ launch }) => launch.windowId),
+          );
+          seated.current = {
+            stored,
+            shown: {
+              ...beside,
+              windows: beside.windows.filter((window) =>
+                reopened.has(windowIdFor(window.surfaceId)),
+              ),
+            },
+          };
+        }
         const focused = await restoreWindows(
           launches,
           session.active,
@@ -328,7 +459,17 @@ export function useWindowSession<App extends RestorableApp>(
   });
   // Until the stored windows are back, store them beside the open ones.
   const stored = restored ? null : pendingStored.current;
-  const toSave = stored ? sessionWhileRestoring(session, stored) : session;
+  // Seating a window beside the chat is display only: until the person changes
+  // the arrangement, the session they stored is the one kept.
+  const untouched =
+    seated.current !== null && sameArrangement(session, seated.current.shown);
+  const toSave =
+    untouched && seated.current
+      ? seated.current.stored
+      : stored
+        ? sessionWhileRestoring(session, stored)
+        : session;
+  if (!untouched && restored) seated.current = null;
   const body = JSON.stringify(toSave);
   const pending = useRef(toSave);
   pending.current = toSave;

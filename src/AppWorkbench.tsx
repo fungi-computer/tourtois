@@ -76,7 +76,11 @@ import {
   useAppWindowManager,
   type WindowEvents,
 } from "./useAppWindowManager.js";
-import { useWindowSession, type FocusRequest } from "./window-session.js";
+import {
+  useWindowSession,
+  type FocusRequest,
+  type SetupChatPlacement,
+} from "./window-session.js";
 
 import { useDirectoryCommands } from "./useDirectoryCommands.js";
 
@@ -226,6 +230,14 @@ export function AppWorkbench({
   const appDialContainer = useLayer("popover");
   const noticeContainer = useLayer("toast");
   const layout = useMaosaicoLayout();
+  // Where the desktop's lone chat stands once the desktop has loaded: the
+  // window restore reads it so a returning person's windows keep clear of it.
+  const [setupChat, setSetupChat] = useState<
+    SetupChatPlacement | null | undefined
+  >(undefined);
+  const receiveSetupChat = useCallback((chat: SetupChatPlacement | null) => {
+    setSetupChat(chat);
+  }, []);
   const { activeId, focus, mode, order } = layout;
   const appSurfaceHost = useAppSurfaceHost();
   const selectionRefreshes = useRef(new Map<string, number>());
@@ -694,6 +706,7 @@ export function AppWorkbench({
         status: item.status,
       })),
     },
+    setupChat,
     interacting: layout.interacting,
     phone,
     onTiledChange: onLayoutChange,
@@ -982,6 +995,7 @@ export function AppWorkbench({
             editing={desktopEditing}
             onEditingChange={setDesktopEditing}
             onOwner={receiveDesktopOwner}
+            onSetupChat={receiveSetupChat}
             launcherItems={launchableItems}
             onAllApps={() => {
               setAppDialOpen(true);
