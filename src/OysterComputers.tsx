@@ -1,4 +1,6 @@
 import { AppError } from "@fungi.computer/agar";
+import { computerIdleSleepAfterText } from "@fungi.computer/agar/computer-contracts";
+import { computerQueueNotice } from "@fungi.computer/agar/computer-contracts";
 import { optimisticMutation } from "@fungi.computer/agar/query";
 import { SectionHeading } from "@fungi.computer/caps/blocks/section-heading";
 import { Button } from "@fungi.computer/caps/components/button";
@@ -115,10 +117,13 @@ export type ComputerRunState =
 export type ComputerRunReading = Readonly<{
   state: ComputerRunState;
   reason?: string | undefined;
+  /** For a queued start: its place in the host's queue, 1 being the next. */
+  position?: number | undefined;
 }>;
 const computerRunStateSchema = z.looseObject({
   state: z.enum(["running", "sleeping", "starting", "queued", "start_failed"]),
   reason: z.string().min(1).max(1_024).optional(),
+  position: z.number().int().positive().optional(),
 });
 
 /** The durable per-Computer switches an owner manages. */
@@ -248,10 +253,10 @@ export function createOysterComputersPort(origin: URL): OysterComputersPort {
       const response = await read(
         `/api/computers/${encodeURIComponent(computerId)}/state`,
       );
-      const { state, reason } = computerRunStateSchema.parse(
+      const { state, reason, position } = computerRunStateSchema.parse(
         await response.json(),
       );
-      return { state, reason };
+      return { state, reason, position };
     },
     selection: {
       selected: async () => {
@@ -442,7 +447,7 @@ export const keepAwakeHelp = (idleMetered: boolean) =>
     idleMetered
       ? "Stays on when idle, and idle time is charged."
       : "Stays on when idle."
-  } Off, it sleeps after an idle hour.`;
+  } Off, it sleeps after ${computerIdleSleepAfterText()} idle.`;
 
 const createComputerSchema = (prices: OysterComputersPort["sizePrices"]) =>
   z.object({
@@ -542,6 +547,30 @@ function ComputerRunStatus({
       motion={
         run.state === "starting" || run.state === "queued" ? "pulse" : "none"
       }
+    />
+  );
+}
+
+/** One line under a queued Computer saying how many starts are ahead of it. */
+function ComputerQueueNotice({
+  teamId,
+  computer,
+  port,
+}: {
+  teamId: string;
+  computer: TeamComputer;
+  port: OysterComputersPort;
+}) {
+  const run = useComputerRunState(teamId, computer, port).data;
+  if (run?.state !== "queued" || run.position === undefined) return null;
+  return (
+    <Status
+      role="status"
+      size="compact"
+      tone="info"
+      motion="pulse"
+      className="tourtois-computer-queue min-h-8 min-w-0"
+      label={computerQueueNotice(run.position)}
     />
   );
 }
@@ -895,6 +924,11 @@ export function OysterComputers({
                   ) : null}
                 </>
               }
+            />
+            <ComputerQueueNotice
+              teamId={teamId}
+              computer={computer}
+              port={port}
             />
             <DataList
               density="compact"

@@ -35,7 +35,9 @@ const computers = [
 ];
 const first = computers[0];
 
-function computerStory(host: "standalone" | "hub" | "team-off"): Story {
+function computerStory(
+  host: "standalone" | "hub" | "team-off" | "queued",
+): Story {
   const Story: Story = () => {
     const [client] = useState(
       () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
@@ -92,7 +94,18 @@ function computerStory(host: "standalone" | "hub" | "team-off"): Story {
                 ),
             }),
       };
-      return shared;
+      // A full host: Studio's start waits behind two others.
+      return host === "queued"
+        ? {
+            ...shared,
+            state: (id: string) =>
+              Promise.resolve(
+                id === first.computerId
+                  ? { state: "queued" as const, position: 3 }
+                  : { state: "sleeping" as const },
+              ),
+          }
+        : shared;
     });
     return (
       <QueryClientProvider client={client}>
@@ -124,19 +137,28 @@ function computerStory(host: "standalone" | "hub" | "team-off"): Story {
                       setReadback(null);
                     }}
                   />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void port
-                        .internetAccess(first.computerId)
-                        .then(setReadback);
-                    }}
-                  >
-                    Read back Studio
-                  </button>
-                  <output aria-label="Studio Internet access readback">
-                    {readback === null ? "Not read" : readback ? "On" : "Off"}
-                  </output>
+                  {/* Proof scaffolding for the Internet access readback; the queued story shows only the real settings. */}
+                  {host === "queued" ? null : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void port
+                            .internetAccess(first.computerId)
+                            .then(setReadback);
+                        }}
+                      >
+                        Read back Studio
+                      </button>
+                      <output aria-label="Studio Internet access readback">
+                        {readback === null
+                          ? "Not read"
+                          : readback
+                            ? "On"
+                            : "Off"}
+                      </output>
+                    </>
+                  )}
                 </>
               ),
             }}
@@ -151,3 +173,4 @@ function computerStory(host: "standalone" | "hub" | "team-off"): Story {
 export const Standalone = computerStory("standalone");
 export const Hub = computerStory("hub");
 export const HubTeamOff = computerStory("team-off");
+export const HubQueued = computerStory("queued");

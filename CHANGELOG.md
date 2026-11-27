@@ -1,5 +1,31 @@
 # @fungi.computer/tourtois
 
+## 0.32.0
+
+### Minor Changes
+
+- Changes since 0.31.37:
+
+  - fix(computers): own the idle-sleep window in agar so Tourtois needs no
+    Computer dependency
+  - fix(computers): say the idle sleep window from its one constant everywhere
+  - feat(computers): say how many starts are ahead of a queued Computer in
+    Tourtois and the Hub card
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.31.0
+  - @fungi.computer/nacre@0.10.0
+  - @fungi.computer/parakeet@0.19.12
+  - @fungi.computer/puffball@0.18.3
+  - @fungi.computer/whistle@0.3.1
+  - @fungi.computer/shiitake@0.24.7
+
 ## 0.31.37
 
 ### Patch Changes
